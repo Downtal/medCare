@@ -1,0 +1,40 @@
+server:
+  port: 8088
+
+spring:
+  application:
+    name: shipping-service
+  datasource:
+    url: jdbc:mysql://localhost:3306/medcare_shipping_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+    username: root
+    password:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+    fetch-registry: true
+    register-with-eureka: true
+  instance:
+    prefer-ip-address: true
+
+application:
+  security:
+    jwt:
+      secret-key: ${JWT_SECRET}
+
+ghn:
+  api:
+    url: https://dev-online-gateway.ghn.vn/shiip/public-api/v2
+    token: ${TOKEN_GHN:default_token_ghn}
+    shopId: ${GHN_SHOP_ID:0}
+  webhook:
+    secret-key: ${GHN_WEBHOOK_SECRET:medcare_default_secret_ghn_webhook}

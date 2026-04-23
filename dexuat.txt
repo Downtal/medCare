@@ -1,0 +1,247 @@
+1. Mục tiêu hệ thống
+•	Bán: 
+o	thuốc không kê đơn (OTC) 
+o	thực phẩm chức năng 
+o	 thiết bị y tế 
+•	Hỗ trợ: 
+o	chatbot tư vấn sản phẩm 
+o	cá nhân hóa theo tình trạng người dùng 
+•	Tuân thủ: 
+o	hạn chế bán thuốc kê đơn (có kiểm soát) 
+
+2. Actors (Tác nhân)
+Customer (Người dùng)
+Admin
+Pharmacist (Dược sĩ – optional nâng cao)
+
+3. FLOW HỆ THỐNG
+Customer Flow
+1.	Truy cập website 
+2.	Đăng ký / đăng nhập 
+3.	Tìm kiếm sản phẩm 
+4.	Chat với AI: 
+o	“Tôi bị đau đầu nên dùng gì?” 
+5.	AI: 
+o	gợi ý sản phẩm phù hợp 
+o	cảnh báo (nếu cần) 
+6.	Xem chi tiết sản phẩm 
+7.	Thêm vào giỏ hàng 
+8.	Thanh toán 
+9.	Theo dõi đơn hàng 
+
+Flow Chatbot AI 
+1.	User nhập triệu chứng / nhu cầu 
+2.	NLP xử lý 
+3.	Mapping: 
+o	triệu chứng → nhóm sản phẩm 
+4.	Trả về: 
+o	danh sách thuốc phù hợp 
+o	hướng dẫn sử dụng cơ bản 
+o	cảnh báo 
+
+Admin Flow
+1.	Login admin 
+2.	Quản lý: 
+o	sản phẩm 
+o	danh mục 
+3.	Quản lý đơn hàng 
+4.	Quản lý user 
+5.	Quản lý dữ liệu chatbot 
+6.	Xem báo cáo 
+
+Pharmacist Flow (optional)
+•	Duyệt đơn thuốc đặc biệt 
+4. USE CASE CHI TIẾT
+CUSTOMER USE CASE
+1. Authentication
+•	Đăng ký / đăng nhập 
+
+2. Product Browsing
+•	Xem danh mục: 
+o	thuốc cảm 
+o	đau đầu 
+o	vitamin 
+•	Tìm kiếm 
+
+3. Product Detail
+•	Xem: 
+o	công dụng 
+o	liều dùng 
+o	chống chỉ định 
+
+4. Cart & Order
+•	Thêm vào giỏ 
+•	Thanh toán 
+
+5. Chatbot AI 
+•	Hỏi: 
+o	triệu chứng 
+o	nhu cầu 
+•	Nhận: 
+o	gợi ý sản phẩm 
+o	cảnh báo 
+
+6. Profile
+•	Lịch sử mua 
+•	Thông tin sức khỏe (optional) 
+
+7. Review
+•	Đánh giá sản phẩm 
+
+ADMIN USE CASE
+1. Dashboard
+•	Doanh thu 
+•	Sản phẩm bán chạy 
+
+2. Product Management
+•	CRUD sản phẩm 
+•	Upload ảnh 
+•	Gắn: 
+o	công dụng 
+o	thành phần 
+
+3. Category Management
+•	CRUD danh mục 
+
+4. Order Management
+•	Quản lý đơn 
+
+5. Chatbot Data Management
+•	Quản lý: 
+o	symptom → product mapping 
+o	knowledge base 
+
+6. User Management
+•	Quản lý user 
+
+5. CHỨC NĂNG HỆ THỐNG
+Core Features
+•	Authentication (JWT) 
+•	Product catalog 
+•	Cart & Order 
+•	Payment 
+•	Chatbot tư vấn 
+
+Advanced Features 
+•	Cá nhân hóa sản phẩm 
+•	Prescription upload (optional) 
+•	Nhắc uống thuốc 
+•	Subscription thuốc 
+
+6. AI FEATURES
+1. Symptom-based Recommendation
+•	Input: 
+o	triệu chứng 
+•	Output: 
+o	sản phẩm phù hợp 
+
+2. NLP Chatbot
+•	Hiểu câu hỏi tự nhiên 
+
+3. Personalization
+•	Dựa vào: 
+o	tuổi 
+o	giới tính 
+o	lịch sử mua 
+
+4. Risk Warning 
+•	Cảnh báo: 
+o	dị ứng 
+o	chống chỉ định 
+
+5. Semantic Search
+•	Tìm kiếm thông minh 
+
+7. KIẾN TRÚC HỆ THỐNG
+Backend (Spring Boot)
+•	REST API 
+•	JWT Security 
+•	JPA/Hibernate 
+
+Frontend (NextJS)
+•	SSR (SEO tốt) 
+•	UI: 
+o	product 
+o	chatbot 
+
+AI Service (Microservice)
+•	Python (FastAPI) 
+•	NLP + recommendation 
+
+Database
+•	MySQL 
+
+Cache
+•	Redis 
+
+8. DATABASE DESIGN
+Tables:
+•	users 
+•	roles 
+•	products 
+•	categories 
+•	symptoms (triệu chứng)
+•	product_symptom 
+•	orders 
+•	order_items 
+•	reviews 
+•	chatbot_logs 
+
+9. CÔNG NGHỆ SỬ DỤNG
+Backend
+•	Spring Boot 
+•	Spring Security 
+•	JPA 
+
+Frontend
+•	NextJS 
+•	TypeScript 
+•	TailwindCSS 
+
+AI
+•	Python 
+•	OpenAI API 
+•	spaCy / Transformers 
+
+Payment
+•	VNPay 
+
+DevOps
+•	Docker 
+
+10. MODULE SYSTEM
+•	Auth Service 
+•	Product Service 
+•	Order Service 
+•	Chatbot Service 
+•	Recommendation Service 
+
+11. Ý TƯỞNG NÂNG CAO (GHI ĐIỂM CAO)
+•	Upload đơn thuốc → AI đọc 
+•	Phân tích bệnh sử 
+•	Kết nối dược sĩ thật 
+•	Health dashboard 
+•	Nhắc uống thuốc thông minh 
+
+12. ROADMAP TRIỂN KHAI
+Phase 1
+•	CRUD + Auth + Cart 
+Phase 2
+•	Chatbot basic 
+Phase 3
+•	AI recommendation 
+Phase 4
+•	nâng cao + cảnh báo 
+
+13. LƯU Ý QUAN TRỌNG (điểm cộng lớn)
+•	Không bán thuốc kê đơn tự do 
+•	Hiển thị disclaimer: (tránh hiểu lầm)
+ “Thông tin chỉ mang tính tham khảo, không thay thế tư vấn của bác sĩ” 
+
+14. GỢI Ý GHI ĐIỂM CAO
+•	Nhấn mạnh: 
+o	chatbot AI y tế (rất mạnh) 
+o	hệ thống e-commerce hoàn chỉnh 
+•	Demo: 
+o	nhập triệu chứng → chatbot → gợi ý → mua
+

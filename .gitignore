@@ -1,1 +1,54 @@
- 
+# ======================
+# ROOT
+# ======================
+.DS_Store
+Thumbs.db
+*.log
+.env
+.planning
+
+# ======================
+# BACKEND (Spring Boot + Gradle)
+# ======================
+# build output
+BE/**/build/
+BE/**/out/
+BE/**/target/
+
+# gradle cache
+BE/.gradle/
+BE/**/.gradle/
+BE/.gradle-home/
+BE/**/venv/
+
+# compiled files
+*.class
+
+# jar/war
+*.jar
+*.war
+
+# ======================
+# FRONTEND (Next.js)
+# ======================
+FE/node_modules/
+FE/.next/
+FE/out/
+FE/build/
+
+# ======================
+# IDE
+# ======================
+.idea/
+*.iml
+.vscode/
+
+# ======================
+# TEMP
+# ======================
+*.tmp
+*.cache
+
+*.zip
+prompt*.txt
+gsd.txt
