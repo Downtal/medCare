@@ -1,5 +1,7 @@
 package com.medcare.shippingservice.service;
 
+import com.medcare.common.exception.AppException;
+import com.medcare.common.exception.ErrorCode;
 import com.medcare.shippingservice.config.GHNConfig;
 import com.medcare.shippingservice.dto.*;
 import com.medcare.shippingservice.entity.Shipment;
@@ -34,7 +36,7 @@ public class ShippingService {
 
         // Check if already created
         if (shipmentRepository.findByOrderCode(request.getOrderCode()).isPresent()) {
-            throw new RuntimeException("Shipping order already exists for order code: " + request.getOrderCode());
+            throw new AppException(ErrorCode.CONFLICT, "Shipping order already exists for order code: " + request.getOrderCode());
         }
 
         // Map request to GHN payload
@@ -89,11 +91,13 @@ public class ShippingService {
             } else {
                 String errorMsg = response != null ? response.getMessage() : "Unknown error from GHN";
                 log.error("Failed to create GHN order: {}", errorMsg);
-                throw new RuntimeException("GHN API Error: " + errorMsg);
+                throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "GHN API Error: " + errorMsg);
             }
+        } catch (AppException e) {
+            throw e;
         } catch (Exception e) {
             log.error("Exception when calling GHN API", e);
-            throw new RuntimeException("Cannot create shipping order: " + e.getMessage());
+            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Cannot create shipping order: " + e.getMessage());
         }
     }
 

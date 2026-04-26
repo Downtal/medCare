@@ -1,5 +1,7 @@
 package com.medcare.reviewservice.service;
 
+import com.medcare.common.exception.AppException;
+import com.medcare.common.exception.ErrorCode;
 import com.medcare.reviewservice.dto.*;
 import com.medcare.reviewservice.entity.Review;
 import com.medcare.reviewservice.entity.ReviewReply;
@@ -54,14 +56,14 @@ public class ReviewService {
                     request.getProductId(), request.getUserId(),
                     LocalDateTime.now().minusMinutes(USER_COOLDOWN_MINUTES));
             if (exists) {
-                throw new RuntimeException("Bạn chỉ có thể đánh giá sản phẩm này 30 phút một lần");
+                throw new AppException(ErrorCode.CONFLICT, "Bạn chỉ có thể đánh giá sản phẩm này 30 phút một lần");
             }
         } else if (request.getGuestName() != null) {
             boolean exists = reviewRepository.existsByProductIdAndGuestNameAndCreatedAtAfterAndDeletedAtIsNull(
                     request.getProductId(), request.getGuestName(),
                     LocalDateTime.now().minusHours(GUEST_COOLDOWN_HOURS));
             if (exists) {
-                throw new RuntimeException("Bạn vui lòng đợi 2 tiếng trước khi đánh giá lại");
+                throw new AppException(ErrorCode.CONFLICT, "Bạn vui lòng đợi 2 tiếng trước khi đánh giá lại");
             }
         }
 
@@ -87,23 +89,23 @@ public class ReviewService {
     }
 
     public ReviewResponse updateReview(Long reviewId, Long requestingUserId, UpdateReviewRequest request) {
-        if (reviewId == null || requestingUserId == null) throw new RuntimeException("ID is required");
+        if (reviewId == null || requestingUserId == null) throw new AppException(ErrorCode.VALIDATION_ERROR, "ID is required");
         
         Review review = reviewRepository.findById(reviewId)
-                .orElseThrow(() -> new RuntimeException("Review not found"));
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Review not found"));
 
         if (review.getUserId() == null || !review.getUserId().equals(requestingUserId)) {
-            throw new RuntimeException("Bạn không có quyền chỉnh sửa đánh giá này");
+            throw new AppException(ErrorCode.FORBIDDEN, "Bạn không có quyền chỉnh sửa đánh giá này");
         }
 
-        if (review.getDeletedAt() != null) throw new RuntimeException("Đánh giá này đã bị xóa");
+        if (review.getDeletedAt() != null) throw new AppException(ErrorCode.NOT_FOUND, "Đánh giá này đã bị xóa");
 
         if (review.getEditCount() != null && review.getEditCount() >= 1) {
-            throw new RuntimeException("Bạn chỉ có thể chỉnh sửa đánh giá này tối đa 1 lần");
+            throw new AppException(ErrorCode.CONFLICT, "Bạn chỉ có thể chỉnh sửa đánh giá này tối đa 1 lần");
         }
 
         if (review.getCreatedAt() != null && review.getCreatedAt().isBefore(LocalDateTime.now().minusWeeks(1))) {
-            throw new RuntimeException("Đã quá thời hạn 1 tuần để chỉnh sửa đánh giá này");
+            throw new AppException(ErrorCode.CONFLICT, "Đã quá thời hạn 1 tuần để chỉnh sửa đánh giá này");
         }
 
         if (request.getRating() != null) review.setRating(request.getRating());
@@ -139,9 +141,9 @@ public class ReviewService {
     }
 
     public ReviewResponse createReply(Long reviewId, ReplyRequest request) {
-        if (reviewId == null) throw new RuntimeException("Review ID is required");
+        if (reviewId == null) throw new AppException(ErrorCode.VALIDATION_ERROR, "Review ID is required");
         Review review = reviewRepository.findById(reviewId)
-                .orElseThrow(() -> new RuntimeException("Review not found"));
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Review not found"));
 
         ReviewReply reply = ReviewReply.builder()
                 .review(review)
@@ -160,7 +162,7 @@ public class ReviewService {
 
     public ReviewResponse updateReply(Long replyId, String newContent, Long staffId) {
         ReviewReply reply = reviewReplyRepository.findById(replyId)
-                .orElseThrow(() -> new RuntimeException("Reply not found"));
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Reply not found"));
         
         // Optional: Check if the staff member is the one who wrote it or an ADMIN
         // For simplicity in Admin Dashboard, we just update it
@@ -197,14 +199,14 @@ public class ReviewService {
 
     public void deleteReview(Long reviewId) {
         Review review = reviewRepository.findById(reviewId)
-                .orElseThrow(() -> new RuntimeException("Review not found"));
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Review not found"));
         review.setDeletedAt(LocalDateTime.now());
         reviewRepository.save(review);
     }
 
     public void restoreReview(Long reviewId) {
         Review review = reviewRepository.findById(reviewId)
-                .orElseThrow(() -> new RuntimeException("Review not found"));
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Review not found"));
         review.setDeletedAt(null);
         reviewRepository.save(review);
     }

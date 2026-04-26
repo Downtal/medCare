@@ -1,6 +1,8 @@
-package com.medcare.productservice.service.impl;
+﻿package com.medcare.productservice.service.impl;
 
-import com.medcare.productservice.dto.PageResponse;
+import com.medcare.common.dto.PageResponse;
+import com.medcare.common.exception.AppException;
+import com.medcare.common.exception.ErrorCode;
 import com.medcare.productservice.dto.ProductRequest;
 import com.medcare.productservice.dto.ProductResponse;
 import com.medcare.productservice.entity.*;
@@ -186,7 +188,7 @@ public class ProductServiceImpl implements ProductService {
         })
         public ProductResponse updateProduct(Long id, ProductRequest request) {
                 Medicine medicine = medicineRepository.findById(id)
-                                .orElseThrow(() -> new RuntimeException("Không tìm thấy sản phẩm id: " + id));
+                                .orElseThrow(() -> new RuntimeException("KhÃƒÂ´ng tÃƒÂ¬m thÃ¡ÂºÂ¥y sÃ¡ÂºÂ£n phÃ¡ÂºÂ©m id: " + id));
 
                 medicine.setSourceSku(safeTrim(request.getSourceSku(), 50));
                 medicine.setName(request.getName() != null ? request.getName().trim() : "");
@@ -352,7 +354,7 @@ public class ProductServiceImpl implements ProductService {
         })
         public void deleteProduct(Long id) {
                 Medicine medicine = medicineRepository.findById(id)
-                                .orElseThrow(() -> new RuntimeException("Không tìm thấy sản phẩm id: " + id));
+                                .orElseThrow(() -> new RuntimeException("KhÃƒÂ´ng tÃƒÂ¬m thÃ¡ÂºÂ¥y sÃ¡ÂºÂ£n phÃ¡ÂºÂ©m id: " + id));
                 medicine.setStatus(false);
                 medicine.setDeletedAt(LocalDateTime.now());
                 medicineRepository.save(medicine);
@@ -361,7 +363,7 @@ public class ProductServiceImpl implements ProductService {
         @Override
         public ProductResponse getProductById(Long id) {
                 Medicine medicine = medicineRepository.findByIdAndStatusTrue(id)
-                                .orElseThrow(() -> new RuntimeException("Không tìm thấy sản phẩm id: " + id));
+                                .orElseThrow(() -> new RuntimeException("KhÃƒÂ´ng tÃƒÂ¬m thÃ¡ÂºÂ¥y sÃ¡ÂºÂ£n phÃ¡ÂºÂ©m id: " + id));
                 ProductResponse response = mapToResponse(medicine);
                 try {
                         Integer freshStock = inventoryClient.getTotalStock(id);
@@ -377,7 +379,7 @@ public class ProductServiceImpl implements ProductService {
         @Override
         public ProductResponse getProductBySlug(String slug) {
                 Medicine medicine = medicineRepository.findBySlugAndStatusTrue(slug)
-                                .orElseThrow(() -> new RuntimeException("Không tìm thấy sản phẩm slug: " + slug));
+                                .orElseThrow(() -> new RuntimeException("KhÃƒÂ´ng tÃƒÂ¬m thÃ¡ÂºÂ¥y sÃ¡ÂºÂ£n phÃ¡ÂºÂ©m slug: " + slug));
                 ProductResponse response = mapToResponse(medicine);
                 try {
                         Integer freshStock = inventoryClient.getTotalStock(medicine.getId());
@@ -451,7 +453,7 @@ public class ProductServiceImpl implements ProductService {
                 }
 
                 if (category == null) {
-                        throw new RuntimeException("Không tìm thấy danh mục slug: " + categorySlug);
+                        throw new AppException(ErrorCode.NOT_FOUND, "Không tìm thấy danh mục slug: " + categorySlug);
                 }
 
                 return getProductsByCategoryPaginated(category.getId(), pageNo, pageSize, includeChildren);
@@ -491,7 +493,7 @@ public class ProductServiceImpl implements ProductService {
                         return com.medcare.productservice.dto.SearchSuggestionResponse.builder()
                                         .products(Collections.emptyList())
                                         .categories(Collections.emptyList())
-                                        .trendingKeywords(List.of("Panadol", "Paracetamol", "Vitamin C", "Khẩu trang",
+                                        .trendingKeywords(List.of("Panadol", "Paracetamol", "Vitamin C", "KhÃ¡ÂºÂ©u trang",
                                                         "Tiffy"))
                                         .build();
                 }
@@ -538,8 +540,8 @@ public class ProductServiceImpl implements ProductService {
                                 .products(productDtos.stream().limit(4).collect(Collectors.toList()))
                                 .categories(categoryDtos)
                                 .relatedKeywords(relatedKeywordsList)
-                                .trendingKeywords(List.of("Khẩu trang", "Vitamin C", "Paracetamol", "Siro ho",
-                                                "Nước rửa tay"))
+                                .trendingKeywords(List.of("KhÃ¡ÂºÂ©u trang", "Vitamin C", "Paracetamol", "Siro ho",
+                                                "NÃ†Â°Ã¡Â»â€ºc rÃ¡Â»Â­a tay"))
                                 .build();
         }
 
@@ -705,7 +707,7 @@ public class ProductServiceImpl implements ProductService {
         })
         public void restoreProduct(Long id) {
                 Medicine medicine = medicineRepository.findById(id)
-                                .orElseThrow(() -> new RuntimeException("Không tìm thấy sản phẩm id: " + id));
+                                .orElseThrow(() -> new RuntimeException("KhÃƒÂ´ng tÃƒÂ¬m thÃ¡ÂºÂ¥y sÃ¡ÂºÂ£n phÃ¡ÂºÂ©m id: " + id));
                 medicine.setStatus(true);
                 medicine.setDeletedAt(null);
                 medicineRepository.save(medicine);
@@ -719,9 +721,9 @@ public class ProductServiceImpl implements ProductService {
         })
         public void hardDeleteProduct(Long id) {
                 Medicine medicine = medicineRepository.findById(id)
-                                .orElseThrow(() -> new RuntimeException("Không tìm thấy sản phẩm id: " + id));
+                                .orElseThrow(() -> new RuntimeException("KhÃƒÂ´ng tÃƒÂ¬m thÃ¡ÂºÂ¥y sÃ¡ÂºÂ£n phÃ¡ÂºÂ©m id: " + id));
 
-                // Xóa ảnh trên Cloudinary trước khi xóa dữ liệu trong DB
+                // XÃƒÂ³a Ã¡ÂºÂ£nh trÃƒÂªn Cloudinary trÃ†Â°Ã¡Â»â€ºc khi xÃƒÂ³a dÃ¡Â»Â¯ liÃ¡Â»â€¡u trong DB
                 if (medicine.getImages() != null && !medicine.getImages().isEmpty()) {
                         for (MedicineImage image : medicine.getImages()) {
                                 if (image.getImageUrl() != null && image.getImageUrl().contains("cloudinary.com")) {
@@ -741,7 +743,7 @@ public class ProductServiceImpl implements ProductService {
                 String normalized = java.text.Normalizer.normalize(name.toLowerCase(), java.text.Normalizer.Form.NFD);
                 String pattern = "\\p{InCombiningDiacriticalMarks}+";
                 String slug = normalized.replaceAll(pattern, "")
-                                .replaceAll("đ", "d")
+                                .replaceAll("Ã„â€˜", "d")
                                 .replaceAll("[^a-z0-9\\s]", "")
                                 .replaceAll("\\s+", "-")
                                 .replaceAll("-+", "-")
@@ -761,3 +763,6 @@ public class ProductServiceImpl implements ProductService {
                 return trimmed;
         }
 }
+
+
+

@@ -1,6 +1,6 @@
-package com.medcare.productservice.controller;
+﻿package com.medcare.productservice.controller;
 
-import com.medcare.productservice.dto.PageResponse;
+import com.medcare.common.dto.PageResponse;
 import com.medcare.productservice.dto.ProductRequest;
 import com.medcare.productservice.dto.ProductResponse;
 import com.medcare.productservice.service.ProductService;
@@ -27,12 +27,12 @@ public class ProductController {
         try {
             return ResponseEntity.ok(productService.createProduct(request));
         } catch (org.springframework.dao.DataIntegrityViolationException e) {
-            String message = "Lỗi trùng lặp dữ liệu: Mã SKU hoặc Số đăng ký đã tồn tại trong hệ thống.";
+            String message = "Lá»—i trÃ¹ng láº·p dá»¯ liá»‡u: MÃ£ SKU hoáº·c Sá»‘ Ä‘Äƒng kÃ½ Ä‘Ã£ tá»“n táº¡i trong há»‡ thá»‘ng.";
             return ResponseEntity.status(org.springframework.http.HttpStatus.BAD_REQUEST)
                     .body(java.util.Map.of("message", message, "error", e.getMessage()));
         } catch (Exception e) {
             return ResponseEntity.status(org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(java.util.Map.of("message", "Lỗi khi tạo sản phẩm: " + e.getMessage()));
+                    .body(java.util.Map.of("message", "Lá»—i khi táº¡o sáº£n pháº©m: " + e.getMessage()));
         }
     }
 
@@ -42,12 +42,12 @@ public class ProductController {
         try {
             return ResponseEntity.ok(productService.updateProduct(id, request));
         } catch (org.springframework.dao.DataIntegrityViolationException e) {
-            String message = "Lỗi trùng lặp dữ liệu: Mã SKU hoặc Số đăng ký đã tồn tại trong hệ thống.";
+            String message = "Lá»—i trÃ¹ng láº·p dá»¯ liá»‡u: MÃ£ SKU hoáº·c Sá»‘ Ä‘Äƒng kÃ½ Ä‘Ã£ tá»“n táº¡i trong há»‡ thá»‘ng.";
             return ResponseEntity.status(org.springframework.http.HttpStatus.BAD_REQUEST)
                     .body(java.util.Map.of("message", message, "error", e.getMessage()));
         } catch (Exception e) {
             return ResponseEntity.status(org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(java.util.Map.of("message", "Lỗi khi cập nhật sản phẩm: " + e.getMessage()));
+                    .body(java.util.Map.of("message", "Lá»—i khi cáº­p nháº­t sáº£n pháº©m: " + e.getMessage()));
         }
     }
 
@@ -156,3 +156,4 @@ public class ProductController {
         return ResponseEntity.noContent().build();
     }
 }
+

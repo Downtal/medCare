@@ -1,5 +1,7 @@
 package com.medcare.inventoryservice.service;
 
+import com.medcare.common.exception.AppException;
+import com.medcare.common.exception.ErrorCode;
 import com.medcare.inventoryservice.dto.*;
 import com.medcare.inventoryservice.entity.*;
 import com.medcare.inventoryservice.repository.*;
@@ -46,7 +48,7 @@ public class InventoryService {
     @Transactional
     public Warehouse updateWarehouse(Long id, Warehouse details) {
         Warehouse warehouse = warehouseRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Warehouse not found"));
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Warehouse not found"));
         warehouse.setName(details.getName());
         warehouse.setAddress(details.getAddress());
         if (details.getStatus() != null) warehouse.setStatus(details.getStatus());
@@ -56,7 +58,7 @@ public class InventoryService {
     @Transactional
     public void deleteWarehouse(Long id) {
         Warehouse warehouse = warehouseRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Warehouse not found"));
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Warehouse not found"));
         warehouse.setDeletedAt(java.time.LocalDateTime.now());
         warehouseRepository.save(warehouse);
     }
@@ -64,7 +66,7 @@ public class InventoryService {
     @Transactional
     public void restoreWarehouse(Long id) {
         Warehouse warehouse = warehouseRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Warehouse not found"));
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Warehouse not found"));
         warehouse.setDeletedAt(null);
         warehouseRepository.save(warehouse);
     }
@@ -79,7 +81,7 @@ public class InventoryService {
     @Transactional
     public InventoryBatchResponse importStock(InventoryImportRequest request) {
         Warehouse warehouse = warehouseRepository.findById(request.getWarehouseId())
-                .orElseThrow(() -> new RuntimeException("Warehouse not found"));
+                .orElseThrow(() -> new AppException(ErrorCode.NOT_FOUND, "Warehouse not found"));
 
         InventoryBatch batch = InventoryBatch.builder()
                 .medicineId(request.getMedicineId())
@@ -134,7 +136,7 @@ public class InventoryService {
             
             if (totalAvailable < remainingToDeduct) {
                 log.error("Insufficient stock for product ID {}: requested {}, available {}", item.getProductId(), remainingToDeduct, totalAvailable);
-                throw new RuntimeException("Không đủ hàng tồn kho cho sản phẩm ID: " + item.getProductId());
+                throw new AppException(ErrorCode.INSUFFICIENT_STOCK, "Không đủ hàng tồn kho cho sản phẩm ID: " + item.getProductId());
             }
 
             for (InventoryBatch batch : activeBatches) {

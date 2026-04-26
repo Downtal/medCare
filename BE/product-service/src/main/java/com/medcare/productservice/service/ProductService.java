@@ -1,6 +1,6 @@
-package com.medcare.productservice.service;
+﻿package com.medcare.productservice.service;
 
-import com.medcare.productservice.dto.PageResponse;
+import com.medcare.common.dto.PageResponse;
 import com.medcare.productservice.dto.ProductRequest;
 import com.medcare.productservice.dto.ProductResponse;
 
@@ -47,3 +47,4 @@ public interface ProductService {
 
     void hardDeleteProduct(Long id);
 }
+

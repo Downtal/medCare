@@ -1,5 +1,7 @@
 package com.medcare.orderservice.service;
 
+import com.medcare.common.exception.AppException;
+import com.medcare.common.exception.ErrorCode;
 import com.medcare.orderservice.client.InventoryClient;
 import com.medcare.orderservice.client.ProductClient;
 import com.medcare.orderservice.client.PromotionClient;
@@ -53,7 +55,7 @@ public class OrderService {
             // Fallback to cart from Redis if no items specified in request
             CartDto cart = cartService.getCart("user:" + userId);
             if (cart.getItems() == null || cart.getItems().isEmpty()) {
-                throw new RuntimeException("Giỏ hàng đang trống");
+                throw new AppException(ErrorCode.VALIDATION_ERROR, "Giỏ hàng đang trống");
             }
             itemsToProcess = cart.getItems().stream()
                     .map(i -> OrderItemRequest.builder()
@@ -104,7 +106,7 @@ public class OrderService {
             // Verify with Product Service
             ProductClient.ProductDto product = productClient.getProductById(reqItem.getMedicineId());
             if (product == null) {
-                throw new RuntimeException("Sản phẩm không tồn tại: " + reqItem.getMedicineId());
+                throw new AppException(ErrorCode.PRODUCT_NOT_FOUND, "Sản phẩm không tồn tại: " + reqItem.getMedicineId());
             }
 
             if (product.isRequiresPrescription()) {
@@ -136,7 +138,7 @@ public class OrderService {
             log.info("Successfully deducted stock for order {}", order.getOrderCode());
         } catch (Exception e) {
             log.error("Failed to deduct stock for order {}: {}", order.getOrderCode(), e.getMessage());
-            throw new RuntimeException("Đặt hàng thất bại: Sản phẩm trong giỏ hàng đã hết hoặc không đủ số lượng.");
+            throw new AppException(ErrorCode.INSUFFICIENT_STOCK, "Đặt hàng thất bại: Sản phẩm trong giỏ hàng đã hết hoặc không đủ số lượng.");
         }
 
         // 4. Determine Order Type and Apply Strategy
@@ -161,8 +163,7 @@ public class OrderService {
                         request.getDiscountAmount());
             } catch (Exception e) {
                 log.error("Failed to record voucher usage for code {}", request.getVoucherCode(), e);
-                throw new RuntimeException(
-                        "Thanh toán thất bại: Mã giảm giá đã hết lượt sử dụng trong khi bạn đang thao tác");
+                throw new AppException(ErrorCode.VOUCHER_USED, "Thanh toán thất bại: Mã giảm giá đã hết lượt sử dụng trong khi bạn đang thao tác");
             }
         }
 
@@ -179,7 +180,7 @@ public class OrderService {
 
     public Order getOrderByCode(String orderCode) {
         return orderRepository.findByOrderCode(orderCode)
-                .orElseThrow(() -> new RuntimeException("Order not found with code: " + orderCode));
+                .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND, "Order not found with code: " + orderCode));
     }
 
     public java.util.List<Order> getAllOrders() {
@@ -197,7 +198,7 @@ public class OrderService {
     @Transactional
     public void deleteOrder(Long id) {
         Order order = orderRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Order not found"));
+                .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND));
         order.setDeletedAt(LocalDateTime.now());
         orderRepository.save(order);
     }
@@ -205,7 +206,7 @@ public class OrderService {
     @Transactional
     public void restoreOrder(Long id) {
         Order order = orderRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Order not found"));
+                .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND));
         order.setDeletedAt(null);
         orderRepository.save(order);
     }
@@ -218,7 +219,7 @@ public class OrderService {
     @Transactional
     public Order updateOrderStatus(Long id, OrderStatus status) {
         Order order = orderRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Order not found"));
+                .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND));
         order.setStatus(status);
         Order savedOrder = orderRepository.save(order);
         logStatusChange(savedOrder, status, "Trạng thái đơn hàng được cập nhật bởi quản trị viên.");
@@ -228,7 +229,7 @@ public class OrderService {
     @Transactional
     public void updateOrderStatusInternal(String orderCode, String newStatus) {
         Order order = orderRepository.findByOrderCode(orderCode)
-                .orElseThrow(() -> new RuntimeException("Order not found with code: " + orderCode));
+                .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND, "Order not found with code: " + orderCode));
 
         try {
             OrderStatus status = OrderStatus.valueOf(newStatus.toUpperCase());
@@ -244,7 +245,7 @@ public class OrderService {
     @Transactional
     public void updatePaymentStatusByCode(String orderCode, String status) {
         Order order = orderRepository.findByOrderCode(orderCode)
-                .orElseThrow(() -> new RuntimeException("Order not found with code: " + orderCode));
+                .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND, "Order not found with code: " + orderCode));
 
         if ("PAID".equals(status)) {
             order.setStatus(OrderStatus.PAID);
@@ -310,7 +311,7 @@ public class OrderService {
             request.getDistrict() == null || request.getDistrict().isBlank() ||
             request.getWard() == null || request.getWard().isBlank() ||
             request.getCityId() == null || request.getDistrictId() == null || request.getWardCode() == null) {
-            throw new RuntimeException("Thông tin địa chỉ vận chuyển không đầy đủ. Vui lòng kiểm tra lại tỉnh/thành, quận/huyện và phường/xã.");
+            throw new AppException(ErrorCode.VALIDATION_ERROR, "Thông tin địa chỉ vận chuyển không đầy đủ. Vui lòng kiểm tra lại tỉnh/thành, quận/huyện và phường/xã.");
         }
     }
 

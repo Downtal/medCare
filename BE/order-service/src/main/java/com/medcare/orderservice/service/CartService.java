@@ -1,5 +1,7 @@
 package com.medcare.orderservice.service;
 
+import com.medcare.common.exception.AppException;
+import com.medcare.common.exception.ErrorCode;
 import com.medcare.orderservice.client.ProductClient;
 import com.medcare.orderservice.dto.CartDto;
 import com.medcare.orderservice.dto.CartItemDto;
@@ -28,12 +30,12 @@ public class CartService {
         // Securely fetch current product info
         ProductClient.ProductDto product = productClient.getProductById(request.getMedicineId());
         if (product == null) {
-            throw new RuntimeException("Product not found");
+            throw new AppException(ErrorCode.PRODUCT_NOT_FOUND);
         }
 
         // Check stock before adding
         if (product.getStockQuantity() != null && product.getStockQuantity() <= 0) {
-            throw new RuntimeException("Sản phẩm hiện đang hết hàng.");
+            throw new AppException(ErrorCode.INSUFFICIENT_STOCK, "Sản phẩm hiện đang hết hàng.");
         }
 
         // Convert Request to DTO for storage

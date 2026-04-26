@@ -1,5 +1,7 @@
 package com.medcare.userservice.service.impl;
 
+import com.medcare.common.exception.AppException;
+import com.medcare.common.exception.ErrorCode;
 import com.medcare.userservice.dto.*;
 import com.medcare.userservice.entity.Address;
 import com.medcare.userservice.entity.UserProfile;
@@ -190,7 +192,7 @@ public class UserServiceImpl implements UserService {
         
         // Ownership Check: Only allow deletion if the address belongs to the user
         if (!address.getUserProfile().getUserId().equals(userId)) {
-            throw new RuntimeException("You do not have permission to delete this address");
+            throw new AppException(ErrorCode.FORBIDDEN, "You do not have permission to delete this address");
         }
         
         addressRepository.delete(address);
@@ -203,7 +205,7 @@ public class UserServiceImpl implements UserService {
                 .orElseThrow(() -> new ResourceNotFoundException("Address not found with id: " + addressId));
         
         if (!address.getUserProfile().getUserId().equals(userId)) {
-            throw new RuntimeException("You do not have permission to update this address");
+            throw new AppException(ErrorCode.FORBIDDEN, "You do not have permission to update this address");
         }
 
         // Logic for default address
