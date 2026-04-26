@@ -1,5 +1,7 @@
 package com.medcare.shippingservice.service;
 
+import com.medcare.common.exception.AppException;
+import com.medcare.common.exception.ErrorCode;
 import com.medcare.shippingservice.dto.ShippingFeeRequest;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
@@ -53,7 +55,7 @@ public class GHNService {
             ResponseEntity<Object> response = restTemplate.postForEntity(url, entity, Object.class);
             return response.getBody();
         } catch (Exception e) {
-            throw new RuntimeException("Error calculating shipping fee with GHN: " + e.getMessage());
+            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Error calculating shipping fee with GHN: " + e.getMessage());
         }
     }
 

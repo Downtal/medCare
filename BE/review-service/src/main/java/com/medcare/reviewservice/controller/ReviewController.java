@@ -31,14 +31,15 @@ public class ReviewController {
     /** Get all reviews by the authenticated user */
     @GetMapping("/my-reviews")
     public List<ReviewResponse> getMyReviews(@AuthenticationPrincipal String userId) {
-        if (userId == null) return List.of();
+        if (userId == null)
+            return List.of();
         return reviewService.getReviewsByUser(Long.valueOf(userId));
     }
 
     @PostMapping
     public ReviewResponse createReview(@Valid @RequestBody ReviewRequest request,
-                                       @AuthenticationPrincipal String userId,
-                                       @RequestHeader(value = "X-User-Role", required = false) String userRole) {
+            @AuthenticationPrincipal String userId,
+            @RequestHeader(value = "X-User-Role", required = false) String userRole) {
         if (userId != null) {
             request.setUserId(Long.valueOf(userId));
         }
@@ -48,8 +49,8 @@ public class ReviewController {
     /** Edit own review - user must own the review */
     @PutMapping("/{reviewId}")
     public ResponseEntity<?> updateReview(@PathVariable Long reviewId,
-                                          @Valid @RequestBody UpdateReviewRequest request,
-                                          @AuthenticationPrincipal String userId) {
+            @Valid @RequestBody UpdateReviewRequest request,
+            @AuthenticationPrincipal String userId) {
         if (userId == null) {
             return ResponseEntity.status(401).body(Map.of("message", "Bạn cần đăng nhập để chỉnh sửa đánh giá"));
         }
@@ -62,18 +63,20 @@ public class ReviewController {
      */
     @PostMapping("/{reviewId}/replies")
     public ResponseEntity<?> createReply(@PathVariable Long reviewId,
-                                         @Valid @RequestBody ReplyRequest request,
-                                         @AuthenticationPrincipal String userId,
-                                         @RequestHeader(value = "X-User-Role", required = false) String userRole,
-                                         @RequestHeader(value = "X-User-Name", required = false) String userName) {
+            @Valid @RequestBody ReplyRequest request,
+            @AuthenticationPrincipal String userId,
+            @RequestHeader(value = "X-User-Role", required = false) String userRole,
+            @RequestHeader(value = "X-User-Name", required = false) String userName) {
         if (userId == null) {
             return ResponseEntity.status(401).body(Map.of("message", "Bạn cần đăng nhập"));
         }
         if (!"ADMIN".equals(userRole) && !"PHARMACIST".equals(userRole)) {
-            return ResponseEntity.status(403).body(Map.of("message", "Chỉ quản trị viên hoặc dược sĩ mới có thể trả lời đánh giá"));
+            return ResponseEntity.status(403)
+                    .body(Map.of("message", "Chỉ quản trị viên hoặc dược sĩ mới có thể trả lời đánh giá"));
         }
         request.setStaffId(Long.valueOf(userId));
-        request.setStaffName(userName != null ? userName : (userRole.equals("PHARMACIST") ? "Dược sĩ MedCare" : "Quản trị viên"));
+        request.setStaffName(
+                userName != null ? userName : (userRole.equals("PHARMACIST") ? "Dược sĩ MedCare" : "Quản trị viên"));
         request.setStaffRole(userRole);
         return ResponseEntity.ok(reviewService.createReply(reviewId, request));
     }
@@ -81,9 +84,10 @@ public class ReviewController {
     @PutMapping("/replies/{replyId}")
     @PreAuthorize("hasRole('ADMIN') or hasRole('PHARMACIST')")
     public ResponseEntity<?> updateReply(@PathVariable Long replyId,
-                                          @RequestBody Map<String, String> body,
-                                          @AuthenticationPrincipal String userId) {
-        if (userId == null) return ResponseEntity.status(401).build();
+            @RequestBody Map<String, String> body,
+            @AuthenticationPrincipal String userId) {
+        if (userId == null)
+            return ResponseEntity.status(401).build();
         String content = body.get("content");
         if (content == null || content.isBlank()) {
             return ResponseEntity.badRequest().body(Map.of("message", "Nội dung không được để trống"));
@@ -96,8 +100,9 @@ public class ReviewController {
      */
     @PostMapping("/sync-guest")
     public ResponseEntity<?> syncGuestReviews(@AuthenticationPrincipal String userId,
-                                               @RequestBody Map<String, String> body) {
-        if (userId == null) return ResponseEntity.status(401).build();
+            @RequestBody Map<String, String> body) {
+        if (userId == null)
+            return ResponseEntity.status(401).build();
         int count = reviewService.syncGuestReviews(Long.valueOf(userId), body.get("phone"), body.get("email"));
         return ResponseEntity.ok(Map.of("synced", count));
     }

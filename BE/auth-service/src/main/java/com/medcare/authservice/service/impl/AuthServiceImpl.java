@@ -1,6 +1,8 @@
 package com.medcare.authservice.service.impl;
 
 import com.medcare.authservice.dto.*;
+import com.medcare.common.exception.AppException;
+import com.medcare.common.exception.ErrorCode;
 import com.medcare.authservice.entity.RefreshToken;
 import com.medcare.authservice.entity.User;
 import com.medcare.authservice.entity.UserRole;
@@ -95,7 +97,7 @@ public class AuthServiceImpl implements AuthService {
                     .build();
             userClient.createProfile(profileRequest);
         } catch (Exception e) {
-            throw new RuntimeException("Không thể tạo hồ sơ người dùng trong user-service: " + e.getMessage());
+            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Không thể tạo hồ sơ người dùng trong user-service: " + e.getMessage());
         }
 
         return AuthResponse.builder()

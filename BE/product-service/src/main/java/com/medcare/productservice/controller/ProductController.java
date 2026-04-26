@@ -1,4 +1,4 @@
-﻿package com.medcare.productservice.controller;
+package com.medcare.productservice.controller;
 
 import com.medcare.common.dto.PageResponse;
 import com.medcare.productservice.dto.ProductRequest;
@@ -20,6 +20,11 @@ import java.util.List;
 public class ProductController {
 
     private final ProductService productService;
+
+    @GetMapping("/all")
+    public ResponseEntity<List<ProductResponse>> getAllProductsSync() {
+        return ResponseEntity.ok(productService.getAllProducts());
+    }
 
     @PostMapping
     @PreAuthorize("hasRole('ADMIN') or hasRole('PHARMACIST')")
@@ -98,7 +103,8 @@ public class ProductController {
             @RequestParam(value = "size", defaultValue = "15", required = false) int size,
             @RequestParam(value = "includeChildren", defaultValue = "true", required = false) boolean includeChildren) {
         try {
-            String cleanSlug = (categorySlug != null && categorySlug.startsWith("/")) ? categorySlug.substring(1) : categorySlug;
+            String cleanSlug = (categorySlug != null && categorySlug.startsWith("/")) ? categorySlug.substring(1)
+                    : categorySlug;
             return ResponseEntity
                     .ok(productService.getProductsByCategorySlugPaginated(cleanSlug, page, size, includeChildren));
         } catch (RuntimeException e) {
@@ -156,4 +162,3 @@ public class ProductController {
         return ResponseEntity.noContent().build();
     }
 }
-

@@ -70,13 +70,15 @@ public class OrderController {
 
     @GetMapping("/admin/all")
     public ResponseEntity<List<Order>> getAllOrdersAdmin(HttpServletRequest request) {
-        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder
+                .getContext().getAuthentication();
         boolean hasAccess = auth != null && auth.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ADMIN") ||
-                              a.getAuthority().equals("ROLE_PHARMACIST") || a.getAuthority().equals("PHARMACIST"));
+                        a.getAuthority().equals("ROLE_PHARMACIST") || a.getAuthority().equals("PHARMACIST"));
 
         if (!hasAccess) {
-            log.warn("Access denied for user {} with authorities {}", auth != null ? auth.getName() : "anonymous", auth != null ? auth.getAuthorities() : "none");
+            log.warn("Access denied for user {} with authorities {}", auth != null ? auth.getName() : "anonymous",
+                    auth != null ? auth.getAuthorities() : "none");
             return ResponseEntity.status(403).build();
         }
         return ResponseEntity.ok(orderService.getAllOrders());

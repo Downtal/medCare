@@ -1,91 +1,75 @@
-# Yêu cầu Milestone 2: Kiểm thử Toàn diện (MedCare)
+# Yêu cầu Milestone 3: Hệ thống Chatbot AI Tư vấn (MedCare)
 
-> **Cập nhật:** 2026-04-23  
-> **Milestone:** 2 — Chất lượng & Kiểm thử  
+> **Cập nhật:** 2026-04-26  
+> **Milestone:** 3 — AI Integration  
 > **Trạng thái:** Đang lên kế hoạch
 
 ---
 
 ## 1. Mục tiêu tổng thể
 
-Đảm bảo chất lượng và độ tin cậy của hệ thống MedCare trước khi deploy production bằng cách xây dựng bộ kiểm thử đa tầng bao gồm Unit Testing, Integration Testing, Frontend Testing và E2E Testing. Coverage target: 30–50%.
+Xây dựng một hệ thống Chatbot thông minh tích hợp vào nền tảng MedCare, cho phép người dùng mô tả triệu chứng hoặc nhu cầu bằng ngôn ngữ tự nhiên để nhận được gợi ý sản phẩm phù hợp, hướng dẫn sử dụng và các cảnh báo y tế cần thiết.
 
 ---
 
 ## 2. Phạm vi yêu cầu (In Scope)
 
-### 2.1 Kiểm thử đơn vị Backend (Unit Testing)
-- **Công nghệ:** JUnit 5 + Mockito (đã có trong Gradle dependencies)
-- **Dịch vụ cần coverage:**
-  - `OrderService` — Logic tạo đơn, selective checkout, state machine
-  - `PaymentService` — Tạo URL VNPay, xử lý IPN callback
-  - `ShippingService` — Tính phí GHN, tạo vận đơn
-  - `PromotionService` — Validate voucher, tính discount
-  - `CartService` — Redis serialization/deserialization, thêm/xóa item
-- **Tiêu chí:** Mỗi Service cần ≥ 5 test cases bao gồm happy path và error cases
+### 2.1 Tiếp nhận đầu vào (Input Handling)
+- Giao diện chat thân thiện trên Frontend (Next.js).
+- Hỗ trợ nhập liệu văn bản tiếng Việt.
+- Xử lý các triệu chứng phổ biến (đau đầu, sốt, ho, dị ứng, v.v.).
 
-### 2.2 Kiểm thử tích hợp Backend (Integration Testing)
-- **Công nghệ:** Spring Boot Test (`@SpringBootTest`, `@WebMvcTest`, `@DataJpaTest`)
-- **Phạm vi:**
-  - Endpoint `/api/orders/checkout` — Kiểm tra validation, luồng tạo đơn
-  - Endpoint `/api/payments/**` — Kiểm tra IPN processing
-  - Endpoint `/api/shipping/**` — Kiểm tra tính phí và tạo vận đơn
-  - Repository layer — JPA queries cho `OrderRepository`, `PaymentRepository`
-- **Database:** Dùng H2 in-memory hoặc TestContainers (MySQL)
+### 2.2 Xử lý ngôn ngữ tự nhiên (NLP Processing)
+- **Intent Recognition:** Xác định ý định của người dùng (Hỏi thuốc, Hỏi triệu chứng, Cần tư vấn).
+- **Entity Extraction:** Trích xuất các thực thể quan trọng (Tên triệu chứng, Đối tượng sử dụng - trẻ em/người lớn, Mức độ nghiêm trọng).
+- **Công nghệ gợi ý:** OpenAI API (GPT-4o) hoặc Gemini API để xử lý ngữ cảnh y tế.
 
-### 2.3 Kiểm thử Frontend (Unit/Component Testing)
-- **Công nghệ:** Vitest + React Testing Library
-- **Component cần test:**
-  - Trang Thanh toán (`/thanh-toan`) — Form validation, address auto-fill
-  - Trang Giỏ hàng (`/gio-hang`) — Add/remove item, total calculation
-  - Trang Đăng nhập — Auth form, error handling
-  - Component Voucher — Apply/remove voucher
-- **Tiêu chí:** Render đúng, user interaction đúng, không crash khi data rỗng
+### 2.3 Mapping & Recommendation Logic
+- Kết nối thông tin triệu chứng với danh mục sản phẩm (Category) và sản phẩm (Product) trong `product-service`.
+- Gợi ý danh sách thuốc không kê đơn (OTC) phù hợp.
+- Trả về thông tin:
+    - Tên thuốc và hình ảnh.
+    - Công dụng chính.
+    - Hướng dẫn sử dụng cơ bản (Liều dùng, cách dùng).
+    - **Cảnh báo quan trọng:** Chống chỉ định, tác dụng phụ, hoặc yêu cầu thăm khám bác sĩ nếu triệu chứng nặng.
 
-### 2.4 Kiểm thử E2E (End-to-End Testing)
-- **Công nghệ:** Playwright (TypeScript)
-- **Luồng người dùng cốt lõi:**
-  1. **Luồng Đăng nhập** — Email/Password → Dashboard
-  2. **Luồng Mua sắm** — Tìm kiếm sản phẩm → Thêm vào giỏ → Xem giỏ hàng
-  3. **Luồng Thanh toán COD** — Checkout → Chọn địa chỉ → Xác nhận đơn hàng
-  4. **Luồng Thanh toán VNPay** — Checkout → VNPay redirect → Callback thành công
-- **Browser coverage:** Chromium (required), Firefox (optional)
+### 2.4 Tích hợp Microservices
+- Tạo một service mới: `ai-service` để xử lý logic Chatbot.
+- `ai-service` giao tiếp với `product-service` qua OpenFeign để lấy dữ liệu sản phẩm.
+- Tích hợp vào API Gateway để FE có thể truy cập.
 
 ---
 
 ## 3. Phạm vi ngoài (Out of Scope)
 
-- Coverage target 70%+ (quá tốn thời gian so với deadline)
-- Load testing / Performance testing
-- Security penetration testing
-- Mobile browser testing
-- Test cho tất cả các service nhỏ (review-service, auth-service được bỏ qua)
+- Chẩn đoán bệnh thay bác sĩ (Chatbot chỉ mang tính chất tư vấn sản phẩm).
+- Kê đơn thuốc (Chỉ gợi ý các thuốc không kê đơn hoặc thực phẩm chức năng).
+- Hỗ trợ giọng nói (Voice-to-text).
+- Xử lý các trường hợp cấp cứu (Chỉ đưa ra cảnh báo gọi 115).
 
 ---
 
 ## 4. Tiêu chí hoàn thành (Definition of Done)
 
-### Phase 7 (Unit Tests — Backend):
-- [ ] Tất cả 5 service có test files
-- [ ] Mỗi service ≥ 5 test cases (happy + error)
-- [ ] Build pass (`gradle test`)
-- [ ] Coverage report được generate
+### Phase 11 (AI Infrastructure & Service):
+- [ ] Khởi tạo `ai-service` (Spring Boot).
+- [ ] Cấu hình kết nối với LLM API (OpenAI/Gemini).
+- [ ] Thiết lập OpenFeign client tới `product-service`.
 
-### Phase 8 (Integration Tests — Backend):
-- [ ] ≥ 3 endpoints được test end-to-end qua HTTP layer
-- [ ] Repository tests cho các query phức tạp
-- [ ] Test không phụ thuộc vào môi trường bên ngoài (mock external APIs)
+### Phase 12 (Prompt Engineering & Logic):
+- [ ] Xây dựng System Prompt tối ưu cho dược sĩ ảo.
+- [ ] Triển khai logic trích xuất từ khóa và mapping sản phẩm.
+- [ ] Xử lý luồng hội thoại đa bước (Multi-turn conversation).
 
-### Phase 9 (Frontend Tests — Vitest):
-- [ ] Vitest được cài đặt và cấu hình
-- [ ] ≥ 3 components/pages có test
-- [ ] `npm run test` pass
+### Phase 13 (Frontend Integration):
+- [ ] Xây dựng UI Chat Widget (Floating button hoặc trang riêng).
+- [ ] Tích hợp API Chatbot.
+- [ ] Hiển thị sản phẩm gợi ý dưới dạng card có thể click vào chi tiết.
 
-### Phase 10 (E2E — Playwright):
-- [ ] Playwright được cài đặt và cấu hình
-- [ ] 4 luồng cốt lõi có test scripts
-- [ ] Tests chạy được trên Chromium
-- [ ] Test report được export (HTML)
+### Phase 14 (Validation & Security):
+- [ ] Kiểm thử các kịch bản tư vấn sai lệch.
+- [ ] Đảm bảo các cảnh báo y tế luôn được hiển thị rõ ràng.
+- [ ] Rate limiting cho API để tránh lạm dụng token.
 
 ---
 
@@ -93,10 +77,10 @@
 
 | Rủi ro | Giảm thiểu |
 |--------|------------|
-| External APIs (VNPay, GHN) không available khi test | Mock bằng WireMock hoặc Mockito |
-| Redis không chạy khi unit test | Dùng EmbeddedRedis hoặc mock RedisTemplate |
-| Playwright flaky tests do timing | Dùng `waitFor()` và retry mechanisms |
-| JUnit 5 chưa được cấu hình đúng | Kiểm tra build.gradle và thêm dependency nếu thiếu |
+| Chatbot tư vấn sai thuốc | Luôn kèm disclaimer "Tham khảo ý kiến bác sĩ" và chỉ gợi ý OTC. |
+| Chi phí API cao | Sử dụng caching cho các câu hỏi phổ biến và rate limiting. |
+| Độ trễ phản hồi (Latency) | Sử dụng streaming response nếu cần hoặc hiển thị trạng thái "đang suy nghĩ". |
+| Dữ liệu sản phẩm không đủ | Cập nhật metadata cho sản phẩm (tag triệu chứng) trong `product-service`. |
 
 ---
-*Yêu cầu được tạo: 2026-04-23*
+*Yêu cầu được tạo: 2026-04-26*

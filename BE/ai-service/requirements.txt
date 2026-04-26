@@ -1,0 +1,13 @@
+fastapi
+uvicorn
+langchain
+langchain-google-genai
+google-generativeai
+py_eureka_client
+python-dotenv
+sse-starlette
+slowapi
+sqlalchemy
+pymysql
+httpx
+pydantic-settings

@@ -101,3 +101,47 @@ Hành trình đưa MedCare từ một hệ thống microservices đang phát tri
 
 ---
 *Milestone 2 started: 2026-04-23*
+
+---
+
+## Milestone 3: Hệ thống Chatbot AI Tư vấn
+
+### Mục tiêu
+Xây dựng trợ lý ảo thông minh giúp người dùng tìm kiếm sản phẩm y tế bằng ngôn ngữ tự nhiên.
+
+### Các giai đoạn (Phases)
+
+- [ ] **Phase 11: AI Service Foundation** - Khởi tạo `ai-service` và cấu hình kết nối LLM (OpenAI/Gemini).
+- [ ] **Phase 12: Prompt Engineering & Mapping Logic** - Phát triển Prompt dược sĩ ảo và logic mapping sản phẩm từ triệu chứng.
+- [ ] **Phase 13: UI Chatbot & Frontend Integration** - Xây dựng Widget Chat và tích hợp vào Website.
+- [ ] **Phase 14: Safety & Optimization** - Cài đặt các rào chắn an toàn (Guardrails), xử lý lỗi và tối ưu hiệu năng.
+
+### Chi tiết các giai đoạn
+
+#### Phase 11: AI Service Foundation [TODO]
+- [ ] 11-01: Khởi tạo Spring Boot `ai-service` + OpenFeign client tới `product-service`.
+- [ ] 11-02: Cấu hình kết nối LLM (API Key, Model config) và xây dựng REST API cơ bản cho Chat.
+
+#### Phase 12: Prompt Engineering & Mapping Logic [TODO]
+- [ ] 12-01: Xây dựng System Prompt chuyên sâu về y tế/dược phẩm (OTC).
+- [ ] 12-02: Triển khai logic Mapping: Trích xuất intent -> Query `product-service` -> Tổng hợp kết quả.
+
+#### Phase 13: UI Chatbot & Frontend Integration [TODO]
+- [ ] 13-01: Phát triển Chat Widget bằng React/Next.js (Floating widget).
+- [ ] 13-02: Tích hợp API Chatbot và hiển thị sản phẩm dưới dạng Card tương tác.
+
+#### Phase 14: Safety & Optimization [TODO]
+- [ ] 14-01: Triển khai hệ thống cảnh báo y tế bắt buộc và kiểm soát nội dung (Content filtering).
+- [ ] 14-02: Tối ưu Latency (Streaming response) và kiểm thử các kịch bản thực tế.
+
+### Tiến độ (Progress)
+
+| Phase | Plans Complete | Status | Completed |
+|-------|----------------|--------|-----------|
+| 11. AI Foundation | 0/2 | Todo | - |
+| 12. Prompt & Mapping Logic | 0/2 | Todo | - |
+| 13. UI & FE Integration | 0/2 | Todo | - |
+| 14. Safety & Optimization | 0/2 | Todo | - |
+
+---
+*Milestone 3 started: 2026-04-26*

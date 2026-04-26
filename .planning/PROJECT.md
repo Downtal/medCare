@@ -34,18 +34,24 @@ Cung cấp trải nghiệm mua sắm dược phẩm an toàn, tin cậy với qu
 - [ ] **Kiểm thử Frontend:** Triển khai Vitest cho các thành phần UI quan trọng (trang thanh toán, giỏ hàng, đăng nhập).
 - [ ] **Kiểm thử E2E (End-to-End):** Sử dụng Playwright cho các luồng người dùng cốt lõi (Checkout, Đăng nhập, Tìm kiếm sản phẩm).
 
+### Đang thực hiện (Milestone 3)
+
+- [ ] **Chatbot AI Tư vấn:** Phát triển hệ thống Chatbot thông minh hỗ trợ người dùng tìm kiếm sản phẩm dựa trên triệu chứng.
+    - [ ] Nhận diện triệu chứng và nhu cầu từ ngôn ngữ tự nhiên.
+    - [ ] NLP xử lý và phân loại ý định (intent).
+    - [ ] Mapping triệu chứng sang các nhóm sản phẩm/danh mục tương ứng.
+    - [ ] Trả về danh sách thuốc phù hợp kèm hướng dẫn sử dụng và cảnh báo an toàn.
+
 ### Ngoài phạm vi (Out of Scope)
 
-- [Hệ thống tư vấn trực tuyến] — Ưu tiên hoàn thiện luồng mua sắm trước.
 - [Ứng dụng Mobile Native] — Hiện tại tập trung hoàn toàn vào Web Responsive (Next.js).
 - [Coverage target 70%+] — Mức target là 30-50% cho mục đích demo và đảm bảo chất lượng.
 
 ## Ngữ cảnh dự án
 
 - Dự án đã hoàn thành Milestone 1, thiết lập thành công luồng nghiệp vụ cốt lõi.
-- Milestone 2 tập trung vào đảm bảo chất lượng: Unit Test, Integration Test, Frontend Test và E2E với Playwright.
-- Các microservices giao tiếp chặt chẽ qua OpenFeign.
-- Tập trung vào trải nghiệm người dùng tại thị trường Việt Nam với các tích hợp nội địa (GHN, VNPay).
+- Milestone 2 đang tập trung vào kiểm thử và đảm bảo chất lượng.
+- Milestone 3 mở rộng tính năng với AI Chatbot để nâng cao trải nghiệm người dùng trong việc tìm kiếm sản phẩm y tế.
 
 ## Các ràng buộc (Constraints)
 

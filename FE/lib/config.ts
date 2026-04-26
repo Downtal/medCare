@@ -15,7 +15,7 @@ export const getApiBaseUrl = (): string => {
 
 // Service-specific prefixes if needed (they all currently route through the gateway at 8080)
 export const API_ENDPOINTS = {
-  PRODUCT: "/product-service/api",
+  PRODUCT: "/product-service/api/products",
   REVIEW: "/review-service/api",
   ORDER: "/order-service/api",
   AUTH: "/auth-service/api",
@@ -24,6 +24,7 @@ export const API_ENDPOINTS = {
   SHIPPING: "/shipping-service/api",
   PAYMENT: "/payment-service/api",
   INVENTORY: "/inventory-service/api",
+  AI: "/ai-service/api/ai",
 }
 
 export const API_PRODUCT = getApiBaseUrl() + "/product-service/api";

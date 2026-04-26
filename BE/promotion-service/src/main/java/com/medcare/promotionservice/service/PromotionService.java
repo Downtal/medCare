@@ -1,4 +1,4 @@
-﻿package com.medcare.promotionservice.service;
+package com.medcare.promotionservice.service;
 
 import com.medcare.common.exception.AppException;
 import com.medcare.common.exception.ErrorCode;
@@ -39,7 +39,7 @@ public class PromotionService {
     public VoucherApplyResponse applyVoucher(VoucherApplyRequest request) {
         // 1. Find Voucher
         Voucher voucher = voucherRepository.findByCodeAndIsActiveTrueAndDeletedAtIsNull(request.getCode())
-                .orElseThrow(() -> new AppException(ErrorCode.VOUCHER_NOT_FOUND, "MÃ£ giáº£m giÃ¡ khÃ´ng tá»“n táº¡i hoáº·c Ä‘Ã£ bá»‹ khÃ³a"));
+                .orElseThrow(() -> new AppException(ErrorCode.VOUCHER_NOT_FOUND, "Mã giảm giá không tồn tại"));
 
         // 2. Fundamental Validations
         validateVoucher(voucher, request);
@@ -56,7 +56,7 @@ public class PromotionService {
                 .originalTotal(originalTotal)
                 .finalTotal(originalTotal.subtract(discountAmount))
                 .success(true)
-                .message("Ãp dá»¥ng mÃ£ giáº£m giÃ¡ thÃ nh cÃ´ng")
+                .message("Áp dụng mã giảm giá thành công")
                 .build();
     }
 
@@ -70,7 +70,7 @@ public class PromotionService {
     private void validateVoucher(Voucher voucher, VoucherApplyRequest request) {
         LocalDateTime now = LocalDateTime.now();
         if (voucher.getStartAt() != null && now.isBefore(voucher.getStartAt())) {
-            throw new AppException(ErrorCode.VOUCHER_NOT_FOUND, "ChÆ°Æ¡ng trÃ¬nh chÆ°a báº¯t Ä‘áº§u");
+            throw new AppException(ErrorCode.VOUCHER_NOT_FOUND, "Chương trình chưa bắt đầu");
         }
         if (voucher.getEndAt() != null && now.isAfter(voucher.getEndAt())) {
             throw new AppException(ErrorCode.VOUCHER_EXPIRED);
@@ -78,22 +78,25 @@ public class PromotionService {
 
         // Check user limit
         if (request.getUserId() != null) {
-            long usedCountByUser = voucherUsageRepository.countByVoucherIdAndUserId(voucher.getId(), request.getUserId());
+            long usedCountByUser = voucherUsageRepository.countByVoucherIdAndUserId(voucher.getId(),
+                    request.getUserId());
             if (usedCountByUser >= voucher.getLimitPerUser()) {
-                throw new AppException(ErrorCode.VOUCHER_USED, "Báº¡n Ä‘Ã£ háº¿t lÆ°á»£t sá»­ dá»¥ng mÃ£ nÃ y");
+                throw new AppException(ErrorCode.VOUCHER_USED, "Bạn đã hết lượt sử dụng mã này");
             }
         }
 
-        BigDecimal orderTotal = calculateOrderTotal(request).subtract(request.getShippingFee() != null ? request.getShippingFee() : BigDecimal.ZERO);
+        BigDecimal orderTotal = calculateOrderTotal(request)
+                .subtract(request.getShippingFee() != null ? request.getShippingFee() : BigDecimal.ZERO);
 
         if (voucher.getMinOrderValue() != null && orderTotal.compareTo(voucher.getMinOrderValue()) < 0) {
-            throw new AppException(ErrorCode.VALIDATION_ERROR, "ÄÆ¡n hÃ ng chÆ°a Ä‘áº¡t giÃ¡ trá»‹ tá»‘i thiá»ƒu " + voucher.getMinOrderValue() + "Ä‘");
+            throw new AppException(ErrorCode.VALIDATION_ERROR,
+                    "Đơn hàng chưa đạt giá trị tối thiểu " + voucher.getMinOrderValue() + "đ");
         }
     }
 
     private void checkRedisLimit(Voucher voucher) {
         String redisKey = VOUCHER_CACHE_PREFIX + voucher.getCode();
-        
+
         if (Boolean.FALSE.equals(redisTemplate.hasKey(redisKey))) {
             int remaining = voucher.getUsageLimit() - (voucher.getUsedCount() != null ? voucher.getUsedCount() : 0);
             redisTemplate.opsForValue().set(redisKey, String.valueOf(remaining));
@@ -103,7 +106,7 @@ public class PromotionService {
         Long remaining = redisTemplate.opsForValue().decrement(redisKey);
         if (remaining == null || remaining < 0) {
             redisTemplate.opsForValue().increment(redisKey);
-            throw new AppException(ErrorCode.VOUCHER_USED, "MÃ£ giáº£m giÃ¡ Ä‘Ã£ háº¿t lÆ°á»£t sá»­ dá»¥ng");
+            throw new AppException(ErrorCode.VOUCHER_USED, "Mã giảm giá đã hết lượt sử dụng");
         }
     }
 
@@ -113,26 +116,29 @@ public class PromotionService {
      */
     @Transactional
     public void recordUsageByCode(String code, Long userId, Long orderId, BigDecimal amountSaved) {
-        if (code == null) throw new IllegalArgumentException("Voucher code cannot be null");
-        
+        if (code == null)
+            throw new IllegalArgumentException("Voucher code cannot be null");
+
         Voucher voucher = voucherRepository.findByCodeAndIsActiveTrueAndDeletedAtIsNull(code)
                 .orElseThrow(() -> new AppException(ErrorCode.VOUCHER_NOT_FOUND));
-                
-        // Voucher slot was already claimed in applyVoucher, so we just proceed with DB persistence
+
+        // Voucher slot was already claimed in applyVoucher, so we just proceed with DB
+        // persistence
         // We don't decrement here anymore to avoid double-claiming
-        
+
         VoucherUsage usage = VoucherUsage.builder()
                 .voucher(voucher)
                 .userId(userId)
                 .orderId(orderId)
                 .amountSaved(amountSaved)
                 .build();
-        
+
         if (usage != null) {
             voucherUsageRepository.save(usage);
         }
-        
-        // Sync DB used count (Redis was decremented in applyVoucher, or we trust DB for persistence)
+
+        // Sync DB used count (Redis was decremented in applyVoucher, or we trust DB for
+        // persistence)
         int currentCount = voucher.getUsedCount() != null ? voucher.getUsedCount() : 0;
         voucher.setUsedCount(currentCount + 1);
         voucherRepository.save(voucher);
@@ -147,15 +153,15 @@ public class PromotionService {
     @Transactional
     public void rollbackVoucherUsage(String code, Long userId) {
         log.info("Rolling back voucher usage for code: {} and user: {}", code, userId);
-        
+
         Voucher voucher = voucherRepository.findByCodeAndIsActiveTrueAndDeletedAtIsNull(code)
                 .orElse(null);
-        
+
         if (voucher != null) {
             // 1. Increment Redis Limit
             String redisKey = VOUCHER_CACHE_PREFIX + voucher.getCode();
             redisTemplate.opsForValue().increment(redisKey);
-            
+
             // 2. Revert DB count
             int currentCount = voucher.getUsedCount() != null ? voucher.getUsedCount() : 0;
             if (currentCount > 0) {
@@ -168,7 +174,7 @@ public class PromotionService {
                 uv.setUsed(false);
                 userVoucherRepository.save(uv);
             });
-            
+
             // 4. Remove usage log if exists for the newest record (best effort)
             // Note: In a real system, we'd use the orderId to find the exact log
             log.info("Voucher usage rolled back successfully");
@@ -178,10 +184,11 @@ public class PromotionService {
     @Transactional
     public void saveVoucherForUser(Long userId, String code) {
         Voucher voucher = voucherRepository.findByCodeAndIsActiveTrueAndDeletedAtIsNull(code)
-                .orElseThrow(() -> new AppException(ErrorCode.VOUCHER_NOT_FOUND, "MÃ£ giáº£m giÃ¡ khÃ´ng tá»“n táº¡i hoáº·c Ä‘Ã£ háº¿t háº¡n"));
+                .orElseThrow(() -> new AppException(ErrorCode.VOUCHER_NOT_FOUND,
+                        "Mã giảm giá không tồn tại hoặc đã hết hạn"));
 
         if (userVoucherRepository.existsByUserIdAndVoucherId(userId, voucher.getId())) {
-            throw new AppException(ErrorCode.CONFLICT, "Báº¡n Ä‘Ã£ lÆ°u mÃ£ giáº£m giÃ¡ nÃ y rá»“i");
+            throw new AppException(ErrorCode.CONFLICT, "Bạn đã lưu mã giảm giá này rồi");
         }
 
         UserVoucher uv = UserVoucher.builder()
@@ -207,7 +214,8 @@ public class PromotionService {
 
     @Transactional
     public Voucher createVoucher(Voucher voucher) {
-        if (voucher == null) throw new IllegalArgumentException("Voucher cannot be null");
+        if (voucher == null)
+            throw new IllegalArgumentException("Voucher cannot be null");
         return voucherRepository.save(voucher);
     }
 
@@ -265,9 +273,10 @@ public class PromotionService {
                     .filter(item -> !item.isPrescription())
                     .map(item -> item.getPrice().multiply(BigDecimal.valueOf(item.getQuantity())))
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
-            
+
             if (discountableAmount.compareTo(BigDecimal.ZERO) == 0 && !request.getItems().isEmpty()) {
-                throw new RuntimeException("MÃ£ nÃ y khÃ´ng Ã¡p dá»¥ng cho cÃ¡c sáº£n pháº©m kÃª Ä‘Æ¡n trong giá» hÃ ng.");
+                throw new AppException(ErrorCode.VALIDATION_ERROR,
+                        "Mã này không áp dụng cho các sản phẩm kê đơn trong đơn hàng.");
             }
         } else {
             // Apply to all items
@@ -280,13 +289,15 @@ public class PromotionService {
         DiscountStrategy strategy = discountStrategies.stream()
                 .filter(s -> s.getSupportedType() == voucher.getDiscountType())
                 .findFirst()
-                .orElseThrow(() -> new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Loáº¡i giáº£m giÃ¡ chÆ°a Ä‘Æ°á»£c há»— trá»£"));
+                .orElseThrow(() -> new AppException(ErrorCode.INTERNAL_SERVER_ERROR,
+                        "Loại giảm giá chưa được hỗ trợ"));
 
-        if (discountableAmount.compareTo(BigDecimal.ZERO) == 0 && !request.getItems().isEmpty() && voucher.isExcludePrescriptionDrugs()) {
-            throw new AppException(ErrorCode.VALIDATION_ERROR, "MÃ£ nÃ y khÃ´ng Ã¡p dá»¥ng cho cÃ¡c sáº£n pháº©m kÃª Ä‘Æ¡n trong giá» hÃ ng.");
+        if (discountableAmount.compareTo(BigDecimal.ZERO) == 0 && !request.getItems().isEmpty()
+                && voucher.isExcludePrescriptionDrugs()) {
+            throw new AppException(ErrorCode.VALIDATION_ERROR,
+                    "Mã này không áp dụng cho các sản phẩm kê đơn trong đơn hàng.");
         }
 
         return strategy.calculateDiscount(discountableAmount, voucher);
     }
 }
-

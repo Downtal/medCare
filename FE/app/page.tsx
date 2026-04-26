@@ -306,7 +306,7 @@ export default function HomePage() {
                   <div className="relative aspect-square max-w-[400px] mx-auto">
                     <div className="absolute inset-0 bg-white/10 rounded-full blur-[60px]" />
                     <Image
-                      src="https://res.cloudinary.com/dvp5v8scf/image/upload/v1740051834/medcare/pharmacist-consult.png"
+                      src="/pharmacist-consult.png"
                       alt="Consultation"
                       fill
                       className="object-contain drop-shadow-2xl"
