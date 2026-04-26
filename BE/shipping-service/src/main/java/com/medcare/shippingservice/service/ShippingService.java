@@ -101,8 +101,11 @@ public class ShippingService {
     public void processWebhook(GHNWebhookRequest request, String token) {
         log.info("Processing GHN Webhook for Tracking: {}, Status: {}", request.getOrderCode(), request.getStatus());
 
-        // Simple token validation (optional, depending on GHN config)
-        if (token != null && !token.equals(ghnConfig.getToken())) {
+        // Strict token validation
+        if (ghnConfig.getToken() == null || ghnConfig.getToken().isBlank()) {
+            log.warn("GHN Token is not configured. Webhook validation skipped.");
+        } else if (token == null || !token.equals(ghnConfig.getToken())) {
+            log.error("Invalid GHN webhook token received: {}", token);
             throw new SecurityException("Invalid webhook token");
         }
 

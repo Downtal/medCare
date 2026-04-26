@@ -9,4 +9,5 @@ import java.util.List;
 @Repository
 public interface InventoryLogRepository extends JpaRepository<InventoryLog, Long> {
     List<InventoryLog> findAllByOrderByCreatedAtDesc();
+    List<InventoryLog> findByReferenceIdAndChangeType(String referenceId, com.medcare.inventoryservice.entity.InventoryChangeType changeType);
 }

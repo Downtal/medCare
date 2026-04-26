@@ -72,9 +72,9 @@ public class OrderService {
             }
         }
 
-        // 2. Classify and Verify Items
-        AtomicBoolean hasPrescriptionItem = new AtomicBoolean(false);
-        List<StockDeductRequest.DeductItem> deductItems = new ArrayList<>();
+        // 2. Validate and Process Address
+        validateAddress(request);
+        String fullAddress = formatFullAddress(request.getStreet(), request.getWard(), request.getDistrict(), request.getProvince());
 
         Order order = Order.builder()
                 .userId(Long.parseLong(userId))
@@ -82,8 +82,7 @@ public class OrderService {
                 .paymentMethod(request.getPaymentMethod())
                 .recipientName(request.getRecipientName())
                 .recipientPhone(request.getRecipientPhone())
-                .recipientAddress(String.format("%s, %s, %s, %s",
-                        request.getStreet(), request.getWard(), request.getDistrict(), request.getProvince()))
+                .recipientAddress(fullAddress)
                 .cityId(request.getCityId())
                 .districtId(request.getDistrictId())
                 .wardCode(request.getWardCode())
@@ -96,6 +95,10 @@ public class OrderService {
                 .grandTotal(totalAmount.add(new BigDecimal("30000"))
                         .subtract(request.getDiscountAmount() != null ? request.getDiscountAmount() : BigDecimal.ZERO))
                 .build();
+
+        // 3. Classify and Verify Items
+        AtomicBoolean hasPrescriptionItem = new AtomicBoolean(false);
+        List<StockDeductRequest.DeductItem> deductItems = new ArrayList<>();
 
         for (OrderItemRequest reqItem : itemsToProcess) {
             // Verify with Product Service
@@ -126,7 +129,10 @@ public class OrderService {
 
         // 3. Deduct Stock (Real call instead of mock)
         try {
-            inventoryClient.deductStock(StockDeductRequest.builder().items(deductItems).build());
+            inventoryClient.deductStock(StockDeductRequest.builder()
+                    .items(deductItems)
+                    .orderCode(order.getOrderCode())
+                    .build());
             log.info("Successfully deducted stock for order {}", order.getOrderCode());
         } catch (Exception e) {
             log.error("Failed to deduct stock for order {}: {}", order.getOrderCode(), e.getMessage());
@@ -249,8 +255,8 @@ public class OrderService {
                         .toName(order.getRecipientName())
                         .toPhone(order.getRecipientPhone())
                         .toAddress(order.getRecipientAddress())
-                        .toWardCode(order.getWardCode() != null ? order.getWardCode() : "120110")
-                        .toDistrictId(order.getDistrictId() != null ? order.getDistrictId() : 1442)
+                        .toWardCode(order.getWardCode())
+                        .toDistrictId(order.getDistrictId())
                         .codAmount(0) // Đã thanh toán nên COD = 0
                         .insuranceValue(order.getGrandTotal().intValue())
                         .items(order.getItems().stream().map(item -> ShippingRequestItemDto.builder()
@@ -267,6 +273,23 @@ public class OrderService {
             }
         } else if ("FAILED".equals(status)) {
             order.setStatus(OrderStatus.CANCELLED);
+            // Restore Stock
+            try {
+                inventoryClient.restoreStock(orderCode);
+                log.info("Successfully requested stock restoration for failed payment of order {}", orderCode);
+            } catch (Exception e) {
+                log.error("Failed to restore stock for order {} after payment failure", orderCode, e);
+            }
+
+            // Restore Voucher
+            if (order.getVoucherCode() != null && !order.getVoucherCode().isEmpty()) {
+                try {
+                    promotionClient.rollbackUsage(order.getVoucherCode(), order.getUserId());
+                    log.info("Successfully requested voucher rollback for order {}", orderCode);
+                } catch (Exception e) {
+                    log.error("Failed to rollback voucher for order {} after payment failure", orderCode, e);
+                }
+            }
         }
         orderRepository.save(order);
         logStatusChange(order, order.getStatus(), "Cập nhật trạng thái thanh toán: " + status);
@@ -280,6 +303,24 @@ public class OrderService {
                 .note(note)
                 .build();
         statusLogRepository.save(log);
+    }
+
+    private void validateAddress(OrderRequest request) {
+        if (request.getProvince() == null || request.getProvince().isBlank() ||
+            request.getDistrict() == null || request.getDistrict().isBlank() ||
+            request.getWard() == null || request.getWard().isBlank() ||
+            request.getCityId() == null || request.getDistrictId() == null || request.getWardCode() == null) {
+            throw new RuntimeException("Thông tin địa chỉ vận chuyển không đầy đủ. Vui lòng kiểm tra lại tỉnh/thành, quận/huyện và phường/xã.");
+        }
+    }
+
+    private String formatFullAddress(String street, String ward, String district, String province) {
+        List<String> parts = new ArrayList<>();
+        if (street != null && !street.isBlank()) parts.add(street);
+        if (ward != null && !ward.isBlank()) parts.add(ward);
+        if (district != null && !district.isBlank()) parts.add(district);
+        if (province != null && !province.isBlank()) parts.add(province);
+        return String.join(", ", parts);
     }
 
     private String generateOrderCode() {

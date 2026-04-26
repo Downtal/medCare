@@ -35,6 +35,12 @@ public class InventoryController {
         return ResponseEntity.ok().build();
     }
 
+    @PostMapping("/internal/restore")
+    public ResponseEntity<Void> restoreStock(@RequestParam String orderCode) {
+        inventoryService.restoreStock(orderCode);
+        return ResponseEntity.ok().build();
+    }
+
     @GetMapping("/product/{productId}/stock")
     public ResponseEntity<Integer> getTotalStock(@PathVariable Long productId) {
         return ResponseEntity.ok(inventoryService.getTotalStock(productId));

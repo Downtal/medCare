@@ -13,4 +13,8 @@ public interface PromotionClient {
                      @RequestParam("userId") Long userId, 
                      @RequestParam("orderId") Long orderId, 
                      @RequestParam("amountSaved") BigDecimal amountSaved);
+
+    @PostMapping("/api/vouchers/rollback-usage")
+    void rollbackUsage(@RequestParam("code") String code, 
+                       @RequestParam("userId") Long userId);
 }

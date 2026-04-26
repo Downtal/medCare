@@ -13,6 +13,7 @@ import java.util.List;
 @AllArgsConstructor
 public class StockDeductRequest {
     private List<DeductItem> items;
+    private String orderCode;
 
     @Data
     @Builder

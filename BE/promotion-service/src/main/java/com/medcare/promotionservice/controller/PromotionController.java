@@ -42,6 +42,18 @@ public class PromotionController {
         }
     }
 
+    @PostMapping("/rollback-usage")
+    public ResponseEntity<?> rollbackUsage(
+            @RequestParam String code,
+            @RequestParam Long userId) {
+        try {
+            promotionService.rollbackVoucherUsage(code, userId);
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(e.getMessage());
+        }
+    }
+
     @GetMapping("/active")
     public ResponseEntity<?> getActiveVouchers() {
         return ResponseEntity.ok(promotionService.getAllVouchers().stream()

@@ -126,7 +126,7 @@ public class InventoryService {
             int remainingToDeduct = item.getQuantity();
             
             // Find active batches ordered by expiry date (FIFO)
-            List<InventoryBatch> activeBatches = inventoryBatchRepository.findByMedicineIdOrderByExpiryDateAsc(item.getProductId());
+            List<InventoryBatch> activeBatches = inventoryBatchRepository.findByMedicineIdOrderByExpiryDateAscIdAsc(item.getProductId());
             
             int totalAvailable = activeBatches.stream()
                     .mapToInt(b -> b.getQuantityAvailable() - b.getQuantityReserved())
@@ -153,10 +153,46 @@ public class InventoryService {
                         .batchId(batch.getId())
                         .changeType(InventoryChangeType.OUT)
                         .quantity(amountFromThisBatch)
-                        .notes("Trừ kho cho đơn hàng mới")
+                        .referenceId(request.getOrderCode())
+                        .notes("Trừ kho cho đơn hàng: " + request.getOrderCode())
                         .build());
 
                 remainingToDeduct -= amountFromThisBatch;
+            }
+        }
+    }
+
+    @Transactional
+    public void restoreStock(String orderCode) {
+        log.info("Restoring stock for order: {}", orderCode);
+        
+        // Find all OUT logs for this order
+        List<InventoryLog> outLogs = inventoryLogRepository.findByReferenceIdAndChangeType(orderCode, InventoryChangeType.OUT);
+        
+        if (outLogs.isEmpty()) {
+            log.warn("No stock deduction found for order: {}", orderCode);
+            return;
+        }
+
+        for (InventoryLog logEntry : outLogs) {
+            InventoryBatch batch = inventoryBatchRepository.findById(logEntry.getBatchId())
+                    .orElse(null);
+            
+            if (batch != null) {
+                batch.setQuantityAvailable(batch.getQuantityAvailable() + logEntry.getQuantity());
+                inventoryBatchRepository.save(batch);
+                
+                // Log restoration
+                inventoryLogRepository.save(InventoryLog.builder()
+                        .medicineId(logEntry.getMedicineId())
+                        .batchId(batch.getId())
+                        .changeType(InventoryChangeType.IN)
+                        .quantity(logEntry.getQuantity())
+                        .referenceId(orderCode)
+                        .notes("Hoàn kho cho đơn hàng bị hủy: " + orderCode)
+                        .build());
+                
+                log.info("Restored {} items to batch {} for product {}", logEntry.getQuantity(), batch.getBatchNumber(), logEntry.getMedicineId());
             }
         }
     }

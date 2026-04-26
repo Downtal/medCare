@@ -10,4 +10,7 @@ public interface InventoryClient {
 
     @PostMapping("/api/inventory/internal/deduct")
     void deductStock(@RequestBody StockDeductRequest request);
+
+    @PostMapping("/api/inventory/internal/restore")
+    void restoreStock(@org.springframework.web.bind.annotation.RequestParam("orderCode") String orderCode);
 }

@@ -16,7 +16,7 @@ public interface InventoryBatchRepository extends JpaRepository<InventoryBatch, 
     @Query("SELECT SUM(ib.quantityAvailable - ib.quantityReserved) FROM InventoryBatch ib WHERE ib.medicineId = :medicineId")
     Integer getTotalAvailableQuantity(Long medicineId);
 
-    List<InventoryBatch> findByMedicineIdOrderByExpiryDateAsc(Long medicineId);
+    List<InventoryBatch> findByMedicineIdOrderByExpiryDateAscIdAsc(Long medicineId);
 
     @Query("SELECT new com.medcare.inventoryservice.dto.ProductStockSummary(" +
            "ib.medicineId, ib.medicineName, ib.medicineSlug, ib.medicineImage, " +

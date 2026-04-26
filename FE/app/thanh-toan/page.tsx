@@ -288,7 +288,7 @@ export default function CheckoutPage() {
 
   const handleDeleteAddress = async (id: number) => {
     const addressToDelete = savedAddresses.find(a => a.id === id)
-    
+
     if (addressToDelete?.isDefault) {
       toast.error("Không thể xóa địa chỉ mặc định", {
         description: "Vui lòng chọn địa chỉ khác làm mặc định trước khi xóa."
@@ -458,7 +458,7 @@ export default function CheckoutPage() {
         const order = await res.json()
         // Remove only selected items from store
         selectedIds.forEach(id => (useCartStore.getState() as any).removeItem(id, session?.user?.accessToken))
-        
+
         // Handle VNPay Redirect
         if (form.paymentMethod === 'VNPAY') {
           try {
@@ -697,15 +697,7 @@ export default function CheckoutPage() {
                     <span className="text-[18px] font-bold text-blue-600">{total.toLocaleString("vi-VN")}đ</span>
                   </div>
 
-                  <div className="pt-2">
-                    <Button
-                      className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-full shadow-lg shadow-blue-50 transition-all active:scale-95"
-                      disabled={isSubmitting || !cartItems.length || !form.name}
-                      onClick={handlePlaceOrder}
-                    >
-                      {isSubmitting ? <Loader2 className="animate-spin mr-2" /> : "Hoàn tất"}
-                    </Button>
-                  </div>
+
 
                   <p className="text-[11px] text-slate-400 text-center leading-relaxed">
                     Bằng việc tiến hành đặt hàng, bạn đồng ý với <Link href="#" className="text-blue-600 underline">Điều khoản dịch vụ</Link> của Nhà thuốc MedCare
@@ -896,13 +888,13 @@ export default function CheckoutPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <Label className="text-[13px] font-bold text-slate-700">Tỉnh/Thành phố</Label>
-                    <select 
+                    <select
                       className={cn("w-full h-11 rounded-xl bg-slate-50 border border-slate-200 px-3 text-sm focus:ring-2 focus:ring-blue-500 transition-all", addressErrors.city && "border-red-500")}
-                      value={addressForm.cityId || ""} 
+                      value={addressForm.cityId || ""}
                       onChange={e => {
                         const id = parseInt(e.target.value);
                         const item = provinces.find(p => p.ProvinceID === id);
-                        setAddressForm({...addressForm, cityId: id, city: item?.ProvinceName || "", districtId: undefined, district: "", wardCode: ""})
+                        setAddressForm({ ...addressForm, cityId: id, city: item?.ProvinceName || "", districtId: undefined, district: "", wardCode: "" })
                       }}
                     >
                       <option value="">Chọn Tỉnh/Thành</option>
@@ -911,13 +903,13 @@ export default function CheckoutPage() {
                   </div>
                   <div className="space-y-1.5">
                     <Label className="text-[13px] font-bold text-slate-700">Quận/Huyện</Label>
-                    <select 
+                    <select
                       className={cn("w-full h-11 rounded-xl bg-slate-50 border border-slate-200 px-3 text-sm focus:ring-2 focus:ring-blue-500 transition-all", addressErrors.district && "border-red-500")}
-                      value={addressForm.districtId || ""} 
+                      value={addressForm.districtId || ""}
                       onChange={e => {
                         const id = parseInt(e.target.value);
                         const item = districts.find(d => d.DistrictID === id);
-                        setAddressForm({...addressForm, districtId: id, district: item?.DistrictName || "", wardCode: ""})
+                        setAddressForm({ ...addressForm, districtId: id, district: item?.DistrictName || "", wardCode: "" })
                       }}
                       disabled={!addressForm.cityId}
                     >
@@ -929,13 +921,13 @@ export default function CheckoutPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <Label className="text-[13px] font-bold text-slate-700">Phường/Xã (Mã GHN)</Label>
-                    <select 
+                    <select
                       className={cn("w-full h-11 rounded-xl bg-slate-50 border border-slate-200 px-3 text-sm focus:ring-2 focus:ring-blue-500 transition-all", addressErrors.wardCode && "border-red-500")}
-                      value={addressForm.wardCode || ""} 
+                      value={addressForm.wardCode || ""}
                       onChange={e => {
                         const code = e.target.value;
                         const item = wards.find(w => w.WardCode === code);
-                        setAddressForm({...addressForm, wardCode: code, ward: item?.WardName || ""})
+                        setAddressForm({ ...addressForm, wardCode: code, ward: item?.WardName || "" })
                       }}
                       disabled={!addressForm.districtId}
                     >
@@ -944,7 +936,7 @@ export default function CheckoutPage() {
                     </select>
                   </div>
                   <div className="space-y-1.5 flex flex-col justify-end">
-                     {/* Placeholder for symmetry or other fields */}
+                    {/* Placeholder for symmetry or other fields */}
                   </div>
                 </div>
                 <div className="space-y-1.5">

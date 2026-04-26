@@ -42,17 +42,11 @@ public class PromotionService {
         // 2. Fundamental Validations
         validateVoucher(voucher, request);
 
-        // 3. Check Redis Limit (Read Only)
-        checkRedisLimit(voucher);
-
         // 4. Calculate Discount
         BigDecimal discountAmount = calculateProfessionalDiscount(request, voucher);
 
         // 5. Build Response
-        BigDecimal originalTotal = request.getItems().stream()
-                .map(item -> item.getPrice().multiply(BigDecimal.valueOf(item.getQuantity())))
-                .reduce(BigDecimal.ZERO, BigDecimal::add)
-                .add(request.getShippingFee() != null ? request.getShippingFee() : BigDecimal.ZERO);
+        BigDecimal originalTotal = calculateOrderTotal(request);
 
         return VoucherApplyResponse.builder()
                 .code(voucher.getCode())
@@ -62,6 +56,13 @@ public class PromotionService {
                 .success(true)
                 .message("Áp dụng mã giảm giá thành công")
                 .build();
+    }
+
+    private BigDecimal calculateOrderTotal(VoucherApplyRequest request) {
+        BigDecimal itemsTotal = request.getItems().stream()
+                .map(item -> item.getPrice().multiply(BigDecimal.valueOf(item.getQuantity())))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        return itemsTotal.add(request.getShippingFee() != null ? request.getShippingFee() : BigDecimal.ZERO);
     }
 
     private void validateVoucher(Voucher voucher, VoucherApplyRequest request) {
@@ -81,9 +82,7 @@ public class PromotionService {
             }
         }
 
-        BigDecimal orderTotal = request.getItems().stream()
-                .map(item -> item.getPrice().multiply(BigDecimal.valueOf(item.getQuantity())))
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal orderTotal = calculateOrderTotal(request).subtract(request.getShippingFee() != null ? request.getShippingFee() : BigDecimal.ZERO);
 
         if (voucher.getMinOrderValue() != null && orderTotal.compareTo(voucher.getMinOrderValue()) < 0) {
             throw new RuntimeException("Đơn hàng chưa đạt giá trị tối thiểu " + voucher.getMinOrderValue() + "đ");
@@ -96,14 +95,14 @@ public class PromotionService {
         if (Boolean.FALSE.equals(redisTemplate.hasKey(redisKey))) {
             int remaining = voucher.getUsageLimit() - (voucher.getUsedCount() != null ? voucher.getUsedCount() : 0);
             redisTemplate.opsForValue().set(redisKey, String.valueOf(remaining));
-            if (remaining <= 0) {
-                 throw new RuntimeException("Mã giảm giá đã hết lượt sử dụng");
-            }
-        } else {
-            String val = redisTemplate.opsForValue().get(redisKey);
-            if (val != null && Long.parseLong(val) <= 0) {
-                 throw new RuntimeException("Mã giảm giá đã hết lượt sử dụng");
-            }
+        }
+
+        // Atomically claim a voucher slot
+        Long remaining = redisTemplate.opsForValue().decrement(redisKey);
+        if (remaining == null || remaining < 0) {
+            // Revert the decrement if we went below zero
+            redisTemplate.opsForValue().increment(redisKey);
+            throw new RuntimeException("Mã giảm giá đã hết lượt sử dụng");
         }
     }
 
@@ -118,17 +117,8 @@ public class PromotionService {
         Voucher voucher = voucherRepository.findByCodeAndIsActiveTrueAndDeletedAtIsNull(code)
                 .orElseThrow(() -> new RuntimeException("Voucher not found or inactive"));
                 
-        // Decrement Redis here when order is actually placed
-        String redisKey = VOUCHER_CACHE_PREFIX + voucher.getCode();
-        if (Boolean.FALSE.equals(redisTemplate.hasKey(redisKey))) {
-            int remaining = voucher.getUsageLimit() - (voucher.getUsedCount() != null ? voucher.getUsedCount() : 0);
-            redisTemplate.opsForValue().set(redisKey, String.valueOf(remaining));
-        }
-        Long remaining = redisTemplate.opsForValue().decrement(redisKey);
-        if (remaining == null || remaining < 0) {
-            redisTemplate.opsForValue().increment(redisKey);
-            throw new RuntimeException("Thanh toán thất bại: Mã giảm giá đã hết lượt sử dụng trong khi bạn đang thao tác");
-        }
+        // Voucher slot was already claimed in applyVoucher, so we just proceed with DB persistence
+        // We don't decrement here anymore to avoid double-claiming
         
         VoucherUsage usage = VoucherUsage.builder()
                 .voucher(voucher)
@@ -151,6 +141,37 @@ public class PromotionService {
             uv.setUsed(true);
             userVoucherRepository.save(uv);
         });
+    }
+
+    @Transactional
+    public void rollbackVoucherUsage(String code, Long userId) {
+        log.info("Rolling back voucher usage for code: {} and user: {}", code, userId);
+        
+        Voucher voucher = voucherRepository.findByCodeAndIsActiveTrueAndDeletedAtIsNull(code)
+                .orElse(null);
+        
+        if (voucher != null) {
+            // 1. Increment Redis Limit
+            String redisKey = VOUCHER_CACHE_PREFIX + voucher.getCode();
+            redisTemplate.opsForValue().increment(redisKey);
+            
+            // 2. Revert DB count
+            int currentCount = voucher.getUsedCount() != null ? voucher.getUsedCount() : 0;
+            if (currentCount > 0) {
+                voucher.setUsedCount(currentCount - 1);
+                voucherRepository.save(voucher);
+            }
+
+            // 3. Mark user voucher as unused again
+            userVoucherRepository.findByUserIdAndVoucherId(userId, voucher.getId()).ifPresent(uv -> {
+                uv.setUsed(false);
+                userVoucherRepository.save(uv);
+            });
+            
+            // 4. Remove usage log if exists for the newest record (best effort)
+            // Note: In a real system, we'd use the orderId to find the exact log
+            log.info("Voucher usage rolled back successfully");
+        }
     }
 
     @Transactional

@@ -21,6 +21,7 @@ See: [.planning/PROJECT.md](file:///v:/TieuLuanTN\MedCare/.planning/PROJECT.md) 
 | fix-port-conflict-promotion-payment | 2026-04-23 | Giải quyết xung đột port 8087 giữa payment và promotion service; bổ sung route thiếu trong Gateway. |
 | fix-fetch-provinces-error | 2026-04-23 | Sửa lỗi "Failed to fetch provinces" do sai đường dẫn API và thiếu cấu hình permitAll cho master data shipping. |
 | fix-checkout-400-error | 2026-04-23 | Sửa lỗi 400 Bad Request khi checkout: thêm GHN IDs vào form state, payload, và bỏ @NotBlank khỏi ward. |
+| redesign-fe-pages | 2026-04-24 | Thiết kế lại Trang chủ, Liên hệ, Chính sách và Đồng bộ xác nhận đơn hàng với giao diện Premium. |
 
 **Core value:** Đảm bảo chất lượng hệ thống MedCare với bộ kiểm thử đa tầng (Unit → Integration → Frontend → E2E).
 **Current status:** Milestone 2 In Progress — Phase 9 Complete.

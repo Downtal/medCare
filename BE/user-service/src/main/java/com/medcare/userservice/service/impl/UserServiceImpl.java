@@ -141,10 +141,7 @@ public class UserServiceImpl implements UserService {
 
         // Logic for default address: If this new address is default, unset others
         if (request.getIsDefault() != null && request.getIsDefault()) {
-            addressRepository.findByUserProfileUserId(userId).forEach(a -> {
-                a.setIsDefault(false);
-                addressRepository.save(a);
-            });
+            addressRepository.unsetDefaultAddresses(userId);
         }
 
         Address address = Address.builder()
@@ -211,10 +208,7 @@ public class UserServiceImpl implements UserService {
 
         // Logic for default address
         if (request.getIsDefault() != null && request.getIsDefault()) {
-            addressRepository.findByUserProfileUserId(userId).forEach(a -> {
-                a.setIsDefault(false);
-                addressRepository.save(a);
-            });
+            addressRepository.unsetDefaultAddresses(userId);
         }
 
         address.setReceiverName(request.getReceiverName());
