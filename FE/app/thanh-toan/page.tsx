@@ -15,7 +15,6 @@ import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { MapPin, CreditCard, Truck, FileText, AlertCircle, Ticket, X, CheckCircle2, Loader2, Info, ChevronRight, ChevronLeft, Plus, ShoppingCart, Tag, Wallet, Pencil, Trash2, ShieldCheck } from "lucide-react"
-import { SafetyAlertBanner } from "@/components/checkout/safety-alert-banner"
 import Image from "next/image"
 import Link from "next/link"
 import { useCartStore, CartItem } from "@/lib/store/useCartStore"
@@ -202,40 +201,6 @@ export default function CheckoutPage() {
     fetchPrescription()
   }, [selectedPrescriptionId, session])
 
-  // Trigger Safety Check when cart items are ready
-  useEffect(() => {
-    const checkSafety = async () => {
-      if (cartItems.length === 0) return
-      // Only check if 2+ items OR user is logged in (to get health profile)
-      if (cartItems.length < 2 && !session?.user) return
-
-      setIsCheckingSafety(true)
-      try {
-        const res = await fetch(`${getApiBaseUrl()}/ai-service/api/ai/recommendations/safety-check`, {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            'X-User-Id': session?.user?.id?.toString() || ''
-          },
-          body: JSON.stringify(cartItems.map(i => ({
-            medicineName: i.name,
-            category: (i as any).category || ""
-          })))
-        })
-        if (res.ok) {
-          setSafetyResult(await res.json())
-        }
-      } catch (err) {
-        console.error("Safety check failed:", err)
-      } finally {
-        setIsCheckingSafety(false)
-      }
-    }
-
-    // Debounce safety check to avoid redundant calls
-    const timer = setTimeout(checkSafety, 1000)
-    return () => clearTimeout(timer)
-  }, [cartItems.length, session?.user?.id])
 
   const fetchProvinces = async () => {
     try {
@@ -650,26 +615,6 @@ export default function CheckoutPage() {
                   </div>
                 )}
 
-                {/* Safety Alert Banner */}
-                {(isCheckingSafety || safetyResult) && (
-                  <div className="pt-2">
-                    {isCheckingSafety ? (
-                      <div className="flex items-center gap-3 p-4 bg-blue-50/50 rounded-2xl border border-blue-100 border-dashed animate-pulse">
-                        <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
-                        <span className="text-sm font-bold text-blue-600">Đang phân tích tương tác thuốc & an toàn...</span>
-                      </div>
-                    ) : (
-                      safetyResult && (
-                        <SafetyAlertBanner 
-                          riskLevel={safetyResult.riskLevel}
-                          message={safetyResult.message}
-                          requiresConfirmation={safetyResult.requiresConfirmation}
-                          onConfirmChange={setSafetyConfirmed}
-                        />
-                      )
-                    )}
-                  </div>
-                )}
               </div>
 
               {/* 2. Delivery Address Selection */}
@@ -1177,7 +1122,7 @@ export default function CheckoutPage() {
                           ? "bg-slate-50 text-slate-300" 
                           : v.discountType === 'FREESHIP'
                             ? "bg-blue-50 text-blue-600 group-hover:scale-110"
-                            : "bg-orange-50 text-orange-600 group-hover:scale-110"
+                            : "bg-emerald-50 text-emerald-600 group-hover:scale-110"
                       )}>
                         {v.discountType === 'FREESHIP' ? <Truck size={32} strokeWidth={1.5} /> : <Ticket size={32} strokeWidth={1.5} />}
                       </div>
@@ -1192,7 +1137,7 @@ export default function CheckoutPage() {
                                 ? "bg-slate-100 text-slate-400" 
                                 : v.discountType === 'FREESHIP'
                                   ? "bg-blue-100 text-blue-700"
-                                  : "bg-orange-100 text-orange-700"
+                                  : "bg-emerald-100 text-emerald-700"
                              )}>
                                {v.discountType === 'FREESHIP' ? 'Vận chuyển' : 'Sản phẩm'}
                              </span>

@@ -525,13 +525,13 @@ export default function CartPage() {
                       <span>Giảm giá trực tiếp</span>
 
                     </div>
-                    <span className="text-orange-500">-{discountDirect.toLocaleString("vi-VN")}đ</span>
+                    <span className="text-emerald-600">-{discountDirect.toLocaleString("vi-VN")}đ</span>
                   </div>
                   <div className="flex items-center justify-between font-bold">
                     <div className="flex items-center gap-1.5 text-slate-500">
                       <span>Giảm giá Voucher</span>
                     </div>
-                    <span className="text-orange-500">-{productDiscount.toLocaleString("vi-VN")}đ</span>
+                    <span className="text-emerald-600">-{productDiscount.toLocaleString("vi-VN")}đ</span>
                   </div>
                   <div className="flex items-center justify-between text-slate-500 font-bold">
                     <span>Phí vận chuyển</span>
@@ -565,11 +565,11 @@ export default function CartPage() {
                   </div>
 
                   {savings > 0 && (
-                    <div className="bg-orange-50 p-4 rounded-2xl border border-orange-100 flex items-center gap-3">
-                      <div className="h-10 w-10 bg-orange-500 rounded-full flex items-center justify-center text-white shrink-0">
+                    <div className="bg-emerald-50 p-4 rounded-2xl border border-emerald-100 flex items-center gap-3">
+                      <div className="h-10 w-10 bg-emerald-500 rounded-full flex items-center justify-center text-white shrink-0">
                         <Tag className="h-5 w-5" />
                       </div>
-                      <p className="text-orange-700 text-sm font-bold leading-tight">
+                      <p className="text-emerald-700 text-sm font-bold leading-tight">
                         Bạn đã tiết kiệm được {savings.toLocaleString("vi-VN")}đ từ đơn hàng này!
                       </p>
                     </div>
@@ -652,7 +652,7 @@ export default function CartPage() {
                           ? "bg-slate-50 text-slate-300" 
                           : v.discountType === 'FREESHIP'
                             ? "bg-blue-50 text-blue-600 group-hover:scale-110"
-                            : "bg-orange-50 text-orange-600 group-hover:scale-110"
+                            : "bg-emerald-50 text-emerald-600 group-hover:scale-110"
                       )}>
                         {v.discountType === 'FREESHIP' ? <Truck size={32} strokeWidth={1.5} /> : <Ticket size={32} strokeWidth={1.5} />}
                       </div>
@@ -667,7 +667,7 @@ export default function CartPage() {
                                 ? "bg-slate-100 text-slate-400" 
                                 : v.discountType === 'FREESHIP'
                                   ? "bg-blue-100 text-blue-700"
-                                  : "bg-orange-100 text-orange-700"
+                                  : "bg-emerald-100 text-emerald-700"
                              )}>
                                {v.discountType === 'FREESHIP' ? 'Vận chuyển' : 'Sản phẩm'}
                              </span>
