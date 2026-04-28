@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Pencil, Save, X, Loader2, User, Phone, Mail, Calendar } from "lucide-react"
+import { Pencil, Save, X, Loader2, User, Phone, Mail, Calendar, UserCircle } from "lucide-react"
 import { useState, useEffect } from "react"
 import { useSession } from "next-auth/react"
 import { toast } from "sonner"
@@ -21,7 +21,8 @@ export default function ProfilePage() {
     fullName: "",
     email: "",
     phone: "",
-    dateOfBirth: ""
+    dateOfBirth: "",
+    gender: ""
   })
   const [saving, setSaving] = useState(false)
 
@@ -44,7 +45,8 @@ export default function ProfilePage() {
           fullName: data.fullName || "",
           email: data.email || "",
           phone: data.phone || "",
-          dateOfBirth: data.dateOfBirth || ""
+          dateOfBirth: data.dateOfBirth || "",
+          gender: data.gender || ""
         })
       }
     } catch (error) {
@@ -139,6 +141,26 @@ export default function ProfilePage() {
                 className="rounded-xl border-slate-200 focus-visible:ring-blue-500/20"
               />
             </div>
+            <div className="space-y-2">
+              <Label className="text-sm font-bold text-slate-700">Giới tính</Label>
+              <div className="flex gap-4 mt-1">
+                {["MALE", "FEMALE", "OTHER"].map((g) => (
+                  <label key={g} className="flex items-center gap-2 cursor-pointer group">
+                    <input
+                      type="radio"
+                      name="gender"
+                      value={g}
+                      checked={editForm.gender === g}
+                      onChange={(e) => setEditForm({ ...editForm, gender: e.target.value })}
+                      className="w-4 h-4 text-blue-600 border-slate-300 focus:ring-blue-500"
+                    />
+                    <span className="text-sm font-bold text-slate-600 group-hover:text-blue-600 transition-colors">
+                      {g === "MALE" ? "Nam" : g === "FEMALE" ? "Nữ" : "Khác"}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </div>
             <div className="md:col-span-2 flex justify-end gap-3 mt-4">
               <Button variant="ghost" onClick={() => setIsEditing(false)} className="rounded-full px-8 font-bold">Hủy</Button>
               <Button onClick={handleUpdateProfile} disabled={saving} className="rounded-full px-8 bg-blue-600 hover:bg-blue-700 font-bold shadow-lg shadow-blue-500/20">
@@ -166,6 +188,17 @@ export default function ProfilePage() {
                 <div>
                   <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-0.5">Số điện thoại</p>
                   <p className="text-lg text-slate-800 font-black">{user?.phone || "Chưa cập nhật"}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="bg-blue-50 p-3 rounded-2xl">
+                  <UserCircle className="h-6 w-6 text-blue-600" />
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-0.5">Giới tính</p>
+                  <p className="text-lg text-slate-800 font-black">
+                    {user?.gender === "MALE" ? "Nam" : user?.gender === "FEMALE" ? "Nữ" : user?.gender === "OTHER" ? "Khác" : "Chưa cập nhật"}
+                  </p>
                 </div>
               </div>
             </div>

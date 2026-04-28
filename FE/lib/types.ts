@@ -65,6 +65,7 @@ export interface UserProfileDto {
   email: string;
   phone: string;
   dateOfBirth: string; // ISO string
+  gender: string;
   createdAt?: string;
 }
 
