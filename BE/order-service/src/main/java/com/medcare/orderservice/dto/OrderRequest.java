@@ -37,7 +37,10 @@ public class OrderRequest {
     private String prescriptionImageUrl;
 
     private String voucherCode;
-    private java.math.BigDecimal discountAmount;
+    private BigDecimal discountAmount;
+
+    private String shippingVoucherCode;
+    private BigDecimal shippingDiscountAmount;
     private String note;
     private Long prescriptionId;
     private java.util.List<OrderItemRequest> items;

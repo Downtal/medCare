@@ -69,6 +69,8 @@ public class Order {
 
     private String voucherCode;
     private BigDecimal discountAmount;
+    private String shippingVoucherCode;
+    private BigDecimal shippingDiscountAmount;
 
     @Column(columnDefinition = "TEXT")
     private String note;

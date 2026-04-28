@@ -91,10 +91,13 @@ public class OrderService {
                 .shippingFee(new BigDecimal("30000"))
                 .discountAmount(request.getDiscountAmount() != null ? request.getDiscountAmount() : BigDecimal.ZERO)
                 .voucherCode(request.getVoucherCode())
+                .shippingVoucherCode(request.getShippingVoucherCode())
+                .shippingDiscountAmount(request.getShippingDiscountAmount() != null ? request.getShippingDiscountAmount() : BigDecimal.ZERO)
                 .note(request.getNote())
                 .prescriptionId(request.getPrescriptionId())
                 .grandTotal(totalAmount.add(new BigDecimal("30000"))
-                        .subtract(request.getDiscountAmount() != null ? request.getDiscountAmount() : BigDecimal.ZERO))
+                        .subtract(request.getDiscountAmount() != null ? request.getDiscountAmount() : BigDecimal.ZERO)
+                        .subtract(request.getShippingDiscountAmount() != null ? request.getShippingDiscountAmount() : BigDecimal.ZERO))
                 .build();
 
         // 3. Classify and Verify Items
@@ -195,6 +198,20 @@ public class OrderService {
             } catch (Exception e) {
                 log.error("Failed to record voucher usage for code {}", request.getVoucherCode(), e);
                 throw new AppException(ErrorCode.VOUCHER_USED, "Thanh toán thất bại: Mã giảm giá đã hết lượt sử dụng trong khi bạn đang thao tác");
+            }
+        }
+
+        if (request.getShippingVoucherCode() != null && request.getShippingDiscountAmount() != null) {
+            try {
+                promotionClient.recordUsage(
+                        request.getShippingVoucherCode(),
+                        Long.parseLong(userId),
+                        savedOrder.getId(),
+                        request.getShippingDiscountAmount());
+            } catch (Exception e) {
+                log.error("Failed to record shipping voucher usage for code {}", request.getShippingVoucherCode(), e);
+                // Note: In a real system, we might want to rollback the first voucher if this fails
+                throw new AppException(ErrorCode.VOUCHER_USED, "Thanh toán thất bại: Mã giảm phí vận chuyển đã hết lượt sử dụng");
             }
         }
 
@@ -345,13 +362,21 @@ public class OrderService {
                 log.error("Failed to restore stock for order {} after payment failure", orderCode, e);
             }
 
-            // Restore Voucher
+            // Restore Vouchers
             if (order.getVoucherCode() != null && !order.getVoucherCode().isEmpty()) {
                 try {
                     promotionClient.rollbackUsage(order.getVoucherCode(), order.getUserId());
                     log.info("Successfully requested voucher rollback for order {}", orderCode);
                 } catch (Exception e) {
                     log.error("Failed to rollback voucher for order {} after payment failure", orderCode, e);
+                }
+            }
+            if (order.getShippingVoucherCode() != null && !order.getShippingVoucherCode().isEmpty()) {
+                try {
+                    promotionClient.rollbackUsage(order.getShippingVoucherCode(), order.getUserId());
+                    log.info("Successfully requested shipping voucher rollback for order {}", orderCode);
+                } catch (Exception e) {
+                    log.error("Failed to rollback shipping voucher for order {} after payment failure", orderCode, e);
                 }
             }
         }

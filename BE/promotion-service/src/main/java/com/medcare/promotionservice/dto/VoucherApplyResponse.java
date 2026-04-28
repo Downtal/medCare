@@ -8,6 +8,7 @@ import java.math.BigDecimal;
 @Builder
 public class VoucherApplyResponse {
     private String code;
+    private String discountType;
     private BigDecimal discountAmount;
     private BigDecimal originalTotal;
     private BigDecimal finalTotal;

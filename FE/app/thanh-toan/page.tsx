@@ -48,7 +48,8 @@ export default function CheckoutPage() {
 
   // Voucher states
   const [voucherCode, setVoucherCode] = useState("")
-  const [appliedVoucher, setAppliedVoucher] = useState<any>(null)
+  const [appliedProductVoucher, setAppliedProductVoucher] = useState<any>(null)
+  const [appliedShippingVoucher, setAppliedShippingVoucher] = useState<any>(null)
   const [isApplyingVoucher, setIsApplyingVoucher] = useState(false)
   const [vouchersModalOpen, setVouchersModalOpen] = useState(false)
   const [availableVouchers, setAvailableVouchers] = useState<any[]>([])
@@ -437,7 +438,7 @@ export default function CheckoutPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           code: code,
-          userId: (session?.user as any)?.userId || 0,
+          userId: (session?.user as any)?.userId || (session?.user as any)?.id || 0,
           items: cartItems.map(item => ({
             productId: item.medicineId,
             price: item.unitPrice,
@@ -450,9 +451,16 @@ export default function CheckoutPage() {
 
       const data = await res.json()
       if (data.success) {
-        setAppliedVoucher({ ...data, code: code })
+        if (data.discountType === 'FREESHIP') {
+          setAppliedShippingVoucher({ ...data, code: code })
+          toast.success(`Đã áp dụng mã vận chuyển ${code}!`)
+        } else {
+          setAppliedProductVoucher({ ...data, code: code })
+          toast.success(`Đã áp dụng mã giảm giá ${code}!`)
+        }
+        
+        setVoucherCode("")
         setVouchersModalOpen(false)
-        toast.success(`Đã áp dụng mã ${code} thành công!`)
       } else {
         toast.error(data.message || "Không thể áp dụng mã giảm giá")
       }
@@ -463,9 +471,12 @@ export default function CheckoutPage() {
     }
   }
 
-  const handleRemoveVoucher = () => {
-    setAppliedVoucher(null)
-    setVoucherCode("")
+  const handleRemoveProductVoucher = () => {
+    setAppliedProductVoucher(null)
+  }
+
+  const handleRemoveShippingVoucher = () => {
+    setAppliedShippingVoucher(null)
   }
 
   const handlePlaceOrder = async () => {
@@ -497,8 +508,10 @@ export default function CheckoutPage() {
         districtId: form.districtId || null,
         wardCode: form.wardCode || null,
         paymentMethod: form.paymentMethod,
-        voucherCode: appliedVoucher?.code || null,
-        discountAmount: appliedVoucher?.discountAmount || 0,
+        voucherCode: appliedProductVoucher?.code || null,
+        discountAmount: appliedProductVoucher?.discountAmount || 0,
+        shippingVoucherCode: appliedShippingVoucher?.code || null,
+        shippingDiscountAmount: appliedShippingVoucher?.discountAmount || 0,
         prescriptionImageUrl: prescriptionImageUrl || selectedPrescription?.imageUrl || null,
         note: form.note,
         prescriptionId: selectedPrescriptionId ? parseInt(selectedPrescriptionId) : null,
@@ -572,9 +585,11 @@ export default function CheckoutPage() {
     }
   }
 
-  const shipping = subtotal >= 300000 || cartItems.length === 0 || appliedVoucher?.code === "FREESHIP" ? 0 : 30000
-  const discount = appliedVoucher?.discountAmount || 0
-  const total = subtotal + shipping - discount
+  const baseShipping = subtotal >= 300000 || cartItems.length === 0 ? 0 : 30000
+  const shippingDiscount = appliedShippingVoucher?.discountAmount || 0
+  const shipping = Math.max(0, baseShipping - shippingDiscount)
+  const productDiscount = appliedProductVoucher?.discountAmount || 0
+  const total = subtotal + shipping - productDiscount
 
   const hasPrescriptionItems = cartItems.some((item: any) => item.requiresPrescription)
 
@@ -726,56 +741,77 @@ export default function CheckoutPage() {
             <div className="lg:pt-[41px] space-y-4">
               <Card className="border-none shadow-sm rounded-xl overflow-hidden bg-white">
                 <CardContent className="p-4 space-y-4">
-                  {/* Voucher Area */}
-                  <div className="space-y-3">
+                   {/* Voucher Area */}
+                   <div className="space-y-3">
                     <div className="flex items-center gap-2">
                       <Tag className="h-4 w-4 text-blue-600" />
                       <span className="text-[14px] font-bold text-slate-800">Mã giảm giá MedCare</span>
                     </div>
 
-                    {appliedVoucher ? (
-                      <div className="bg-green-50 border border-green-100 rounded-xl p-3 flex items-center justify-between animate-in zoom-in-95 duration-300">
-                        <div className="flex items-center gap-3">
-                          <div className="h-8 w-8 bg-green-100 rounded-lg flex items-center justify-center text-green-600">
-                            <CheckCircle2 size={16} />
+                    <div className="space-y-2">
+                      {appliedProductVoucher && (
+                        <div className="bg-green-50 border border-green-100 rounded-xl p-3 flex items-center justify-between animate-in zoom-in-95 duration-300">
+                          <div className="flex items-center gap-3">
+                            <div className="h-8 w-8 bg-green-100 rounded-lg flex items-center justify-center text-green-600">
+                              <Tag size={16} />
+                            </div>
+                            <div>
+                              <p className="text-[13px] font-bold text-slate-800">{appliedProductVoucher.code}</p>
+                              <p className="text-[10px] text-green-600 font-bold">Giảm sản phẩm: -{appliedProductVoucher.discountAmount?.toLocaleString("vi-VN")}đ</p>
+                            </div>
                           </div>
-                          <div>
-                            <p className="text-[13px] font-bold text-slate-800">{appliedVoucher.code}</p>
-                            <p className="text-[10px] text-green-600 font-bold">-{appliedVoucher.discountAmount?.toLocaleString("vi-VN")}đ</p>
-                          </div>
-                        </div>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-red-50 hover:text-red-500 rounded-full" onClick={handleRemoveVoucher}>
-                          <X size={12} />
-                        </Button>
-                      </div>
-                    ) : (
-                      <div className="space-y-2">
-                        <div className="flex gap-2">
-                          <div className="relative flex-1">
-                            <Input
-                              placeholder="Nhập mã ưu đãi..."
-                              value={voucherCode}
-                              onChange={(e) => setVoucherCode(e.target.value.toUpperCase())}
-                              className="h-10 rounded-xl border-slate-200 bg-slate-50/50 focus:bg-white transition-all text-sm"
-                            />
-                          </div>
-                          <Button
-                            className="h-10 rounded-xl px-4 bg-blue-600 hover:bg-blue-700 font-bold text-sm"
-                            onClick={() => handleApplyVoucher()}
-                            disabled={!voucherCode || isApplyingVoucher || cartItems.length === 0}
-                          >
-                            {isApplyingVoucher ? <Loader2 className="h-4 w-4 animate-spin" /> : "Áp dụng"}
+                          <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-red-50 hover:text-red-500 rounded-full" onClick={handleRemoveProductVoucher}>
+                            <X size={12} />
                           </Button>
                         </div>
-                        <button
-                          className="w-full h-10 text-[12px] font-bold text-blue-600 hover:text-blue-700 bg-blue-50/50 rounded-xl flex items-center justify-center gap-2 transition-all hover:bg-blue-100"
-                          onClick={() => setVouchersModalOpen(true)}
-                        >
-                          <Ticket size={14} />
-                          Mã giảm giá của tôi
-                        </button>
-                      </div>
-                    )}
+                      )}
+
+                      {appliedShippingVoucher && (
+                        <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 flex items-center justify-between animate-in zoom-in-95 duration-300">
+                          <div className="flex items-center gap-3">
+                            <div className="h-8 w-8 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600">
+                              <Truck size={16} />
+                            </div>
+                            <div>
+                              <p className="text-[13px] font-bold text-slate-800">{appliedShippingVoucher.code}</p>
+                              <p className="text-[10px] text-blue-600 font-bold">Miễn phí vận chuyển</p>
+                            </div>
+                          </div>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-red-50 hover:text-red-500 rounded-full" onClick={handleRemoveShippingVoucher}>
+                            <X size={12} />
+                          </Button>
+                        </div>
+                      )}
+
+                      {(!appliedProductVoucher || !appliedShippingVoucher) && (
+                        <div className="space-y-2">
+                          <div className="flex gap-2">
+                            <div className="relative flex-1">
+                              <Input
+                                placeholder="Nhập mã ưu đãi..."
+                                value={voucherCode}
+                                onChange={(e) => setVoucherCode(e.target.value.toUpperCase())}
+                                className="h-10 rounded-xl border-slate-200 bg-slate-50/50 focus:bg-white transition-all text-sm"
+                              />
+                            </div>
+                            <Button
+                              className="h-10 rounded-xl px-4 bg-blue-600 hover:bg-blue-700 font-bold text-sm"
+                              onClick={() => handleApplyVoucher()}
+                              disabled={!voucherCode || isApplyingVoucher || cartItems.length === 0}
+                            >
+                              {isApplyingVoucher ? <Loader2 className="h-4 w-4 animate-spin" /> : "Áp dụng"}
+                            </Button>
+                          </div>
+                          <button
+                            className="w-full h-10 text-[12px] font-bold text-blue-600 hover:text-blue-700 bg-blue-50/50 rounded-xl flex items-center justify-center gap-2 transition-all hover:bg-blue-100"
+                            onClick={() => setVouchersModalOpen(true)}
+                          >
+                            <Ticket size={14} />
+                            Mã giảm giá của tôi
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   <div className="pt-1 space-y-2">
@@ -783,15 +819,22 @@ export default function CheckoutPage() {
                       <span className="text-slate-500">Tổng tiền</span>
                       <span className="text-slate-800 font-bold">{subtotal.toLocaleString("vi-VN")}đ</span>
                     </div>
-                    <div className="flex justify-between text-[13px]">
-                      <span className="text-slate-500">Giảm giá voucher</span>
-                      <span className="text-orange-500 font-bold">-{discount.toLocaleString("vi-VN")}đ</span>
-                    </div>
+                    {productDiscount > 0 && (
+                      <div className="flex justify-between text-[13px]">
+                        <span className="text-slate-500">Giảm giá sản phẩm</span>
+                        <span className="text-orange-500 font-bold">-{productDiscount.toLocaleString("vi-VN")}đ</span>
+                      </div>
+                    )}
                     <div className="flex justify-between text-[13px]">
                       <span className="text-slate-500">Phí vận chuyển</span>
-                      <span className={cn("font-bold text-xs", shipping === 0 ? "text-blue-600 font-black" : "text-slate-800")}>
-                        {shipping === 0 ? "MIỄN PHÍ" : `${shipping.toLocaleString("vi-VN")}đ`}
-                      </span>
+                      <div className="text-right">
+                        <span className={cn("font-bold text-xs block", shipping === 0 ? "text-blue-600 font-black" : "text-slate-800 line-through text-[10px] opacity-50")}>
+                          {shipping === 0 ? "MIỄN PHÍ" : `${shipping.toLocaleString("vi-VN")}đ`}
+                        </span>
+                        {shippingDiscount > 0 && (
+                           <span className="text-[10px] text-blue-600 font-bold italic"> (Đã giảm -{shippingDiscount.toLocaleString("vi-VN")}đ)</span>
+                        )}
+                      </div>
                     </div>
                   </div>
 

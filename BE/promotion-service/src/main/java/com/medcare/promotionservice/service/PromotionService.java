@@ -52,6 +52,7 @@ public class PromotionService {
 
         return VoucherApplyResponse.builder()
                 .code(voucher.getCode())
+                .discountType(voucher.getDiscountType().name())
                 .discountAmount(discountAmount)
                 .originalTotal(originalTotal)
                 .finalTotal(originalTotal.subtract(discountAmount))
