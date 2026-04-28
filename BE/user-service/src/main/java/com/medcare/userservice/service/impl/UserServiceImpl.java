@@ -244,23 +244,24 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public UserHealthNoteDto updateHealthNote(Long userId, UpdateHealthNoteRequest request) {
-        UserProfile profile = userProfileRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy hồ sơ cho user_id: " + userId));
-
-        UserHealthNote note = profile.getHealthNote();
+        // Try to find existing note first to avoid unnecessary profile fetch if possible
+        // But since we need profile to link for new notes, and findById(userId) is usually fast...
+        UserHealthNote note = userHealthNoteRepository.findById(userId).orElse(null);
+        
         if (note == null) {
+            UserProfile profile = userProfileRepository.findById(userId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy hồ sơ cho user_id: " + userId));
             note = new UserHealthNote();
-            note.setUserId(userId);
             note.setUserProfile(profile);
-            profile.setHealthNote(note);
+            // DO NOT set note.setUserId(userId) manually! @MapsId handles it.
         }
         
         if (request.getAllergies() != null) note.setAllergies(request.getAllergies());
         if (request.getChronicConditions() != null) note.setChronicConditions(request.getChronicConditions());
         if (request.getSpecialStatus() != null) note.setSpecialStatus(request.getSpecialStatus());
 
-        userProfileRepository.save(profile);
-        return mapToHealthNoteDto(note);
+        UserHealthNote saved = userHealthNoteRepository.save(note);
+        return mapToHealthNoteDto(saved);
     }
 
     // ───────────────── Health Metric operations ─────────────────
