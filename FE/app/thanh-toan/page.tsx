@@ -431,7 +431,7 @@ export default function CheckoutPage() {
           setAppliedProductVoucher({ ...data, code: code })
           toast.success(`Đã áp dụng mã giảm giá ${code}!`)
         }
-        
+
         setVoucherCode("")
         setVouchersModalOpen(false)
       } else {
@@ -612,19 +612,19 @@ export default function CheckoutPage() {
                 {/* Prescription Summary Box */}
                 {selectedPrescription && (
                   <div className="p-6 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center gap-5">
-                     <div className="h-14 w-14 relative rounded-xl overflow-hidden shadow-md border-2 border-white shrink-0">
-                        <Image src={selectedPrescription.imageUrl} alt="Don" fill className="object-cover" />
-                     </div>
-                     <div className="flex-1">
-                        <h4 className="text-[14px] font-black text-emerald-800 uppercase tracking-tight">ĐƠN THUỐC ĐÃ ĐƯỢC DUYỆT</h4>
-                        <p className="text-[13px] text-emerald-700 font-bold">
-                           BS. {selectedPrescription.doctorName || "---"} - {selectedPrescription.hospitalName || "Hệ thống y tế"}
-                        </p>
-                        <p className="text-[11px] text-emerald-600 mt-0.5 italic">Hạn sử dụng: {selectedPrescription.expiryDate || "---"}</p>
-                     </div>
-                     <div className="h-10 w-10 bg-emerald-500 rounded-full flex items-center justify-center text-white shadow-lg shadow-emerald-200">
-                        <ShieldCheck size={20} />
-                     </div>
+                    <div className="h-14 w-14 relative rounded-xl overflow-hidden shadow-md border-2 border-white shrink-0">
+                      <Image src={selectedPrescription.imageUrl} alt="Don" fill className="object-cover" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="text-[14px] font-black text-emerald-800 uppercase tracking-tight">ĐƠN THUỐC ĐÃ ĐƯỢC DUYỆT</h4>
+                      <p className="text-[13px] text-emerald-700 font-bold">
+                        BS. {selectedPrescription.doctorName || "---"} - {selectedPrescription.hospitalName || "Hệ thống y tế"}
+                      </p>
+                      <p className="text-[11px] text-emerald-600 mt-0.5 italic">Hạn sử dụng: {selectedPrescription.expiryDate || "---"}</p>
+                    </div>
+                    <div className="h-10 w-10 bg-emerald-500 rounded-full flex items-center justify-center text-white shadow-lg shadow-emerald-200">
+                      <ShieldCheck size={20} />
+                    </div>
                   </div>
                 )}
 
@@ -699,8 +699,8 @@ export default function CheckoutPage() {
             <div className="lg:pt-[41px] space-y-4">
               <Card className="border-none shadow-sm rounded-xl overflow-hidden bg-white">
                 <CardContent className="p-4 space-y-4">
-                   {/* Voucher Area */}
-                   <div className="space-y-3">
+                  {/* Voucher Area */}
+                  <div className="space-y-3">
                     <div className="flex items-center gap-2">
                       <Tag className="h-4 w-4 text-blue-600" />
                       <span className="text-[14px] font-bold text-slate-800">Mã giảm giá MedCare</span>
@@ -786,11 +786,11 @@ export default function CheckoutPage() {
                     <div className="flex justify-between text-[13px]">
                       <span className="text-slate-500">Phí vận chuyển</span>
                       <div className="text-right">
-                        <span className={cn("font-bold text-xs block", shipping === 0 ? "text-blue-600 font-black" : "text-slate-800 line-through text-[10px] opacity-50")}>
+                        <span className={cn("font-bold text-xs block", shipping === 0 ? "text-blue-600 font-black" : "text-slate-800 text-[10px] opacity-50")}>
                           {shipping === 0 ? "MIỄN PHÍ" : `${shipping.toLocaleString("vi-VN")}đ`}
                         </span>
                         {shippingDiscount > 0 && (
-                           <span className="text-[10px] text-blue-600 font-bold italic"> (Đã giảm -{shippingDiscount.toLocaleString("vi-VN")}đ)</span>
+                          <span className="text-[10px] text-blue-600 font-bold italic"> (Đã giảm -{shippingDiscount.toLocaleString("vi-VN")}đ)</span>
                         )}
                       </div>
                     </div>
@@ -835,9 +835,9 @@ export default function CheckoutPage() {
             <Button
               className="flex-1 sm:w-72 h-16 rounded-[1.25rem] bg-blue-600 hover:bg-blue-700 text-white text-xl font-black shadow-xl shadow-blue-200 transition-all active:scale-95 opacity-100 disabled:opacity-50"
               disabled={
-                isSubmitting || 
-                !form.name || 
-                cartItems.length === 0 || 
+                isSubmitting ||
+                !form.name ||
+                cartItems.length === 0 ||
                 (safetyResult?.requiresConfirmation && !safetyConfirmed)
               }
               onClick={handlePlaceOrder}
@@ -863,9 +863,9 @@ export default function CheckoutPage() {
           <Button
             className="flex-1 h-14 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white text-lg font-black shadow-lg shadow-blue-200 transition-all active:scale-95 opacity-100 disabled:opacity-50"
             disabled={
-              isSubmitting || 
-              !form.name || 
-              cartItems.length === 0 || 
+              isSubmitting ||
+              !form.name ||
+              cartItems.length === 0 ||
               (safetyResult?.requiresConfirmation && !safetyConfirmed)
             }
             onClick={handlePlaceOrder}
@@ -984,23 +984,23 @@ export default function CheckoutPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <Label className="text-[13px] font-bold text-slate-700">Tên người nhận</Label>
-                      <Input
-                        placeholder="Nguyễn Văn A"
-                        value={addressForm.receiverName}
-                        onChange={e => setAddressForm({ ...addressForm, receiverName: e.target.value })}
-                        className={cn("h-11 rounded-xl bg-slate-50 border-slate-200", addressErrors.receiverName && "border-red-500")}
-                      />
-                      {addressErrors.receiverName && <p className="text-[11px] text-red-500 font-bold ml-1">{addressErrors.receiverName}</p>}
+                    <Input
+                      placeholder="Nguyễn Văn A"
+                      value={addressForm.receiverName}
+                      onChange={e => setAddressForm({ ...addressForm, receiverName: e.target.value })}
+                      className={cn("h-11 rounded-xl bg-slate-50 border-slate-200", addressErrors.receiverName && "border-red-500")}
+                    />
+                    {addressErrors.receiverName && <p className="text-[11px] text-red-500 font-bold ml-1">{addressErrors.receiverName}</p>}
                   </div>
                   <div className="space-y-1.5">
                     <Label className="text-[13px] font-bold text-slate-700">Số điện thoại</Label>
-                      <Input
-                        placeholder="09xxx"
-                        value={addressForm.receiverPhone}
-                        onChange={e => setAddressForm({ ...addressForm, receiverPhone: e.target.value })}
-                        className={cn("h-11 rounded-xl bg-slate-50 border-slate-200", addressErrors.receiverPhone && "border-red-500")}
-                      />
-                      {addressErrors.receiverPhone && <p className="text-[11px] text-red-500 font-bold ml-1">{addressErrors.receiverPhone}</p>}
+                    <Input
+                      placeholder="09xxx"
+                      value={addressForm.receiverPhone}
+                      onChange={e => setAddressForm({ ...addressForm, receiverPhone: e.target.value })}
+                      className={cn("h-11 rounded-xl bg-slate-50 border-slate-200", addressErrors.receiverPhone && "border-red-500")}
+                    />
+                    {addressErrors.receiverPhone && <p className="text-[11px] text-red-500 font-bold ml-1">{addressErrors.receiverPhone}</p>}
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -1133,29 +1133,29 @@ export default function CheckoutPage() {
                     <div className="flex flex-1 items-center gap-4 p-5">
                       <div className={cn(
                         "h-16 w-16 rounded-2xl flex items-center justify-center shrink-0 transition-transform duration-300",
-                        isDisabled 
-                          ? "bg-slate-50 text-slate-300" 
+                        isDisabled
+                          ? "bg-slate-50 text-slate-300"
                           : v.discountType === 'FREESHIP'
                             ? "bg-blue-50 text-blue-600 group-hover:scale-110"
                             : "bg-emerald-50 text-emerald-600 group-hover:scale-110"
                       )}>
                         {v.discountType === 'FREESHIP' ? <Truck size={32} strokeWidth={1.5} /> : <Ticket size={32} strokeWidth={1.5} />}
                       </div>
- 
+
                       <div className="flex-1 min-w-0">
                         <div className="flex flex-col">
                           <div className="flex items-center gap-2 mb-1">
                             <p className="font-black text-slate-800 text-xl tracking-tight truncate">{v.code}</p>
                             <span className={cn(
-                               "text-[9px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-wider",
-                               isDisabled 
-                                ? "bg-slate-100 text-slate-400" 
+                              "text-[9px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-wider",
+                              isDisabled
+                                ? "bg-slate-100 text-slate-400"
                                 : v.discountType === 'FREESHIP'
                                   ? "bg-blue-100 text-blue-700"
                                   : "bg-emerald-100 text-emerald-700"
-                             )}>
-                               {v.discountType === 'FREESHIP' ? 'Vận chuyển' : 'Sản phẩm'}
-                             </span>
+                            )}>
+                              {v.discountType === 'FREESHIP' ? 'Vận chuyển' : 'Sản phẩm'}
+                            </span>
                           </div>
                           <p className="text-[13px] font-bold text-slate-500 mb-2 truncate">{v.description || v.title}</p>
                           <div className="flex items-center gap-2">

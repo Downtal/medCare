@@ -192,6 +192,12 @@ public class PromotionService {
             throw new AppException(ErrorCode.CONFLICT, "Bạn đã lưu mã giảm giá này rồi");
         }
 
+        // Check if user has already used this voucher to its limit
+        long usedCountByUser = voucherUsageRepository.countByVoucherIdAndUserId(voucher.getId(), userId);
+        if (usedCountByUser >= voucher.getLimitPerUser()) {
+            throw new AppException(ErrorCode.VOUCHER_USED, "Bạn đã sử dụng hết lượt của mã giảm giá này rồi");
+        }
+
         UserVoucher uv = UserVoucher.builder()
                 .userId(userId)
                 .voucher(voucher)

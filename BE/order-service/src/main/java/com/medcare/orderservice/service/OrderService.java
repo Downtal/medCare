@@ -215,8 +215,14 @@ public class OrderService {
             }
         }
 
-        // 7. Clear Redis Cart
-        cartService.clearCart("user:" + userId);
+        // 7. Remove only purchased items from Redis Cart
+        for (OrderItemRequest item : itemsToProcess) {
+            try {
+                cartService.removeItem("user:" + userId, item.getMedicineId());
+            } catch (Exception e) {
+                log.error("Failed to remove item {} from cart after order", item.getMedicineId(), e);
+            }
+        }
 
         log.info("Order created successfully: {}", savedOrder.getOrderCode());
         return savedOrder;
