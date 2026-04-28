@@ -25,13 +25,15 @@ export default function OrderConfirmationPage() {
   
   const orderCode = directCode || vnpTxnRef
   
-  const { data: session } = useSession()
+  const { data: session, status: sessionStatus } = useSession()
   const [order, setOrder] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [isNotified, setIsNotified] = useState(false)
 
   useEffect(() => {
-    if (orderCode) {
+    // Only fetch if session is authenticated and we have an order code
+    if (sessionStatus === "authenticated" && orderCode) {
       const fetchOrder = async () => {
         try {
           const res = await fetch(`${getApiBaseUrl()}${API_ENDPOINTS.ORDER}/orders/${orderCode}`, {
@@ -42,6 +44,17 @@ export default function OrderConfirmationPage() {
           if (!res.ok) throw new Error("Failed to fetch")
           const data = await res.json()
           setOrder(data)
+          
+          // Show success toast once
+          if (!isNotified) {
+            if (vnpResponseCode === "00" || !vnpResponseCode) {
+              const { toast } = await import("sonner")
+              toast.success("Thanh toán thành công!", {
+                description: "Đơn hàng của bạn đang được xử lý."
+              })
+              setIsNotified(true)
+            }
+          }
         } catch (err) {
           console.error("Failed to fetch order details:", err)
           setError("Không tìm thấy thông tin đơn hàng.")
@@ -50,10 +63,13 @@ export default function OrderConfirmationPage() {
         }
       }
       fetchOrder()
-    } else {
+    } else if (sessionStatus === "unauthenticated") {
+      setLoading(false)
+      setError("Vui lòng đăng nhập để xem thông tin đơn hàng.")
+    } else if (!orderCode) {
       setLoading(false)
     }
-  }, [orderCode, session])
+  }, [orderCode, session, sessionStatus, vnpResponseCode, isNotified])
 
   if (loading) {
     return (

@@ -515,6 +515,10 @@ export default function CheckoutPage() {
         // Remove only selected items from store
         selectedIds.forEach(id => (useCartStore.getState() as any).removeItem(id, session?.user?.accessToken))
 
+        toast.success("Đặt hàng thành công!", {
+          description: `Đơn hàng #${order.orderCode} đã được tiếp nhận.`
+        })
+
         // Handle VNPay Redirect
         if (form.paymentMethod === 'VNPAY') {
           try {
