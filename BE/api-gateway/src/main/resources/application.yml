@@ -25,7 +25,7 @@ spring:
             - Path=/user-service/**
           filters:
             - RewritePath=/user-service/(?<path>.*), /$\{path}
-            - AuthenticationFilter
+            - Authentication
 
         - id: product-service
           uri: lb://product-service
@@ -33,7 +33,7 @@ spring:
             - Path=/product-service/**
           filters:
             - RewritePath=/product-service/(?<path>.*), /$\{path}
-            - AuthenticationFilter
+            - Authentication
 
         - id: order-service
           uri: lb://order-service
@@ -41,7 +41,7 @@ spring:
             - Path=/order-service/**
           filters:
             - RewritePath=/order-service/(?<path>.*), /$\{path}
-            - AuthenticationFilter
+            - Authentication
 
         - id: review-service
           uri: lb://review-service
@@ -49,7 +49,7 @@ spring:
             - Path=/review-service/**
           filters:
             - RewritePath=/review-service/(?<path>.*), /$\{path}
-            - AuthenticationFilter
+            - Authentication
 
         - id: promotion-service
           uri: lb://promotion-service
@@ -57,7 +57,7 @@ spring:
             - Path=/promotion-service/**
           filters:
             - RewritePath=/promotion-service/(?<path>.*), /$\{path}
-            - AuthenticationFilter
+            - Authentication
 
         - id: inventory-service
           uri: lb://inventory-service
@@ -65,7 +65,7 @@ spring:
             - Path=/inventory-service/**
           filters:
             - RewritePath=/inventory-service/(?<path>.*), /$\{path}
-            - AuthenticationFilter
+            - Authentication
 
         - id: shipping-service
           uri: lb://shipping-service
@@ -73,7 +73,7 @@ spring:
             - Path=/shipping-service/**
           filters:
             - RewritePath=/shipping-service/(?<path>.*), /$\{path}
-            - AuthenticationFilter
+            - Authentication
 
         - id: payment-service
           uri: lb://payment-service
@@ -81,7 +81,7 @@ spring:
             - Path=/payment-service/**
           filters:
             - RewritePath=/payment-service/(?<path>.*), /$\{path}
-            - AuthenticationFilter
+            - Authentication
 
         - id: ai-service
           uri: http://127.0.0.1:8095

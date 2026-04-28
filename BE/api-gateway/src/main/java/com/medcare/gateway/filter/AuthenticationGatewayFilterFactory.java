@@ -20,20 +20,22 @@ import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 
 /**
- * Clean & Optimized Filter for Short-lived Access Tokens.
+ * Standardized Gateway Filter Factory for JWT Authentication.
+ * Usage in YML: - Authentication
  */
 @Slf4j
 @Component
-public class AuthenticationFilter extends AbstractGatewayFilterFactory<AuthenticationFilter.Config> {
+public class AuthenticationGatewayFilterFactory extends AbstractGatewayFilterFactory<AuthenticationGatewayFilterFactory.Config> {
 
     @Value("${application.security.jwt.secret-key}")
     private String secretKey;
 
-    public AuthenticationFilter() {
+    public AuthenticationGatewayFilterFactory() {
         super(Config.class);
     }
 
     public static class Config {
+        // Add config properties if needed
     }
 
     @Override
@@ -42,15 +44,18 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
             ServerHttpRequest request = exchange.getRequest();
             String path = request.getPath().toString();
 
+            // 1. Check Authorization Header
             String authHeader = request.getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
             
             if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                return chain.filter(exchange);
+                log.warn("[GATEWAY] Missing or invalid Authorization header for protected path: {}", path);
+                return onError(exchange, "Unauthorized: Missing or invalid token", HttpStatus.UNAUTHORIZED);
             }
 
             String token = authHeader.substring(7);
 
             try {
+                // 2. Verify JWT
                 Claims claims = Jwts.parser()
                         .verifyWith(getSignInKey())
                         .build()
@@ -60,7 +65,9 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
                 String userId = String.valueOf(claims.get("userId"));
                 String role = (String) claims.get("role");
 
-                // Propagate user identity to internal microservices
+                log.info("[GATEWAY] Authenticated user {} with role {} for path {}", userId, role, path);
+
+                // 3. Propagate identity headers to downstream microservices
                 ServerHttpRequest modifiedRequest = request.mutate()
                         .header("X-User-Id", userId)
                         .header("X-User-Role", role)
@@ -69,7 +76,7 @@ public class AuthenticationFilter extends AbstractGatewayFilterFactory<Authentic
                 return chain.filter(exchange.mutate().request(modifiedRequest).build());
 
             } catch (Exception e) {
-                log.error("[GATEWAY] Error verifying token for path {}: {}", path, e.getMessage());
+                log.error("[GATEWAY] JWT Verification failed for path {}: {}", path, e.getMessage());
                 return onError(exchange, "Unauthorized: Token invalid or expired", HttpStatus.UNAUTHORIZED);
             }
         };

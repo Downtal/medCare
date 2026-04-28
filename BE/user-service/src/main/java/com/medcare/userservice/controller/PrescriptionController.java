@@ -19,15 +19,40 @@ public class PrescriptionController {
     private final PrescriptionService prescriptionService;
 
     @PostMapping("/upload")
-    public ResponseEntity<PrescriptionResponse> upload(
-            @RequestHeader("X-User-Id") Long userId,
-            @RequestParam("file") MultipartFile file) throws IOException {
-        return ResponseEntity.ok(prescriptionService.uploadPrescription(userId, file));
+    public ResponseEntity<PrescriptionResponse> uploadPrescription(
+            @RequestHeader(value = "X-User-Id", required = false) Long userId,
+            @RequestParam("file") MultipartFile file) {
+        
+        if (userId == null) {
+            org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+            if (auth != null && auth.getPrincipal() instanceof String) {
+                userId = Long.valueOf((String) auth.getPrincipal());
+            } else {
+                return ResponseEntity.status(org.springframework.http.HttpStatus.UNAUTHORIZED).build();
+            }
+        }
+        
+        try {
+            return ResponseEntity.ok(prescriptionService.uploadPrescription(userId, file));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
     }
 
     @GetMapping("/me")
     public ResponseEntity<List<PrescriptionResponse>> getMyPrescriptions(
-            @RequestHeader("X-User-Id") Long userId) {
+            @RequestHeader(value = "X-User-Id", required = false) Long userId) {
+        
+        if (userId == null) {
+            // Fallback to SecurityContext if Gateway didn't pass the header
+            org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+            if (auth != null && auth.getPrincipal() instanceof String) {
+                userId = Long.valueOf((String) auth.getPrincipal());
+            } else {
+                return ResponseEntity.status(org.springframework.http.HttpStatus.UNAUTHORIZED).build();
+            }
+        }
+        
         return ResponseEntity.ok(prescriptionService.getUserPrescriptions(userId));
     }
 
@@ -73,6 +98,12 @@ public class PrescriptionController {
     @PostMapping("/{id}/reset-usage")
     public ResponseEntity<PrescriptionResponse> resetUsage(@PathVariable Long id) {
         return ResponseEntity.ok(prescriptionService.resetUsage(id));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
+        prescriptionService.deletePrescription(id);
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/all")

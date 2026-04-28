@@ -314,15 +314,13 @@ export default function HealthDashboard() {
         <MetricCard
           icon={ShieldAlert}
           label="Dị ứng"
-          value={healthNote?.allergies?.split(',').filter(Boolean).length || 0}
-          unit="loại"
+          unit=""
           color="bg-rose-500"
           desc={healthNote?.allergies || "Không có dữ liệu dị ứng"}
         />
         <MetricCard
           icon={Clock}
           label="Tình trạng"
-          value={healthNote?.chronicConditions ? "CÓ" : "ỔN ĐỊNH"}
           unit=""
           color="bg-amber-500"
           desc={healthNote?.chronicConditions || "Bình thường"}

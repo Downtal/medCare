@@ -16,4 +16,5 @@ public interface PrescriptionService {
     List<PrescriptionResponse> getPendingPrescriptions();
     PrescriptionResponse analyzePrescription(Long id);
     PrescriptionResponse resetUsage(Long id);
+    void deletePrescription(Long id);
 }

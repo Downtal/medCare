@@ -18,8 +18,16 @@ axiosInstance.interceptors.request.use(
     if (typeof window !== "undefined") {
       const session = await getSession()
       const token = session?.user?.accessToken
+      
       if (token) {
         config.headers.Authorization = `Bearer ${token}`
+        if (process.env.NODE_ENV === 'development') {
+          // console.log(`[Axios] Attaching token to ${config.url}`);
+        }
+      } else {
+        if (process.env.NODE_ENV === 'development') {
+          console.warn(`[Axios] No token found for ${config.url}. Session status:`, !!session);
+        }
       }
     }
     return config

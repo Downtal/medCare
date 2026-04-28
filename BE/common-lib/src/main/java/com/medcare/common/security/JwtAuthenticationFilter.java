@@ -42,12 +42,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                     if (userId != null && !"null".equals(userId)) {
                         authenticate(userId, role);
-                        filterChain.doFilter(request, response);
-                        return;
                     }
                 }
             } catch (Exception e) {
-                log.error("JWT Authentication failed: {}", e.getMessage());
+                log.error("JWT validation failed: {}", e.getMessage());
                 SecurityContextHolder.clearContext();
             }
         }

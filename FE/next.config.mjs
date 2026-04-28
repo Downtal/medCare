@@ -18,6 +18,11 @@ const nextConfig = {
         pathname: '/**',
       },
       {
+        protocol: 'http',
+        hostname: 'res.cloudinary.com',
+        pathname: '/**',
+      },
+      {
         protocol: 'https',
         hostname: 'cdn.nhathuoclongchau.com.vn',
         pathname: '/**',

@@ -154,6 +154,19 @@ public class PrescriptionServiceImpl implements PrescriptionService {
         return mapToResponse(prescriptionRepository.save(prescription));
     }
 
+    @Override
+    @Transactional
+    public void deletePrescription(Long id) {
+        Prescription prescription = prescriptionRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Prescription", "id", id));
+        
+        // 1. Delete image from Cloudinary using standardized method
+        cloudinaryService.deleteImageByUrl(prescription.getImageUrl());
+
+        // 2. Delete record from database
+        prescriptionRepository.delete(prescription);
+    }
+
     private PrescriptionResponse mapToResponse(Prescription p) {
         return PrescriptionResponse.builder()
                 .id(p.getId())

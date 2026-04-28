@@ -50,7 +50,7 @@ public class Prescription {
     @Column(name = "pharmacist_note", columnDefinition = "TEXT")
     private String pharmacistNote;
 
-    @Column(name = "extracted_data", columnDefinition = "JSON")
+    @Column(name = "extracted_data", columnDefinition = "TEXT")
     private String extractedData;
 
     @CreationTimestamp

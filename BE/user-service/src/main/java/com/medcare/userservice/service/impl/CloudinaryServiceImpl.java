@@ -26,4 +26,42 @@ public class CloudinaryServiceImpl implements CloudinaryService {
     public Map delete(String publicId) throws IOException {
         return cloudinary.uploader().destroy(publicId, ObjectUtils.emptyMap());
     }
+
+    @Override
+    public void deleteImageByUrl(String imageUrl) {
+        try {
+            if (imageUrl == null || !imageUrl.contains("cloudinary.com")) {
+                return;
+            }
+
+            String publicId = extractPublicId(imageUrl);
+            if (publicId != null) {
+                cloudinary.uploader().destroy(publicId, ObjectUtils.emptyMap());
+            }
+        } catch (Exception e) {
+            // Log error but don't fail
+        }
+    }
+
+    private String extractPublicId(String imageUrl) {
+        try {
+            int uploadIndex = imageUrl.indexOf("/upload/");
+            if (uploadIndex == -1) return null;
+
+            String afterUpload = imageUrl.substring(uploadIndex + "/upload/".length());
+            
+            if (afterUpload.matches("^v\\d+/.*")) {
+                afterUpload = afterUpload.substring(afterUpload.indexOf("/") + 1);
+            }
+
+            int lastDotIndex = afterUpload.lastIndexOf(".");
+            if (lastDotIndex != -1) {
+                return afterUpload.substring(0, lastDotIndex);
+            }
+            
+            return afterUpload;
+        } catch (Exception e) {
+            return null;
+        }
+    }
 }
