@@ -22,8 +22,22 @@ export default function OrderConfirmationPage() {
   const vnpResponseCode = searchParams.get("vnp_ResponseCode")
   const vnpTxnRef = searchParams.get("vnp_TxnRef")
   const directCode = searchParams.get("code")
+  const vnpOrderInfo = searchParams.get("vnp_OrderInfo")
   
-  const orderCode = directCode || vnpTxnRef
+  // Robust order code detection
+  let orderCode = directCode
+  
+  if (!orderCode && vnpTxnRef) {
+    // VNPay TxnRef often has a timestamp suffix (e.g. MC123-1714...)
+    // We only need the part before the hyphen
+    orderCode = vnpTxnRef.split("-")[0]
+  }
+  
+  // Fallback: extract order code from OrderInfo if TxnRef is missing or doesn't yield a code
+  if (!orderCode && vnpOrderInfo) {
+    const match = vnpOrderInfo.match(/MC\d+/i)
+    if (match) orderCode = match[0]
+  }
   
   const { data: session, status: sessionStatus } = useSession()
   const [order, setOrder] = useState<any>(null)
@@ -32,20 +46,30 @@ export default function OrderConfirmationPage() {
   const [isNotified, setIsNotified] = useState(false)
 
   useEffect(() => {
-    // Only fetch if session is authenticated and we have an order code
+    console.log("OrderConfirmation: sessionStatus =", sessionStatus, "orderCode =", orderCode)
+
     if (sessionStatus === "authenticated" && orderCode) {
       const fetchOrder = async () => {
         try {
-          const res = await fetch(`${getApiBaseUrl()}${API_ENDPOINTS.ORDER}/orders/${orderCode}`, {
+          const url = `${getApiBaseUrl()}${API_ENDPOINTS.ORDER}/orders/${orderCode}`
+          console.log("Fetching order from:", url)
+
+          const res = await fetch(url, {
             headers: {
               'Authorization': `Bearer ${session?.user?.accessToken}`
             }
           })
-          if (!res.ok) throw new Error("Failed to fetch")
+
+          if (!res.ok) {
+            const errorText = await res.text()
+            console.error(`Order fetch failed [${res.status}]:`, errorText)
+            throw new Error(`Failed to fetch order: ${res.status}`)
+          }
+
           const data = await res.json()
+          console.log("Order data received:", data)
           setOrder(data)
           
-          // Show success toast once
           if (!isNotified) {
             if (vnpResponseCode === "00" || !vnpResponseCode) {
               const { toast } = await import("sonner")
@@ -55,9 +79,9 @@ export default function OrderConfirmationPage() {
               setIsNotified(true)
             }
           }
-        } catch (err) {
-          console.error("Failed to fetch order details:", err)
-          setError("Không tìm thấy thông tin đơn hàng.")
+        } catch (err: any) {
+          console.error("Detailed fetch error:", err)
+          setError(err.message || "Không tìm thấy thông tin đơn hàng.")
         } finally {
           setLoading(false)
         }
@@ -66,8 +90,9 @@ export default function OrderConfirmationPage() {
     } else if (sessionStatus === "unauthenticated") {
       setLoading(false)
       setError("Vui lòng đăng nhập để xem thông tin đơn hàng.")
-    } else if (!orderCode) {
+    } else if (sessionStatus !== "loading" && !orderCode) {
       setLoading(false)
+      setError("Thiếu mã đơn hàng.")
     }
   }, [orderCode, session, sessionStatus, vnpResponseCode, isNotified])
 
