@@ -269,7 +269,15 @@ public class PromotionService {
 
     private BigDecimal calculateProfessionalDiscount(VoucherApplyRequest request, Voucher voucher) {
         if (voucher.getDiscountType() == DiscountType.FREESHIP) {
-            return request.getShippingFee() != null ? request.getShippingFee() : BigDecimal.ZERO;
+            BigDecimal shippingFee = request.getShippingFee() != null ? request.getShippingFee() : BigDecimal.ZERO;
+            BigDecimal discountValue = voucher.getDiscountValue() != null ? voucher.getDiscountValue() : BigDecimal.ZERO;
+            
+            // If discountValue is 0, we assume it's a full freeship (or it was misconfigured)
+            // But if it's > 0, we treat it as a cap
+            if (discountValue.compareTo(BigDecimal.ZERO) > 0) {
+                return shippingFee.min(discountValue);
+            }
+            return shippingFee;
         }
 
         BigDecimal discountableAmount;
