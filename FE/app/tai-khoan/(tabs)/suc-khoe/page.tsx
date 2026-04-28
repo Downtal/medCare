@@ -47,6 +47,7 @@ export default function HealthDashboard() {
   const [metrics, setMetrics] = useState<any[]>([])
   const [healthNote, setHealthNote] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false)
   const [newMetric, setNewMetric] = useState({ 
     weight: '', 
