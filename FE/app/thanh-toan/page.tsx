@@ -277,13 +277,20 @@ export default function CheckoutPage() {
     // Simple validation
     const err: Record<string, string> = {}
     if (!addressForm.receiverName) err.receiverName = "Vui lòng nhập tên"
-    if (!addressForm.receiverPhone) err.receiverPhone = "Vui lòng nhập số điện thoại"
+    if (!addressForm.receiverPhone) {
+      err.receiverPhone = "Vui lòng nhập số điện thoại"
+    } else if (!/^(0|84)[3|5|7|8|9][0-9]{8}$/.test(addressForm.receiverPhone)) {
+      err.receiverPhone = "Số điện thoại không hợp lệ (10 số)"
+    }
     if (!addressForm.city) err.city = "Vui lòng nhập tỉnh/thành phố"
     if (!addressForm.district) err.district = "Vui lòng nhập quận/huyện"
     if (!addressForm.fullAddress) err.fullAddress = "Vui lòng nhập địa chỉ cụ thể"
 
     if (Object.keys(err).length > 0) {
       setAddressErrors(err)
+      // Also show a toast for the first error found
+      const firstError = Object.values(err)[0]
+      toast.error(firstError)
       return
     }
 
@@ -307,7 +314,8 @@ export default function CheckoutPage() {
         await fetchAddresses()
         setAddressView('list')
       } else {
-        toast.error("Không thể lưu địa chỉ")
+        const errorData = await res.json().catch(() => ({}))
+        toast.error(errorData.message || "Không thể lưu địa chỉ")
       }
     } catch (err) {
       toast.error("Lỗi kết nối server")
@@ -446,7 +454,12 @@ export default function CheckoutPage() {
 
   const handlePlaceOrder = async () => {
     if (!form.name || !form.phone || !form.address) {
-      toast.error("Vui lòng thêm địa chỉ nhận hàng để tiếp tục!")
+      toast.error("Vui lòng thêm hoặc chọn địa chỉ nhận hàng để tiếp tục!")
+      return
+    }
+
+    if (!/^(0|84)[3|5|7|8|9][0-9]{8}$/.test(form.phone)) {
+      toast.error("Số điện thoại nhận hàng không hợp lệ!")
       return
     }
 
@@ -971,21 +984,23 @@ export default function CheckoutPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <Label className="text-[13px] font-bold text-slate-700">Tên người nhận</Label>
-                    <Input
-                      placeholder="Nguyễn Văn A"
-                      value={addressForm.receiverName}
-                      onChange={e => setAddressForm({ ...addressForm, receiverName: e.target.value })}
-                      className={cn("h-11 rounded-xl bg-slate-50 border-slate-200", addressErrors.receiverName && "border-red-500")}
-                    />
+                      <Input
+                        placeholder="Nguyễn Văn A"
+                        value={addressForm.receiverName}
+                        onChange={e => setAddressForm({ ...addressForm, receiverName: e.target.value })}
+                        className={cn("h-11 rounded-xl bg-slate-50 border-slate-200", addressErrors.receiverName && "border-red-500")}
+                      />
+                      {addressErrors.receiverName && <p className="text-[11px] text-red-500 font-bold ml-1">{addressErrors.receiverName}</p>}
                   </div>
                   <div className="space-y-1.5">
                     <Label className="text-[13px] font-bold text-slate-700">Số điện thoại</Label>
-                    <Input
-                      placeholder="09xxx"
-                      value={addressForm.receiverPhone}
-                      onChange={e => setAddressForm({ ...addressForm, receiverPhone: e.target.value })}
-                      className={cn("h-11 rounded-xl bg-slate-50 border-slate-200", addressErrors.receiverPhone && "border-red-500")}
-                    />
+                      <Input
+                        placeholder="09xxx"
+                        value={addressForm.receiverPhone}
+                        onChange={e => setAddressForm({ ...addressForm, receiverPhone: e.target.value })}
+                        className={cn("h-11 rounded-xl bg-slate-50 border-slate-200", addressErrors.receiverPhone && "border-red-500")}
+                      />
+                      {addressErrors.receiverPhone && <p className="text-[11px] text-red-500 font-bold ml-1">{addressErrors.receiverPhone}</p>}
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
