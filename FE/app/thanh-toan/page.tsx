@@ -786,11 +786,24 @@ export default function CheckoutPage() {
                     <div className="flex justify-between text-[13px]">
                       <span className="text-slate-500">Phí vận chuyển</span>
                       <div className="text-right">
-                        <span className={cn("font-bold text-xs block", shipping === 0 ? "text-blue-600 font-black" : "text-slate-800 text-[10px] opacity-50")}>
-                          {shipping === 0 ? "MIỄN PHÍ" : `${shipping.toLocaleString("vi-VN")}đ`}
-                        </span>
+                        {shipping === 0 ? (
+                          <span className="font-black text-blue-600 text-xs block">MIỄN PHÍ</span>
+                        ) : (
+                          <div className="flex flex-col items-end">
+                            {shippingDiscount > 0 && (
+                              <span className="text-[10px] text-slate-400 line-through leading-none mb-0.5">
+                                {(shipping + shippingDiscount).toLocaleString("vi-VN")}đ
+                              </span>
+                            )}
+                            <span className="font-bold text-slate-800 text-xs block">
+                              {shipping.toLocaleString("vi-VN")}đ
+                            </span>
+                          </div>
+                        )}
                         {shippingDiscount > 0 && (
-                          <span className="text-[10px] text-blue-600 font-bold italic"> (Đã giảm -{shippingDiscount.toLocaleString("vi-VN")}đ)</span>
+                          <span className="text-[10px] text-blue-600 font-bold italic block mt-0.5">
+                            (Đã giảm -{shippingDiscount.toLocaleString("vi-VN")}đ)
+                          </span>
                         )}
                       </div>
                     </div>
