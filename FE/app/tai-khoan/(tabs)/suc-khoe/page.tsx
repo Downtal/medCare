@@ -3,14 +3,14 @@
 import { useState, useEffect } from "react"
 import { useSession } from "next-auth/react"
 import { getApiBaseUrl } from "@/lib/config"
-import { 
-  Activity, 
-  Scale, 
-  Ruler, 
-  AlertCircle, 
-  TrendingUp, 
-  Clock, 
-  Plus, 
+import {
+  Activity,
+  Scale,
+  Ruler,
+  AlertCircle,
+  TrendingUp,
+  Clock,
+  Plus,
   ChevronRight,
   Info,
   History,
@@ -19,22 +19,22 @@ import {
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { 
-  LineChart, 
-  Line, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer 
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer
 } from "recharts"
 import { motion, AnimatePresence } from "framer-motion"
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogTrigger 
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -48,7 +48,12 @@ export default function HealthDashboard() {
   const [healthNote, setHealthNote] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false)
-  const [newMetric, setNewMetric] = useState({ type: 'WEIGHT', value: '', unit: 'kg' })
+  const [newMetric, setNewMetric] = useState({ 
+    weight: '', 
+    height: '', 
+    allergies: '', 
+    chronicConditions: '' 
+  })
 
   useEffect(() => {
     if (session?.user?.id) {
@@ -59,11 +64,11 @@ export default function HealthDashboard() {
   const fetchData = async () => {
     setLoading(true)
     try {
-      const headers = { 
+      const headers = {
         'Authorization': `Bearer ${session?.user?.accessToken}`,
         'X-User-Id': session?.user?.id?.toString() || ''
       }
-      
+
       const [metricsRes, noteRes] = await Promise.all([
         fetch(`${getApiBaseUrl()}/user-service/api/users/profiles/me/metrics`, { headers }),
         fetch(`${getApiBaseUrl()}/user-service/api/users/profiles/me/health-notes`, { headers })
@@ -73,7 +78,7 @@ export default function HealthDashboard() {
         const data = await metricsRes.json().catch(() => [])
         setMetrics(data)
       }
-      
+
       if (noteRes.ok) {
         const text = await noteRes.text()
         if (text) {
@@ -93,27 +98,67 @@ export default function HealthDashboard() {
 
   const handleUpdateMetric = async (e: React.FormEvent) => {
     e.preventDefault()
+    setSaving(true)
     try {
-      const res = await fetch(`${getApiBaseUrl()}/user-service/api/users/profiles/me/metrics`, {
-        method: 'POST',
-        headers: { 
-          'Authorization': `Bearer ${session?.user?.accessToken}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          type: newMetric.type,
-          value: parseFloat(newMetric.value),
-          unit: newMetric.unit
-        })
-      })
+      const promises = []
+      const headers = { 
+        'Authorization': `Bearer ${session?.user?.accessToken}`,
+        'Content-Type': 'application/json'
+      }
 
-      if (res.ok) {
-        toast.success("Cập nhật chỉ số thành công!")
+      // 1. Update Weight if provided
+      if (newMetric.weight) {
+        promises.push(fetch(`${getApiBaseUrl()}/user-service/api/users/profiles/me/metrics`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            type: 'WEIGHT',
+            value: parseFloat(newMetric.weight),
+            unit: 'kg'
+          })
+        }))
+      }
+
+      // 2. Update Height if provided
+      if (newMetric.height) {
+        promises.push(fetch(`${getApiBaseUrl()}/user-service/api/users/profiles/me/metrics`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            type: 'HEIGHT',
+            value: parseFloat(newMetric.height),
+            unit: 'cm'
+          })
+        }))
+      }
+
+      // 3. Update Health Notes if provided
+      if (newMetric.allergies || newMetric.chronicConditions) {
+        promises.push(fetch(`${getApiBaseUrl()}/user-service/api/users/profiles/me/health-notes`, {
+          method: 'PUT',
+          headers,
+          body: JSON.stringify({
+            allergies: newMetric.allergies || healthNote?.allergies,
+            chronicConditions: newMetric.chronicConditions || healthNote?.chronicConditions
+          })
+        }))
+      }
+
+      const results = await Promise.all(promises)
+      const allOk = results.every(r => r.ok)
+
+      if (allOk) {
+        toast.success("Cập nhật thông tin sức khỏe thành công!")
         setIsUpdateModalOpen(false)
         fetchData()
+        setNewMetric({ weight: '', height: '', allergies: '', chronicConditions: '' })
+      } else {
+        toast.error("Có lỗi xảy ra khi cập nhật một số thông tin")
       }
     } catch (error) {
-      toast.error("Không thể cập nhật chỉ số")
+      toast.error("Không thể kết nối tới máy chủ")
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -128,10 +173,10 @@ export default function HealthDashboard() {
 
   const currentWeight = metrics.find(m => m.type === 'WEIGHT')?.value || '--'
   const currentHeight = metrics.find(m => m.type === 'HEIGHT')?.value || '--'
-  
+
   // Calculate BMI if data exists
-  const bmi = (currentWeight && currentHeight) 
-    ? (currentWeight / ((currentHeight/100) ** 2)).toFixed(1)
+  const bmi = (currentWeight && currentHeight)
+    ? (currentWeight / ((currentHeight / 100) ** 2)).toFixed(1)
     : '--'
 
   const getBmiStatus = (val: string) => {
@@ -152,86 +197,117 @@ export default function HealthDashboard() {
         <Dialog open={isUpdateModalOpen} onOpenChange={setIsUpdateModalOpen}>
           <DialogTrigger asChild>
             <Button className="rounded-2xl h-12 px-6 font-bold shadow-lg shadow-primary/20">
-              <Plus className="w-5 h-5 mr-2" /> Cập nhật chỉ số
+              <Plus className="w-5 h-5 mr-2" />Cập nhật chỉ số
             </Button>
           </DialogTrigger>
           <DialogContent className="rounded-[2rem] p-8">
             <DialogHeader>
-              <DialogTitle className="text-2xl font-black">Cập nhật chỉ số sức khỏe</DialogTitle>
+              <DialogTitle className="text-2xl font-black">Cập nhật thông tin sức khỏe</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleUpdateMetric} className="space-y-6 mt-4">
-              <div className="space-y-2">
-                <Label className="font-bold">Loại chỉ số</Label>
-                <select 
-                  className="w-full h-12 rounded-xl border border-slate-200 px-4 bg-slate-50 font-medium outline-none focus:border-primary"
-                  value={newMetric.type}
-                  onChange={(e) => {
-                    const type = e.target.value
-                    setNewMetric({ ...newMetric, type, unit: type === 'WEIGHT' ? 'kg' : 'cm' })
-                  }}
-                >
-                  <option value="WEIGHT">Cân nặng (kg)</option>
-                  <option value="HEIGHT">Chiều cao (cm)</option>
-                </select>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="font-bold">Cân nặng (kg)</Label>
+                  <Input 
+                    type="number" 
+                    step="0.1" 
+                    placeholder="VD: 65.5" 
+                    className="h-12 rounded-xl"
+                    value={newMetric.weight}
+                    onChange={(e) => setNewMetric({ ...newMetric, weight: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="font-bold">Chiều cao (cm)</Label>
+                  <Input 
+                    type="number" 
+                    step="0.1" 
+                    placeholder="VD: 170" 
+                    className="h-12 rounded-xl"
+                    value={newMetric.height}
+                    onChange={(e) => setNewMetric({ ...newMetric, height: e.target.value })}
+                  />
+                </div>
               </div>
+
               <div className="space-y-2">
-                <Label className="font-bold">Giá trị ({newMetric.unit})</Label>
+                <Label className="font-bold">Dị ứng (nếu có)</Label>
                 <Input 
-                  type="number" 
-                  step="0.1" 
-                  placeholder="Ví dụ: 65.5" 
+                  placeholder="VD: Hải sản, Phấn hoa..." 
                   className="h-12 rounded-xl"
-                  value={newMetric.value}
-                  onChange={(e) => setNewMetric({ ...newMetric, value: e.target.value })}
-                  required
+                  value={newMetric.allergies}
+                  onChange={(e) => setNewMetric({ ...newMetric, allergies: e.target.value })}
                 />
               </div>
-              <Button type="submit" className="w-full h-12 rounded-xl font-bold">Lưu chỉ số</Button>
+
+              <div className="space-y-2">
+                <Label className="font-bold">Tình trạng bệnh lý / Mãn tính</Label>
+                <Input 
+                  placeholder="VD: Huyết áp cao, Tiểu đường..." 
+                  className="h-12 rounded-xl"
+                  value={newMetric.chronicConditions}
+                  onChange={(e) => setNewMetric({ ...newMetric, chronicConditions: e.target.value })}
+                />
+                <p className="text-[10px] text-slate-400 font-medium">Nhập "Bình thường" nếu không có bệnh lý.</p>
+              </div>
+
+              <Button type="submit" disabled={saving} className="w-full h-12 rounded-xl font-bold bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-200">
+                {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Lưu tất cả thay đổi
+              </Button>
             </form>
           </DialogContent>
         </Dialog>
       </div>
 
       {/* Main Stats Cards */}
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, staggerChildren: 0.1 }}
-        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
+        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6"
       >
-        <MetricCard 
-          icon={Activity} 
-          label="Chỉ số BMI" 
-          value={bmi} 
-          unit="" 
+        <MetricCard
+          icon={Activity}
+          label="Chỉ số BMI"
+          value={bmi}
+          unit=""
           status={bmi !== '--' ? getBmiStatus(bmi) : undefined}
           color="bg-indigo-500"
         />
-        <MetricCard 
-          icon={Scale} 
-          label="Cân nặng" 
-          value={currentWeight} 
-          unit="kg" 
+        <MetricCard
+          icon={Scale}
+          label="Cân nặng"
+          value={currentWeight}
+          unit="kg"
           color="bg-emerald-500"
         />
-        <MetricCard 
-          icon={Ruler} 
-          label="Chiều cao" 
-          value={currentHeight} 
-          unit="cm" 
+        <MetricCard
+          icon={Ruler}
+          label="Chiều cao"
+          value={currentHeight}
+          unit="cm"
           color="bg-sky-500"
         />
-        <MetricCard 
-          icon={ShieldAlert} 
-          label="Dị ứng" 
-          value={healthNote?.allergies?.split(',').length || 0} 
-          unit="loại" 
+        <MetricCard
+          icon={ShieldAlert}
+          label="Dị ứng"
+          value={healthNote?.allergies?.split(',').filter(Boolean).length || 0}
+          unit="loại"
           color="bg-rose-500"
           desc={healthNote?.allergies || "Không có dữ liệu dị ứng"}
         />
+        <MetricCard
+          icon={Clock}
+          label="Tình trạng"
+          value={healthNote?.chronicConditions ? "CÓ" : "ỔN ĐỊNH"}
+          unit=""
+          color="bg-amber-500"
+          desc={healthNote?.chronicConditions || "Bình thường"}
+        />
       </motion.div>
 
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.2 }}
@@ -255,26 +331,26 @@ export default function HealthDashboard() {
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={weightData}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
-                  <XAxis 
-                    dataKey="date" 
-                    axisLine={false} 
-                    tickLine={false} 
-                    tick={{ fill: '#94A3B8', fontSize: 12, fontWeight: 600 }} 
+                  <XAxis
+                    dataKey="date"
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fill: '#94A3B8', fontSize: 12, fontWeight: 600 }}
                     dy={10}
                   />
-                  <YAxis 
-                    hide 
-                    domain={['dataMin - 5', 'dataMax + 5']} 
+                  <YAxis
+                    hide
+                    domain={['dataMin - 5', 'dataMax + 5']}
                   />
-                  <Tooltip 
+                  <Tooltip
                     contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
                     itemStyle={{ fontWeight: 800, color: '#10B981' }}
                   />
-                  <Line 
-                    type="monotone" 
-                    dataKey="value" 
-                    stroke="#10B981" 
-                    strokeWidth={4} 
+                  <Line
+                    type="monotone"
+                    dataKey="value"
+                    stroke="#10B981"
+                    strokeWidth={4}
                     dot={{ r: 6, fill: '#10B981', strokeWidth: 3, stroke: '#fff' }}
                     activeDot={{ r: 8, strokeWidth: 0 }}
                   />
@@ -296,29 +372,29 @@ export default function HealthDashboard() {
           <CardTitle className="text-xl font-black">Lịch sử Sức khỏe & Hoạt động</CardTitle>
         </CardHeader>
         <CardContent className="p-8 pt-0">
-           <div className="space-y-8 relative before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-100">
-              {metrics.slice(0, 5).map((m, i) => (
-                <div key={m.id} className="relative pl-10">
-                   <div className="absolute left-0 top-1.5 h-4 w-4 rounded-full border-2 border-white bg-primary shadow-sm z-10" />
-                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
-                      <div>
-                        <p className="font-black text-slate-800">
-                          Cập nhật {m.type === 'WEIGHT' ? 'Cân nặng' : 'Chiều cao'}
-                        </p>
-                        <p className="text-sm font-bold text-primary">
-                          Giá trị: {m.value} {m.unit}
-                        </p>
-                      </div>
-                      <time className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                        {format(new Date(m.recordedAt), 'eeee, dd MMMM yyyy', { locale: vi })}
-                      </time>
-                   </div>
+          <div className="space-y-8 relative before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-100">
+            {metrics.slice(0, 5).map((m, i) => (
+              <div key={m.id} className="relative pl-10">
+                <div className="absolute left-0 top-1.5 h-4 w-4 rounded-full border-2 border-white bg-primary shadow-sm z-10" />
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
+                  <div>
+                    <p className="font-black text-slate-800">
+                      Cập nhật {m.type === 'WEIGHT' ? 'Cân nặng' : 'Chiều cao'}
+                    </p>
+                    <p className="text-sm font-bold text-primary">
+                      Giá trị: {m.value} {m.unit}
+                    </p>
+                  </div>
+                  <time className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                    {format(new Date(m.recordedAt), 'eeee, dd MMMM yyyy', { locale: vi })}
+                  </time>
                 </div>
-              ))}
-              {metrics.length === 0 && (
-                <p className="text-center py-10 text-slate-400 font-bold">Chưa có hoạt động sức khỏe nào được ghi nhận.</p>
-              )}
-           </div>
+              </div>
+            ))}
+            {metrics.length === 0 && (
+              <p className="text-center py-10 text-slate-400 font-bold">Chưa có hoạt động sức khỏe nào được ghi nhận.</p>
+            )}
+          </div>
         </CardContent>
       </Card>
     </div>
