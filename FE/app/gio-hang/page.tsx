@@ -84,6 +84,7 @@ export default function CartPage() {
     }
   }, [session, token])
 
+  const selectedItems = items.filter(item => selectedIds.includes(item.medicineId))
   const hasRXItems = selectedItems.some(item => (item as any).requiresPrescription)
 
   useEffect(() => {
@@ -107,8 +108,6 @@ export default function CartPage() {
       fetchPrescriptions()
     }
   }, [token, hasRXItems])
-
-  const selectedItems = items.filter(item => selectedIds.includes(item.medicineId))
 
   // Subtotal is based on unitPrice (final price)
   const subtotal = selectedItems.reduce((sum, item) => sum + (item.unitPrice * item.quantity), 0)
