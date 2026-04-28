@@ -9,7 +9,6 @@ import {
   Ruler, 
   AlertCircle, 
   TrendingUp, 
-  Brain, 
   Clock, 
   Plus, 
   ChevronRight,
@@ -46,7 +45,6 @@ import { vi } from "date-fns/locale"
 export default function HealthDashboard() {
   const { data: session } = useSession()
   const [metrics, setMetrics] = useState<any[]>([])
-  const [analysis, setAnalysis] = useState<any>(null)
   const [healthNote, setHealthNote] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false)
@@ -66,15 +64,26 @@ export default function HealthDashboard() {
         'X-User-Id': session?.user?.id?.toString() || ''
       }
       
-      const [metricsRes, analysisRes, noteRes] = await Promise.all([
+      const [metricsRes, noteRes] = await Promise.all([
         fetch(`${getApiBaseUrl()}/user-service/api/users/profiles/me/metrics`, { headers }),
-        fetch(`${getApiBaseUrl()}/ai-service/api/ai/recommendations/history-analysis`, { headers }),
         fetch(`${getApiBaseUrl()}/user-service/api/users/profiles/me/health-notes`, { headers })
       ])
 
-      if (metricsRes.ok) setMetrics(await metricsRes.json())
-      if (analysisRes.ok) setAnalysis(await analysisRes.json())
-      if (noteRes.ok) setHealthNote(await noteRes.json())
+      if (metricsRes.ok) {
+        const data = await metricsRes.json().catch(() => [])
+        setMetrics(data)
+      }
+      
+      if (noteRes.ok) {
+        const text = await noteRes.text()
+        if (text) {
+          try {
+            setHealthNote(JSON.parse(text))
+          } catch (e) {
+            console.error("Failed to parse health note JSON", e)
+          }
+        }
+      }
     } catch (error) {
       console.error("Failed to fetch health data:", error)
     } finally {
@@ -138,7 +147,7 @@ export default function HealthDashboard() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-3xl font-black text-slate-900 tracking-tight">Sức khỏe của tôi</h1>
-          <p className="text-slate-500 font-medium">Theo dõi chỉ số và nhận phân tích thông minh từ MedCare AI</p>
+          <p className="text-slate-500 font-medium">Theo dõi chỉ số sức khỏe cá nhân của bạn</p>
         </div>
         <Dialog open={isUpdateModalOpen} onOpenChange={setIsUpdateModalOpen}>
           <DialogTrigger asChild>
@@ -226,10 +235,10 @@ export default function HealthDashboard() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.2 }}
-        className="grid grid-cols-1 lg:grid-cols-3 gap-8"
+        className="grid grid-cols-1 gap-8"
       >
         {/* Trend Chart */}
-        <Card className="lg:col-span-2 rounded-[2.5rem] border-none shadow-sm overflow-hidden">
+        <Card className="rounded-[2.5rem] border-none shadow-sm overflow-hidden">
           <CardHeader className="p-8 pb-2">
             <div className="flex items-center justify-between">
               <div>
@@ -277,67 +286,6 @@ export default function HealthDashboard() {
                 <p className="font-bold">Chưa có dữ liệu lịch sử</p>
               </div>
             )}
-          </CardContent>
-        </Card>
-
-        {/* AI Health Analysis */}
-        <Card className="rounded-[2.5rem] border-none shadow-sm bg-slate-900 text-white overflow-hidden relative">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-primary/20 rounded-full blur-3xl -mr-10 -mt-10" />
-          <CardHeader className="p-8 relative z-10">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-2xl bg-primary/20 flex items-center justify-center">
-                <Brain className="w-6 h-6 text-primary" />
-              </div>
-              <CardTitle className="text-xl font-black">AI Health Analysis</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent className="p-8 pt-0 space-y-6 relative z-10">
-            {analysis ? (
-              <>
-                <div className="p-4 bg-white/5 rounded-2xl border border-white/10">
-                  <p className="text-sm text-white/80 leading-relaxed italic">
-                    "{analysis.summary}"
-                  </p>
-                </div>
-                
-                <div className="space-y-3">
-                  <h4 className="text-xs font-black text-primary uppercase tracking-widest">Cảnh báo thói quen</h4>
-                  {analysis.habit_alerts?.map((alert: string, i: number) => (
-                    <div key={i} className="flex items-start gap-3 p-3 bg-white/5 rounded-xl border border-white/5">
-                      <AlertCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-                      <p className="text-xs font-medium text-white/90">{alert}</p>
-                    </div>
-                  ))}
-                  {(!analysis.habit_alerts || analysis.habit_alerts.length === 0) && (
-                    <p className="text-xs text-white/40">Không phát hiện thói quen bất thường.</p>
-                  )}
-                </div>
-
-                <div className="pt-4 flex items-center justify-between">
-                  <span className="text-xs font-bold text-white/60">Tình trạng:</span>
-                  <Badge className={cn(
-                    "rounded-full px-3 py-1 font-black",
-                    analysis.health_status === 'STABLE' ? "bg-emerald-500/20 text-emerald-400" :
-                    analysis.health_status === 'CAUTION' ? "bg-amber-500/20 text-amber-400" :
-                    "bg-rose-500/20 text-rose-400"
-                  )}>
-                    {analysis.health_status}
-                  </Badge>
-                </div>
-              </>
-            ) : (
-              <div className="flex flex-col items-center justify-center h-48 text-white/40">
-                <Loader2 className="w-8 h-8 animate-spin mb-4" />
-                <p className="text-xs font-bold">Đang phân tích bệnh sử...</p>
-              </div>
-            )}
-            
-            <div className="p-3 bg-white/5 rounded-xl flex items-start gap-2">
-              <Info className="w-3 h-3 text-white/40 shrink-0 mt-0.5" />
-              <p className="text-[10px] text-white/40 leading-tight">
-                Phân tích dựa trên dữ liệu mua sắm và chỉ số cá nhân. Luôn tham khảo ý kiến chuyên gia y tế.
-              </p>
-            </div>
           </CardContent>
         </Card>
       </motion.div>
