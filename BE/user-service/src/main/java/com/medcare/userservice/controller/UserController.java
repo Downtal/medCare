@@ -50,7 +50,7 @@ public class UserController {
 
     @PutMapping("/profiles/me/health-notes")
     public ResponseEntity<UserHealthNoteDto> updateMyHealthNote(@AuthenticationPrincipal String userId,
-                                                              @RequestBody UpdateHealthNoteRequest request) {
+                                                               @Valid @RequestBody UpdateHealthNoteRequest request) {
         return ResponseEntity.ok(userService.updateHealthNote(Long.valueOf(userId), request));
     }
 
@@ -62,7 +62,7 @@ public class UserController {
 
     @PostMapping("/profiles/me/metrics")
     public ResponseEntity<HealthMetricDto> addMyHealthMetric(@AuthenticationPrincipal String userId,
-                                                           @RequestBody CreateMetricRequest request) {
+                                                           @Valid @RequestBody CreateMetricRequest request) {
         return new ResponseEntity<>(userService.addHealthMetric(Long.valueOf(userId), request), HttpStatus.CREATED);
     }
 

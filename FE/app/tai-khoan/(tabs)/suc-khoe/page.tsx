@@ -99,6 +99,28 @@ export default function HealthDashboard() {
 
   const handleUpdateMetric = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // ── Frontend Validation ──
+    const weightVal = newMetric.weight ? parseFloat(newMetric.weight) : null
+    const heightVal = newMetric.height ? parseFloat(newMetric.height) : null
+
+    if (weightVal !== null && (weightVal < 2 || weightVal > 500)) {
+      toast.error("Cân nặng phải từ 2kg đến 500kg")
+      return
+    }
+    if (heightVal !== null && (heightVal < 30 || heightVal > 300)) {
+      toast.error("Chiều cao phải từ 30cm đến 300cm")
+      return
+    }
+    if (newMetric.allergies && newMetric.allergies.length > 1000) {
+      toast.error("Thông tin dị ứng không được vượt quá 1000 ký tự")
+      return
+    }
+    if (newMetric.chronicConditions && newMetric.chronicConditions.length > 1000) {
+      toast.error("Thông tin bệnh lý không được vượt quá 1000 ký tự")
+      return
+    }
+
     setSaving(true)
     try {
       const promises = []
