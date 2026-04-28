@@ -17,28 +17,28 @@ import { motion } from "framer-motion"
 
 export default function OrderConfirmationPage() {
   const searchParams = useSearchParams()
-  
+
   // Handle both direct code (COD) and VNPAY response
   const vnpResponseCode = searchParams.get("vnp_ResponseCode")
   const vnpTxnRef = searchParams.get("vnp_TxnRef")
   const directCode = searchParams.get("code")
   const vnpOrderInfo = searchParams.get("vnp_OrderInfo")
-  
+
   // Robust order code detection
   let orderCode = directCode
-  
+
   if (!orderCode && vnpTxnRef) {
     // VNPay TxnRef often has a timestamp suffix (e.g. MC123-1714...)
     // We only need the part before the hyphen
     orderCode = vnpTxnRef.split("-")[0]
   }
-  
+
   // Fallback: extract order code from OrderInfo if TxnRef is missing or doesn't yield a code
   if (!orderCode && vnpOrderInfo) {
     const match = vnpOrderInfo.match(/MC\d+/i)
     if (match) orderCode = match[0]
   }
-  
+
   const { data: session, status: sessionStatus } = useSession()
   const [order, setOrder] = useState<any>(null)
   const [loading, setLoading] = useState(true)
@@ -48,45 +48,61 @@ export default function OrderConfirmationPage() {
   useEffect(() => {
     console.log("OrderConfirmation: sessionStatus =", sessionStatus, "orderCode =", orderCode)
 
-    if (sessionStatus === "authenticated" && orderCode) {
-      const fetchOrder = async () => {
-        try {
-          const url = `${getApiBaseUrl()}${API_ENDPOINTS.ORDER}/orders/${orderCode}`
-          console.log("Fetching order from:", url)
-
-          const res = await fetch(url, {
-            headers: {
-              'Authorization': `Bearer ${session?.user?.accessToken}`
-            }
-          })
-
-          if (!res.ok) {
-            const errorText = await res.text()
-            console.error(`Order fetch failed [${res.status}]:`, errorText)
-            throw new Error(`Failed to fetch order: ${res.status}`)
+    const fetchOrderData = async () => {
+      try {
+        // 1. If returning from VNPay, trigger active verification first
+        if (vnpResponseCode && orderCode) {
+          try {
+            const callbackUrl = `${getApiBaseUrl()}${API_ENDPOINTS.PAYMENT}/payment/vnpay-callback${window.location.search}`
+            await fetch(callbackUrl)
+            console.log("Payment callback verification triggered")
+          } catch (e) {
+            console.error("Failed to trigger payment callback verification", e)
           }
-
-          const data = await res.json()
-          console.log("Order data received:", data)
-          setOrder(data)
-          
-          if (!isNotified) {
-            if (vnpResponseCode === "00" || !vnpResponseCode) {
-              const { toast } = await import("sonner")
-              toast.success("Thanh toán thành công!", {
-                description: "Đơn hàng của bạn đang được xử lý."
-              })
-              setIsNotified(true)
-            }
-          }
-        } catch (err: any) {
-          console.error("Detailed fetch error:", err)
-          setError(err.message || "Không tìm thấy thông tin đơn hàng.")
-        } finally {
-          setLoading(false)
         }
+
+        // 2. Fetch order details
+        const url = `${getApiBaseUrl()}${API_ENDPOINTS.ORDER}/orders/${orderCode}`
+        const res = await fetch(url, {
+          headers: {
+            'Authorization': `Bearer ${session?.user?.accessToken}`
+          }
+        })
+
+        if (!res.ok) {
+          const errorText = await res.text()
+          throw new Error(`Failed to fetch order: ${res.status}`)
+        }
+
+        const data = await res.json()
+        
+        // UI Optimization: If we know it's a success from URL, override status in UI state
+        // to avoid waiting for slow IPN/DB updates
+        if (vnpResponseCode === "00") {
+          data.status = "PAID"
+        }
+        
+        setOrder(data)
+
+        if (!isNotified) {
+          if (vnpResponseCode === "00" || !vnpResponseCode) {
+            const { toast } = await import("sonner")
+            toast.success("Thanh toán thành công!", {
+              description: "Đơn hàng của bạn đang được xử lý."
+            })
+            setIsNotified(true)
+          }
+        }
+      } catch (err: any) {
+        console.error("Detailed fetch error:", err)
+        setError(err.message || "Không tìm thấy thông tin đơn hàng.")
+      } finally {
+        setLoading(false)
       }
-      fetchOrder()
+    }
+
+    if (sessionStatus === "authenticated" && orderCode) {
+      fetchOrderData()
     } else if (sessionStatus === "unauthenticated") {
       setLoading(false)
       setError("Vui lòng đăng nhập để xem thông tin đơn hàng.")
@@ -101,7 +117,7 @@ export default function OrderConfirmationPage() {
       <div className="min-h-screen flex flex-col bg-slate-50">
         <Header />
         <main className="flex-1 flex flex-col items-center justify-center">
-          <motion.div 
+          <motion.div
             animate={{ rotate: 360 }}
             transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
           >
@@ -116,11 +132,11 @@ export default function OrderConfirmationPage() {
 
   // Handle VNPAY Failure
   if (vnpResponseCode && vnpResponseCode !== "00") {
-     return (
+    return (
       <div className="min-h-screen flex flex-col bg-slate-50">
         <Header />
         <main className="flex-1 flex flex-col items-center justify-center p-4">
-          <motion.div 
+          <motion.div
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             className="max-w-md w-full bg-white rounded-[32px] p-8 shadow-xl shadow-blue-900/5 text-center border border-red-50"
@@ -183,9 +199,9 @@ export default function OrderConfirmationPage() {
       <main className="flex-1">
         <div className="container mx-auto px-4 py-12 md:py-20">
           <div className="max-w-4xl mx-auto">
-            
+
             {/* Header Status */}
-            <motion.div 
+            <motion.div
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               className="text-center mb-12"
@@ -200,9 +216,9 @@ export default function OrderConfirmationPage() {
             </motion.div>
 
             <div className="grid lg:grid-cols-5 gap-8 items-start">
-              
+
               {/* Left Column: Details */}
-              <motion.div 
+              <motion.div
                 initial={{ x: -20, opacity: 0 }}
                 animate={{ x: 0, opacity: 1 }}
                 transition={{ delay: 0.2 }}
@@ -278,7 +294,7 @@ export default function OrderConfirmationPage() {
               </motion.div>
 
               {/* Right Column: Summary & Actions */}
-              <motion.div 
+              <motion.div
                 initial={{ x: 20, opacity: 0 }}
                 animate={{ x: 0, opacity: 1 }}
                 transition={{ delay: 0.3 }}
@@ -291,7 +307,7 @@ export default function OrderConfirmationPage() {
                       <Clock className="w-5 h-5 text-blue-400" />
                       Tổng kết đơn hàng
                     </h3>
-                    
+
                     <div className="space-y-4 mb-10">
                       <div className="flex justify-between items-center text-slate-400 font-bold">
                         <span>Tạm tính</span>

@@ -179,6 +179,7 @@ public class PaymentService {
         return response;
     }
 
+    @Transactional
     public PaymentResult verifyCallback(Map<String, String> params) {
         log.info("VNPay Callback Received: {}", params);
         
@@ -190,12 +191,30 @@ public class PaymentService {
         String hashData = VNPayUtil.getPaymentStr(hashParams);
         String signValue = VNPayUtil.hmacSHA512(vnPayConfig.getHashSecret(), hashData);
 
-        boolean isSuccess = signValue.equalsIgnoreCase(vnp_SecureHash) && "00".equals(params.get("vnp_ResponseCode"));
+        String vnp_ResponseCode = params.get("vnp_ResponseCode");
+        boolean isSuccess = signValue.equalsIgnoreCase(vnp_SecureHash) && "00".equals(vnp_ResponseCode);
+        
+        // Active update if success (in case IPN is slow)
+        if (isSuccess) {
+            String vnp_TxnRef = params.get("vnp_TxnRef");
+            paymentRepository.findByTransactionId(vnp_TxnRef).ifPresent(payment -> {
+                if (payment.getStatus() == Payment.PaymentStatus.PENDING) {
+                    payment.setStatus(Payment.PaymentStatus.SUCCESS);
+                    payment.setPaidAt(LocalDateTime.now());
+                    paymentRepository.save(payment);
+                    try {
+                        orderClient.updatePaymentStatus(payment.getOrderCode(), "PAID");
+                    } catch (Exception e) {
+                        log.error("Failed to update order status in callback: {}", e.getMessage());
+                    }
+                }
+            });
+        }
         
         return PaymentResult.builder()
                 .orderId(params.get("vnp_TxnRef"))
                 .amount(String.valueOf(Long.parseLong(params.get("vnp_Amount")) / 100))
-                .responseCode(params.get("vnp_ResponseCode"))
+                .responseCode(vnp_ResponseCode)
                 .transactionNo(params.get("vnp_TransactionNo"))
                 .success(isSuccess)
                 .message(isSuccess ? "Thanh toán thành công" : "Thanh toán không thành công hoặc chữ ký không hợp lệ")
