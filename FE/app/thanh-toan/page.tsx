@@ -1173,19 +1173,35 @@ export default function CheckoutPage() {
                     <div className="flex flex-1 items-center gap-4 p-5">
                       <div className={cn(
                         "h-16 w-16 rounded-2xl flex items-center justify-center shrink-0 transition-transform duration-300",
-                        isDisabled ? "bg-slate-50 text-slate-300" : "bg-blue-50 text-blue-600 group-hover:scale-110"
+                        isDisabled 
+                          ? "bg-slate-50 text-slate-300" 
+                          : v.discountType === 'FREESHIP'
+                            ? "bg-blue-50 text-blue-600 group-hover:scale-110"
+                            : "bg-orange-50 text-orange-600 group-hover:scale-110"
                       )}>
-                        <Ticket size={32} strokeWidth={1.5} />
+                        {v.discountType === 'FREESHIP' ? <Truck size={32} strokeWidth={1.5} /> : <Ticket size={32} strokeWidth={1.5} />}
                       </div>
-
+ 
                       <div className="flex-1 min-w-0">
                         <div className="flex flex-col">
-                          <p className="font-black text-slate-800 text-xl tracking-tight mb-0.5 truncate">{v.code}</p>
+                          <div className="flex items-center gap-2 mb-1">
+                            <p className="font-black text-slate-800 text-xl tracking-tight truncate">{v.code}</p>
+                            <span className={cn(
+                               "text-[9px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-wider",
+                               isDisabled 
+                                ? "bg-slate-100 text-slate-400" 
+                                : v.discountType === 'FREESHIP'
+                                  ? "bg-blue-100 text-blue-700"
+                                  : "bg-orange-100 text-orange-700"
+                             )}>
+                               {v.discountType === 'FREESHIP' ? 'Vận chuyển' : 'Sản phẩm'}
+                             </span>
+                          </div>
                           <p className="text-[13px] font-bold text-slate-500 mb-2 truncate">{v.description || v.title}</p>
                           <div className="flex items-center gap-2">
                             <span className={cn(
                               "text-[10px] font-black uppercase tracking-wider px-2 py-1 rounded-md",
-                              isDisabled ? "bg-slate-100 text-slate-400" : "bg-blue-50 text-blue-700"
+                              isDisabled ? "bg-slate-100 text-slate-400" : "bg-slate-50 text-slate-600"
                             )}>
                               Đơn tối thiểu {minOrderValue.toLocaleString("vi-VN")}đ
                             </span>
