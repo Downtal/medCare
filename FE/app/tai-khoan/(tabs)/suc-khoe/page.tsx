@@ -49,11 +49,11 @@ export default function HealthDashboard() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false)
-  const [newMetric, setNewMetric] = useState({ 
-    weight: '', 
-    height: '', 
-    allergies: '', 
-    chronicConditions: '' 
+  const [newMetric, setNewMetric] = useState({
+    weight: '',
+    height: '',
+    allergies: '',
+    chronicConditions: ''
   })
 
   useEffect(() => {
@@ -99,7 +99,7 @@ export default function HealthDashboard() {
 
   const handleUpdateMetric = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     // ── Frontend Validation ──
     const weightVal = newMetric.weight ? parseFloat(newMetric.weight) : null
     const heightVal = newMetric.height ? parseFloat(newMetric.height) : null
@@ -124,7 +124,7 @@ export default function HealthDashboard() {
     setSaving(true)
     try {
       const promises = []
-      const headers = { 
+      const headers = {
         'Authorization': `Bearer ${session?.user?.accessToken}`,
         'Content-Type': 'application/json'
       }
@@ -231,10 +231,10 @@ export default function HealthDashboard() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label className="font-bold">Cân nặng (kg)</Label>
-                  <Input 
-                    type="number" 
-                    step="0.1" 
-                    placeholder="VD: 65.5" 
+                  <Input
+                    type="number"
+                    step="0.1"
+                    placeholder="VD: 65.5"
                     className="h-12 rounded-xl"
                     value={newMetric.weight}
                     onChange={(e) => setNewMetric({ ...newMetric, weight: e.target.value })}
@@ -242,10 +242,10 @@ export default function HealthDashboard() {
                 </div>
                 <div className="space-y-2">
                   <Label className="font-bold">Chiều cao (cm)</Label>
-                  <Input 
-                    type="number" 
-                    step="0.1" 
-                    placeholder="VD: 170" 
+                  <Input
+                    type="number"
+                    step="0.1"
+                    placeholder="VD: 170"
                     className="h-12 rounded-xl"
                     value={newMetric.height}
                     onChange={(e) => setNewMetric({ ...newMetric, height: e.target.value })}
@@ -255,8 +255,8 @@ export default function HealthDashboard() {
 
               <div className="space-y-2">
                 <Label className="font-bold">Dị ứng (nếu có)</Label>
-                <Input 
-                  placeholder="VD: Hải sản, Phấn hoa..." 
+                <Input
+                  placeholder="VD: Hải sản, Phấn hoa..."
                   className="h-12 rounded-xl"
                   value={newMetric.allergies}
                   onChange={(e) => setNewMetric({ ...newMetric, allergies: e.target.value })}
@@ -265,13 +265,12 @@ export default function HealthDashboard() {
 
               <div className="space-y-2">
                 <Label className="font-bold">Tình trạng bệnh lý / Mãn tính</Label>
-                <Input 
-                  placeholder="VD: Huyết áp cao, Tiểu đường..." 
+                <Input
+                  placeholder="VD: Huyết áp cao, Tiểu đường..."
                   className="h-12 rounded-xl"
                   value={newMetric.chronicConditions}
                   onChange={(e) => setNewMetric({ ...newMetric, chronicConditions: e.target.value })}
                 />
-                <p className="text-[10px] text-slate-400 font-medium">Nhập "Bình thường" nếu không có bệnh lý.</p>
               </div>
 
               <Button type="submit" disabled={saving} className="w-full h-12 rounded-xl font-bold bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-200">

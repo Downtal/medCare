@@ -5,6 +5,7 @@ import com.medcare.common.exception.ErrorCode;
 import com.medcare.userservice.dto.*;
 import com.medcare.userservice.entity.Address;
 import com.medcare.userservice.entity.UserProfile;
+import com.medcare.userservice.entity.UserHealthNote;
 import com.medcare.userservice.exception.ConflictException;
 import com.medcare.userservice.exception.ResourceNotFoundException;
 import com.medcare.userservice.repository.AddressRepository;
@@ -244,19 +245,22 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public UserHealthNoteDto updateHealthNote(Long userId, UpdateHealthNoteRequest request) {
         UserProfile profile = userProfileRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("Profile not found for user_id: " + userId));
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy hồ sơ cho user_id: " + userId));
 
-        com.medcare.userservice.entity.UserHealthNote note = userHealthNoteRepository.findById(userId)
-                .orElse(new com.medcare.userservice.entity.UserHealthNote());
+        UserHealthNote note = profile.getHealthNote();
+        if (note == null) {
+            note = new UserHealthNote();
+            note.setUserId(userId);
+            note.setUserProfile(profile);
+            profile.setHealthNote(note);
+        }
         
-        note.setUserId(userId);
-        note.setUserProfile(profile);
-        note.setAllergies(request.getAllergies());
-        note.setChronicConditions(request.getChronicConditions());
-        note.setSpecialStatus(request.getSpecialStatus());
+        if (request.getAllergies() != null) note.setAllergies(request.getAllergies());
+        if (request.getChronicConditions() != null) note.setChronicConditions(request.getChronicConditions());
+        if (request.getSpecialStatus() != null) note.setSpecialStatus(request.getSpecialStatus());
 
-        com.medcare.userservice.entity.UserHealthNote saved = userHealthNoteRepository.save(note);
-        return mapToHealthNoteDto(saved);
+        userProfileRepository.save(profile);
+        return mapToHealthNoteDto(note);
     }
 
     // ───────────────── Health Metric operations ─────────────────
