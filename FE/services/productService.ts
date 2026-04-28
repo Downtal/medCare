@@ -131,5 +131,9 @@ export const productService = {
 
   hardDeleteCategory: async (id: number) => {
     return axiosInstance.delete(`${PRODUCT_PREFIX}/categories/${id}/hard`) as Promise<any>
+  },
+
+  searchProducts: async (query: string, page: number = 0, size: number = 5) => {
+    return axiosInstance.get(`${PRODUCT_PREFIX}/products/search?q=${encodeURIComponent(query)}&page=${page}&size=${size}`) as Promise<any>
   }
 }

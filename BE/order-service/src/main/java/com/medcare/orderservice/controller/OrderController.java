@@ -62,6 +62,18 @@ public class OrderController {
         return ResponseEntity.ok(orderService.getMyOrders(userId));
     }
 
+    @GetMapping("/my-orders/recent-items")
+    public ResponseEntity<List<String>> getRecentItems(
+            @RequestHeader(value = "X-User-Id", required = false) String userIdHeader,
+            @AuthenticationPrincipal String userIdPrincipal,
+            @RequestParam(defaultValue = "30") int days) {
+        String userId = userIdHeader != null ? userIdHeader : userIdPrincipal;
+        if (userId == null || "null".equals(userId)) {
+            return ResponseEntity.status(401).build();
+        }
+        return ResponseEntity.ok(orderService.getRecentMedicineNames(userId, days));
+    }
+
     @GetMapping("/{orderCode}")
     public ResponseEntity<OrderDetailResponse> getOrderDetail(@PathVariable String orderCode) {
         Order order = orderService.getOrderByCode(orderCode);

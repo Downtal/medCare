@@ -6,6 +6,7 @@ import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * Maps to the `user_profiles` table in medcare_user_db.
@@ -39,6 +40,9 @@ public class UserProfile {
     @Column(name = "date_of_birth")
     private LocalDate dateOfBirth;
 
+    @Column(length = 10)
+    private String gender; // MALE, FEMALE, OTHER
+
     @Column(length = 50)
     private String role;
 
@@ -53,5 +57,8 @@ public class UserProfile {
     private LocalDateTime deletedAt;
 
     @OneToMany(mappedBy = "userProfile", cascade = CascadeType.ALL, orphanRemoval = true)
-    private java.util.List<Address> addresses;
+    private List<Address> addresses;
+
+    @OneToOne(mappedBy = "userProfile", cascade = CascadeType.ALL, orphanRemoval = true)
+    private UserHealthNote healthNote;
 }

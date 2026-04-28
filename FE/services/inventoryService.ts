@@ -120,5 +120,9 @@ export const inventoryService = {
 
   getInventoryLogs: async (): Promise<InventoryLog[]> => {
     return axiosInstance.get(`${INVENTORY_PREFIX}/logs`)
+  },
+  
+  getLowStockProducts: async (threshold: number = 50): Promise<ProductStockSummary[]> => {
+    return axiosInstance.get(`${INVENTORY_PREFIX}/low-stock?threshold=${threshold}`)
   }
 }

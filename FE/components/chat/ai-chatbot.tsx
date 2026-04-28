@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { MessageCircle, X, Minimize2, Maximize2, Send, Bot, User, Sparkles, AlertCircle, ThumbsUp, ThumbsDown } from "lucide-react";
+import { MessageCircle, X, Minimize2, Maximize2, Send, Bot, User, Sparkles, AlertCircle, ThumbsUp, ThumbsDown, Image as ImageIcon, Loader2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,8 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { useChat } from "@/hooks/use-chat";
 import { ProductCarousel } from "./product-carousel";
+import { toast } from "sonner";
+import Tesseract from "tesseract.js";
 
 const QUICK_ACTIONS = [
   "Tôi bị đau bụng",
@@ -20,18 +22,41 @@ const QUICK_ACTIONS = [
   "Tư vấn thực phẩm chức năng"
 ];
 
+import { useChatStore } from "@/lib/store/useChatStore";
+
 export function AIChatbot() {
   const pathname = usePathname();
-  const [isOpen, setIsOpen] = useState(false);
-  const [isMinimized, setIsMinimized] = useState(false);
+  const { isOpen, closeChat, openChat, isMinimized, setIsMinimized, initialMessage, clearInitialMessage } = useChatStore();
   const [input, setInput] = useState("");
   const { messages, append, isLoading, submitFeedback } = useChat();
   const [feedbackTarget, setFeedbackTarget] = useState<{log_id: number} | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [ocrProgress, setOcrProgress] = useState(0);
+  const [isScanning, setIsScanning] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Handle initial message (from OCR scan)
+  useEffect(() => {
+    if (initialMessage && !isLoading) {
+      handleSend(initialMessage);
+      clearInitialMessage();
+    }
+  }, [initialMessage, isLoading]);
+
+  // Auto-scroll to bottom
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTo({
+        top: scrollRef.current.scrollHeight,
+        behavior: "smooth"
+      });
+    }
+  }, [messages, isLoading]);
 
   const handleFeedback = (logId: number, rating: boolean) => {
     if (rating) {
       submitFeedback(logId, true);
+      toast.success("Cảm ơn bạn đã đánh giá hữu ích!");
     } else {
       setFeedbackTarget({ log_id: logId });
     }
@@ -41,31 +66,61 @@ export function AIChatbot() {
     if (feedbackTarget) {
       submitFeedback(feedbackTarget.log_id, false, reason);
       setFeedbackTarget(null);
+      toast.info("Cảm ơn góp ý của bạn để MedCare cải thiện hơn.");
     }
   };
 
-  // Hide on checkout page
-  if (pathname === "/thanh-toan" || pathname === "/checkout") return null;
+  // Hide on authentication and admin pages
+  const isAuthPage = pathname === "/dang-nhap" || pathname === "/dang-ky";
+  const isCheckoutPage = pathname === "/thanh-toan" || pathname === "/checkout";
+  const isAdminPage = pathname?.startsWith("/admin");
+
+  if (isAuthPage || isCheckoutPage || isAdminPage) return null;
 
   const toggleChat = () => {
-    setIsOpen(!isOpen);
-    setIsMinimized(false);
+    if (isOpen) closeChat();
+    else openChat();
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsScanning(true);
+    setOcrProgress(0);
+    toast.info("Đang quét nội dung đơn thuốc...");
+
+    try {
+      const result = await Tesseract.recognize(file, 'vie+eng', {
+        logger: m => {
+          if (m.status === 'recognizing text') {
+            setOcrProgress(Math.floor(m.progress * 100));
+          }
+        }
+      });
+
+      const text = result.data.text.trim();
+      if (text.length < 10) {
+        toast.error("Không thể đọc được nội dung ảnh. Vui lòng chụp rõ hơn.");
+      } else {
+        const prompt = `Phân tích nội dung đơn thuốc sau:\n\n${text}`;
+        handleSend(prompt);
+      }
+    } catch (err) {
+      toast.error("Có lỗi khi quét ảnh.");
+    } finally {
+      setIsScanning(false);
+      setOcrProgress(0);
+    }
   };
 
   const handleSend = async (text: string = input) => {
-    if (!text.trim() || isLoading) return;
-    await append(text);
+    const messageToSend = typeof text === 'string' ? text : input;
+    if (!messageToSend.trim() || isLoading) return;
+    await append(messageToSend);
     setInput("");
   };
 
-  useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTo({
-        top: scrollRef.current.scrollHeight,
-        behavior: "smooth"
-      });
-    }
-  }, [messages, isLoading]);
 
   return (
     <div className="fixed bottom-6 right-6 z-[9999] flex flex-col items-end">
@@ -195,26 +250,38 @@ export function AIChatbot() {
                     )}
                   </div>
 
-                  {/* Quick Actions */}
-                  {messages.length === 1 && (
-                    <div className="mt-6 flex flex-wrap gap-2">
-                      {QUICK_ACTIONS.map(action => (
-                        <Button 
-                          key={action} 
-                          variant="outline" 
-                          size="sm" 
-                          className="rounded-full bg-white text-[12px] hover:bg-primary hover:text-white transition-colors"
-                          onClick={() => handleSend(action)}
-                        >
-                          {action}
-                        </Button>
-                      ))}
-                    </div>
+                  {/* Dynamic Quick Actions */}
+                  {!isLoading && (
+                    <ScrollArea className="w-full mt-4">
+                      <div className="flex gap-2 pb-2 animate-in fade-in slide-in-from-bottom-2 duration-500">
+                        {(messages[messages.length - 1]?.quick_actions || (messages.length === 1 ? QUICK_ACTIONS : [])).map(action => (
+                          <Button 
+                            key={action} 
+                            variant="outline" 
+                            size="sm" 
+                            className="rounded-full whitespace-nowrap bg-white text-[12px] font-bold border-primary/20 text-primary hover:bg-primary hover:text-white transition-all shadow-sm"
+                            onClick={() => handleSend(action)}
+                          >
+                            {action}
+                          </Button>
+                        ))}
+                      </div>
+                    </ScrollArea>
                   )}
                 </div>
 
                 {/* Input area */}
-                <div className="border-t bg-background p-4">
+                <div className="border-t bg-background p-4 relative">
+                  {isScanning && (
+                    <div className="absolute top-0 left-0 w-full h-1 bg-slate-100 overflow-hidden">
+                      <motion.div 
+                        className="h-full bg-primary" 
+                        initial={{ width: 0 }}
+                        animate={{ width: `${ocrProgress}%` }}
+                      />
+                    </div>
+                  )}
+                  
                   <form 
                     className="flex items-center gap-2"
                     onSubmit={(e) => {
@@ -222,17 +289,39 @@ export function AIChatbot() {
                       handleSend();
                     }}
                   >
+                    <input 
+                      type="file" 
+                      ref={fileInputRef} 
+                      className="hidden" 
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                    />
+                    <Button 
+                      type="button"
+                      variant="ghost" 
+                      size="icon" 
+                      className={cn(
+                        "rounded-full h-10 w-10 shrink-0 text-slate-400 hover:text-primary hover:bg-primary/5",
+                        isScanning && "text-primary animate-pulse"
+                      )}
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={isScanning || isLoading}
+                    >
+                      {isScanning ? <Loader2 size={20} className="animate-spin" /> : <ImageIcon size={20} />}
+                    </Button>
+
                     <Input 
-                      placeholder="Nhập triệu chứng hoặc câu hỏi..."
+                      placeholder={isScanning ? `Đang quét: ${ocrProgress}%...` : "Nhập triệu chứng hoặc câu hỏi..."}
                       value={input}
                       onChange={(e) => setInput(e.target.value)}
                       className="rounded-full border-slate-200"
+                      disabled={isScanning}
                     />
                     <Button 
                       type="submit" 
                       size="icon" 
                       className="rounded-full h-10 w-10 shrink-0"
-                      disabled={!input.trim() || isLoading}
+                      disabled={!input.trim() || isLoading || isScanning}
                     >
                       <Send size={18} />
                     </Button>

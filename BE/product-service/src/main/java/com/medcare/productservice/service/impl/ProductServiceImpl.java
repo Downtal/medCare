@@ -472,8 +472,27 @@ public class ProductServiceImpl implements ProductService {
         @Override
         public PageResponse<ProductResponse> searchProductsPaginated(String name, int pageNo, int pageSize) {
                 Pageable pageable = PageRequest.of(pageNo, pageSize);
-                Page<Medicine> medicines = medicineRepository.findByNameContainingIgnoreCaseAndStatusTrue(name,
-                                pageable);
+                
+                // 1. Try standard containing search first
+                Page<Medicine> medicines = medicineRepository.findByNameContainingIgnoreCaseAndStatusTrue(name, pageable);
+                
+                // 2. If no results and name has multiple words, try a more flexible approach
+                if (medicines.isEmpty() && name.trim().contains(" ")) {
+                        String[] keywords = name.trim().split("\\s+");
+                        // Filter out very short words or common Vietnamese noise words if needed
+                        List<String> importantKeywords = java.util.Arrays.stream(keywords)
+                                .filter(k -> k.length() > 2)
+                                .collect(Collectors.toList());
+                        
+                        if (!importantKeywords.isEmpty()) {
+                                // For now, let's just search for the longest keyword as it's likely the brand/main name
+                                String bestKeyword = importantKeywords.stream()
+                                        .max(java.util.Comparator.comparingInt(String::length))
+                                        .orElse(importantKeywords.get(0));
+                                medicines = medicineRepository.findByNameContainingIgnoreCaseAndStatusTrue(bestKeyword, pageable);
+                        }
+                }
+                
                 return mapToPageResponse(medicines);
         }
 

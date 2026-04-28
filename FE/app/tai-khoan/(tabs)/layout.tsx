@@ -2,7 +2,7 @@
 
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
-import { User, Package, MapPin, FileCheck, Ticket, Star, Lock, LogOut, ChevronRight } from "lucide-react"
+import { User, Package, MapPin, FileCheck, Ticket, Star, Lock, LogOut, ChevronRight, Activity } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useSession } from "next-auth/react"
@@ -17,6 +17,7 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
 
   const menuItems = [
     { id: "ho-so", label: "Thông tin cá nhân", icon: User, path: "/tai-khoan/ho-so" },
+    { id: "suc-khoe", label: "Sức khỏe cá nhân", icon: Activity, path: "/tai-khoan/suc-khoe" },
     { id: "don-hang", label: "Đơn hàng của tôi", icon: Package, path: "/tai-khoan/don-hang" },
     { id: "dia-chi", label: "Quản lý số địa chỉ", icon: MapPin, path: "/tai-khoan/dia-chi" },
     { id: "don-thuoc", label: "Đơn thuốc của tôi", icon: FileCheck, path: "/tai-khoan/don-thuoc" },

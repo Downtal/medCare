@@ -25,4 +25,5 @@ public class UpdateProfileRequest {
     private String role;
     private String status;
     private LocalDate dateOfBirth;
+    private String gender;
 }

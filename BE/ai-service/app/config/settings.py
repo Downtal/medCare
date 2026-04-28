@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     
     # Gemini Config
     GEMINI_API_KEY: str
+    GEMINI_API_KEY_2: str = "" # Fallback key
     
     # Database Config
     DATABASE_URL: str = "mysql+pymysql://root:@localhost:3306/medcare_chatbot_db?charset=utf8mb4"

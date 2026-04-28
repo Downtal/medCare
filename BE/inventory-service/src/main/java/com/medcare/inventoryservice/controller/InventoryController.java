@@ -51,6 +51,12 @@ public class InventoryController {
         return ResponseEntity.ok(inventoryService.getProductSummaries());
     }
 
+    @GetMapping("/low-stock")
+    public ResponseEntity<List<com.medcare.inventoryservice.dto.ProductStockSummary>> getLowStockProducts(
+            @RequestParam(value = "threshold", defaultValue = "50") int threshold) {
+        return ResponseEntity.ok(inventoryService.getLowStockProducts(threshold));
+    }
+
     @PostMapping("/products/stocks")
     public ResponseEntity<java.util.Map<Long, Integer>> getStocks(@RequestBody List<Long> productIds) {
         java.util.Map<Long, Integer> stocks = new java.util.HashMap<>();

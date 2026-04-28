@@ -64,6 +64,9 @@ public class Order {
     @Column(columnDefinition = "TEXT")
     private String extractedInfo; // Store JSON from AI
 
+    @Column(name = "prescription_id")
+    private Long prescriptionId;
+
     private String voucherCode;
     private BigDecimal discountAmount;
 

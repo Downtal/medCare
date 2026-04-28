@@ -231,6 +231,10 @@ public class InventoryService {
         return inventoryBatchRepository.findProductStockSummaries();
     }
 
+    public List<ProductStockSummary> getLowStockProducts(int threshold) {
+        return inventoryBatchRepository.findLowStockSummaries((long) threshold);
+    }
+
     @Transactional
     public void handleProductCreated(ProductCreatedEvent event) {
         Long medicineId = event.getMedicineId();

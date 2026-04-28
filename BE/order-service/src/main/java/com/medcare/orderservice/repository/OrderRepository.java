@@ -11,6 +11,7 @@ import java.util.Optional;
 @Repository
 public interface OrderRepository extends JpaRepository<Order, Long> {
     List<Order> findByUserIdAndDeletedAtIsNullOrderByCreatedAtDesc(Long userId);
+    List<Order> findByUserIdAndCreatedAtAfterAndDeletedAtIsNull(Long userId, java.time.LocalDateTime since);
     Optional<Order> findByOrderCode(String orderCode);
     Optional<Order> findByOrderCodeAndDeletedAtIsNull(String orderCode);
     List<Order> findAllByDeletedAtIsNull();

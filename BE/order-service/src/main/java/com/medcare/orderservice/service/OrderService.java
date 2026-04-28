@@ -2,10 +2,7 @@ package com.medcare.orderservice.service;
 
 import com.medcare.common.exception.AppException;
 import com.medcare.common.exception.ErrorCode;
-import com.medcare.orderservice.client.InventoryClient;
-import com.medcare.orderservice.client.ProductClient;
-import com.medcare.orderservice.client.PromotionClient;
-import com.medcare.orderservice.client.ShippingClient;
+import com.medcare.orderservice.client.*;
 import com.medcare.orderservice.dto.CartDto;
 import com.medcare.orderservice.dto.OrderItemRequest;
 import com.medcare.orderservice.dto.OrderRequest;
@@ -42,6 +39,7 @@ public class OrderService {
     private final InventoryClient inventoryClient;
     private final OrderStrategyFactory strategyFactory;
     private final OrderStatusLogRepository statusLogRepository;
+    private final UserClient userClient;
 
     @Transactional
     public Order createOrder(String userId, OrderRequest request) {
@@ -94,6 +92,7 @@ public class OrderService {
                 .discountAmount(request.getDiscountAmount() != null ? request.getDiscountAmount() : BigDecimal.ZERO)
                 .voucherCode(request.getVoucherCode())
                 .note(request.getNote())
+                .prescriptionId(request.getPrescriptionId())
                 .grandTotal(totalAmount.add(new BigDecimal("30000"))
                         .subtract(request.getDiscountAmount() != null ? request.getDiscountAmount() : BigDecimal.ZERO))
                 .build();
@@ -142,6 +141,38 @@ public class OrderService {
         }
 
         // 4. Determine Order Type and Apply Strategy
+        // 3.5 Validate Prescription if needed
+        if (hasPrescriptionItem.get()) {
+            if (order.getPrescriptionId() == null) {
+                throw new AppException(ErrorCode.VALIDATION_ERROR, "Đơn hàng có thuốc kê đơn (RX). Vui lòng cung cấp mã đơn thuốc đã được duyệt.");
+            }
+            
+            try {
+                UserClient.PrescriptionDto prescription = userClient.getPrescriptionById(order.getPrescriptionId());
+                if (!"APPROVED".equals(prescription.getStatus())) {
+                    throw new AppException(ErrorCode.VALIDATION_ERROR, "Đơn thuốc chưa được phê duyệt hoặc bị từ chối.");
+                }
+                if (prescription.getIsUsed()) {
+                    throw new AppException(ErrorCode.VALIDATION_ERROR, "Đơn thuốc này đã được sử dụng cho một đơn hàng khác.");
+                }
+                if (prescription.getExpiryDate() != null && prescription.getExpiryDate().isBefore(java.time.LocalDate.now())) {
+                    throw new AppException(ErrorCode.VALIDATION_ERROR, "Đơn thuốc đã hết hạn sử dụng.");
+                }
+                if (!prescription.getUserId().equals(order.getUserId())) {
+                    throw new AppException(ErrorCode.VALIDATION_ERROR, "Đơn thuốc không thuộc sở hữu của bạn.");
+                }
+                
+                // Mark as used after successful validation
+                userClient.markPrescriptionAsUsed(order.getPrescriptionId());
+                log.info("Linked and marked prescription {} as used for order {}", order.getPrescriptionId(), order.getOrderCode());
+                
+            } catch (AppException e) {
+                throw e;
+            } catch (Exception e) {
+                log.error("Error validating prescription: {}", e.getMessage());
+                throw new AppException(ErrorCode.VALIDATION_ERROR, "Không thể xác thực đơn thuốc. Vui lòng thử lại sau.");
+            }
+        }
         OrderType type = hasPrescriptionItem.get() ? OrderType.PRESCRIPTION : OrderType.OTC;
         order.setOrderType(type);
 
@@ -176,6 +207,16 @@ public class OrderService {
 
     public java.util.List<Order> getMyOrders(String userId) {
         return orderRepository.findByUserIdAndDeletedAtIsNullOrderByCreatedAtDesc(Long.parseLong(userId));
+    }
+
+    public List<String> getRecentMedicineNames(String userId, int days) {
+        LocalDateTime since = LocalDateTime.now().minusDays(days);
+        List<Order> recentOrders = orderRepository.findByUserIdAndCreatedAtAfterAndDeletedAtIsNull(Long.parseLong(userId), since);
+        return recentOrders.stream()
+                .flatMap(o -> o.getItems().stream())
+                .map(OrderItem::getMedicineName)
+                .distinct()
+                .toList();
     }
 
     public Order getOrderByCode(String orderCode) {
@@ -220,6 +261,17 @@ public class OrderService {
     public Order updateOrderStatus(Long id, OrderStatus status) {
         Order order = orderRepository.findById(id)
                 .orElseThrow(() -> new AppException(ErrorCode.ORDER_NOT_FOUND));
+        
+        // Handle prescription recovery if cancelled
+        if (status == OrderStatus.CANCELLED && order.getPrescriptionId() != null) {
+            try {
+                userClient.resetPrescriptionUsage(order.getPrescriptionId());
+                log.info("Reset usage for prescription {} as order {} was cancelled", order.getPrescriptionId(), order.getOrderCode());
+            } catch (Exception e) {
+                log.error("Failed to reset prescription usage for order {}: {}", order.getOrderCode(), e.getMessage());
+            }
+        }
+
         order.setStatus(status);
         Order savedOrder = orderRepository.save(order);
         logStatusChange(savedOrder, status, "Trạng thái đơn hàng được cập nhật bởi quản trị viên.");
@@ -274,6 +326,17 @@ public class OrderService {
             }
         } else if ("FAILED".equals(status)) {
             order.setStatus(OrderStatus.CANCELLED);
+            
+            // Restore Prescription Usage
+            if (order.getPrescriptionId() != null) {
+                try {
+                    userClient.resetPrescriptionUsage(order.getPrescriptionId());
+                    log.info("Reset usage for prescription {} as payment for order {} failed", order.getPrescriptionId(), orderCode);
+                } catch (Exception e) {
+                    log.error("Failed to reset prescription usage for order {}: {}", orderCode, e.getMessage());
+                }
+            }
+
             // Restore Stock
             try {
                 inventoryClient.restoreStock(orderCode);

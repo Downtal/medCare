@@ -34,13 +34,31 @@ Cung cấp trải nghiệm mua sắm dược phẩm an toàn, tin cậy với qu
 - [ ] **Kiểm thử Frontend:** Triển khai Vitest cho các thành phần UI quan trọng (trang thanh toán, giỏ hàng, đăng nhập).
 - [ ] **Kiểm thử E2E (End-to-End):** Sử dụng Playwright cho các luồng người dùng cốt lõi (Checkout, Đăng nhập, Tìm kiếm sản phẩm).
 
-### Đang thực hiện (Milestone 3)
+### Đã hoàn thành (Milestone 3)
 
-- [ ] **Chatbot AI Tư vấn:** Phát triển hệ thống Chatbot thông minh hỗ trợ người dùng tìm kiếm sản phẩm dựa trên triệu chứng.
-    - [ ] Nhận diện triệu chứng và nhu cầu từ ngôn ngữ tự nhiên.
-    - [ ] NLP xử lý và phân loại ý định (intent).
-    - [ ] Mapping triệu chứng sang các nhóm sản phẩm/danh mục tương ứng.
-    - [ ] Trả về danh sách thuốc phù hợp kèm hướng dẫn sử dụng và cảnh báo an toàn.
+- [x] **Chatbot AI Tư vấn:** Phát triển hệ thống Chatbot thông minh hỗ trợ người dùng tìm kiếm sản phẩm dựa trên triệu chứng.
+    - [x] Nhận diện triệu chứng và nhu cầu từ ngôn ngữ tự nhiên.
+    - [x] Mapping triệu chứng sang các nhóm sản phẩm/danh mục tương ứng.
+    - [x] Hệ thống quản lý Mapping dành cho Admin.
+    - [x] Chat history và cơ chế phản hồi (Feedback loop).
+
+## Đã hoàn thành (Milestone 4)
+
+- [x] **Personalized UI:** Mục "Dành riêng cho bạn" tại Trang chủ và Quick Actions tại Chatbot.
+- [x] **Health Dashboard:** Phân tích bệnh sử tự động bằng AI và quản lý thông tin sức khỏe cá nhân (BMI, dị ứng).
+- [x] **Proactive Safety:** Cảnh báo tương tác thuốc tại Checkout dựa trên lịch sử mua hàng.
+- [x] **Adaptive Chatbot:** Xưng hô theo độ tuổi và hỗ trợ nhắc lịch/tái đặt đơn thuốc.
+
+## Current Milestone: v1.5 Prescription Management & AI OCR
+
+**Goal:** Chuyên nghiệp hóa quy trình bán thuốc kê đơn (RX) bằng cách tích hợp quy trình duyệt đơn thuốc thực tế và công nghệ AI OCR để số hóa đơn thuốc bác sĩ.
+
+**Target features:**
+- **Prescription Workflow:** Quy trình Upload -> PENDING -> APPROVED/REJECTED dành cho các loại thuốc đặc biệt.
+- **AI OCR & Analysis:** Sử dụng Gemini Multimodal để đọc đơn thuốc từ ảnh, trích xuất dữ liệu thuốc và liều dùng.
+- **Prescription Mapping:** Tự động đối soát thuốc trong đơn với danh mục sản phẩm MedCare.
+- **Real-time Notifications:** Thông báo trạng thái duyệt đơn thuốc qua WebSocket/FCM.
+- **Storage Integration:** Lưu trữ ảnh đơn thuốc an toàn trên Cloudinary.
 
 ### Ngoài phạm vi (Out of Scope)
 
@@ -49,9 +67,8 @@ Cung cấp trải nghiệm mua sắm dược phẩm an toàn, tin cậy với qu
 
 ## Ngữ cảnh dự án
 
-- Dự án đã hoàn thành Milestone 1, thiết lập thành công luồng nghiệp vụ cốt lõi.
-- Milestone 2 đang tập trung vào kiểm thử và đảm bảo chất lượng.
-- Milestone 3 mở rộng tính năng với AI Chatbot để nâng cao trải nghiệm người dùng trong việc tìm kiếm sản phẩm y tế.
+- Dự án đã hoàn thành Milestone 1, 2 và 3, thiết lập thành công luồng nghiệp vụ cốt lõi, kiểm thử và hệ thống Chatbot tư vấn.
+- Milestone 5 tập trung vào quản lý đơn thuốc (Prescription Management) và ứng dụng AI OCR để tự động hóa việc nhập liệu từ đơn thuốc giấy, giúp người dùng dễ dàng mua thuốc kê đơn một cách an toàn và đúng quy định.
 
 ## Các ràng buộc (Constraints)
 
@@ -71,10 +88,12 @@ Cung cấp trải nghiệm mua sắm dược phẩm an toàn, tin cậy với qu
 | Đồng bộ tồn kho FIFO | Đảm bảo quản lý lô hàng và hạn sử dụng chính xác. | Đã hoàn thành |
 | Playwright cho E2E | Framework hiện đại, hỗ trợ tốt Next.js, API phong phú. | Milestone 2 |
 | Vitest cho Frontend | Tích hợp sẵn với Vite/Next.js, nhanh hơn Jest. | Milestone 2 |
+| Gemini Multimodal | OCR và phân tích đơn thuốc từ hình ảnh. | Milestone 5 |
+| Cloudinary Storage | Lưu trữ ảnh đơn thuốc và ảnh sản phẩm hiệu quả. | Milestone 5 |
 
 ## Sự tiến triển
 
 Tài liệu này sẽ tiếp tục được cập nhật theo từng Milestone mới.
 
 ---
-*Cập nhật lần cuối: 2026-04-23 — Bắt đầu Milestone 2: Kiểm thử Toàn diện*
+*Cập nhật lần cuối: 2026-04-26 — Bắt đầu Milestone 5: Prescription Management & AI OCR*

@@ -14,7 +14,8 @@ import { Separator } from "@/components/ui/separator"
 import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { MapPin, CreditCard, Truck, FileText, AlertCircle, Ticket, X, CheckCircle2, Loader2, Info, ChevronRight, ChevronLeft, Plus, ShoppingCart, Tag, Wallet, Pencil, Trash2 } from "lucide-react"
+import { MapPin, CreditCard, Truck, FileText, AlertCircle, Ticket, X, CheckCircle2, Loader2, Info, ChevronRight, ChevronLeft, Plus, ShoppingCart, Tag, Wallet, Pencil, Trash2, ShieldCheck } from "lucide-react"
+import { SafetyAlertBanner } from "@/components/checkout/safety-alert-banner"
 import Image from "next/image"
 import Link from "next/link"
 import { useCartStore, CartItem } from "@/lib/store/useCartStore"
@@ -40,6 +41,7 @@ export default function CheckoutPage() {
 
   // IDs of items selected for checkout
   const selectedIds = searchParams.get("ids")?.split(",").map(id => parseInt(id)).filter(id => !isNaN(id)) || []
+  const selectedPrescriptionId = searchParams.get("prescriptionId")
 
   // Address selection state
   const [addressModalOpen, setAddressModalOpen] = useState(false)
@@ -79,8 +81,10 @@ export default function CheckoutPage() {
   const [isAddressSubmitting, setIsAddressSubmitting] = useState(false)
   const [addressErrors, setAddressErrors] = useState<Record<string, string>>({})
 
-  // Prescription Image
+  // Prescription states
   const [prescriptionImageUrl, setPrescriptionImageUrl] = useState("")
+  const [selectedPrescription, setSelectedPrescription] = useState<any>(null)
+  const [isLoadingPrescription, setIsLoadingPrescription] = useState(false)
 
   const [form, setForm] = useState({
     name: "",
@@ -96,6 +100,9 @@ export default function CheckoutPage() {
     wardCode: ""
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [safetyResult, setSafetyResult] = useState<{ riskLevel: "NONE" | "LOW" | "HIGH", message: string, requiresConfirmation: boolean } | null>(null)
+  const [safetyConfirmed, setSafetyConfirmed] = useState(false)
+  const [isCheckingSafety, setIsCheckingSafety] = useState(false)
 
   const { items: allCartItems, clearCart } = useCartStore()
 
@@ -171,6 +178,63 @@ export default function CheckoutPage() {
       fetchData()
     }
   }, [session, status])
+
+  // Fetch selected prescription details
+  useEffect(() => {
+    const fetchPrescription = async () => {
+      if (!selectedPrescriptionId || !session?.user?.accessToken) return
+      setIsLoadingPrescription(true)
+      try {
+        const res = await fetch(`${getApiBaseUrl()}/user-service/api/users/prescriptions/${selectedPrescriptionId}`, {
+          headers: { 'Authorization': `Bearer ${session.user.accessToken}` }
+        })
+        if (res.ok) {
+          setSelectedPrescription(await res.json())
+        }
+      } catch (err) {
+        console.error("Failed to fetch prescription details")
+      } finally {
+        setIsLoadingPrescription(false)
+      }
+    }
+
+    fetchPrescription()
+  }, [selectedPrescriptionId, session])
+
+  // Trigger Safety Check when cart items are ready
+  useEffect(() => {
+    const checkSafety = async () => {
+      if (cartItems.length === 0) return
+      // Only check if 2+ items OR user is logged in (to get health profile)
+      if (cartItems.length < 2 && !session?.user) return
+
+      setIsCheckingSafety(true)
+      try {
+        const res = await fetch(`${getApiBaseUrl()}/ai-service/api/ai/recommendations/safety-check`, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'X-User-Id': session?.user?.id?.toString() || ''
+          },
+          body: JSON.stringify(cartItems.map(i => ({
+            medicineName: i.name,
+            category: (i as any).category || ""
+          })))
+        })
+        if (res.ok) {
+          setSafetyResult(await res.json())
+        }
+      } catch (err) {
+        console.error("Safety check failed:", err)
+      } finally {
+        setIsCheckingSafety(false)
+      }
+    }
+
+    // Debounce safety check to avoid redundant calls
+    const timer = setTimeout(checkSafety, 1000)
+    return () => clearTimeout(timer)
+  }, [cartItems.length, session?.user?.id])
 
   const fetchProvinces = async () => {
     try {
@@ -435,8 +499,9 @@ export default function CheckoutPage() {
         paymentMethod: form.paymentMethod,
         voucherCode: appliedVoucher?.code || null,
         discountAmount: appliedVoucher?.discountAmount || 0,
-        prescriptionImageUrl: prescriptionImageUrl || null,
+        prescriptionImageUrl: prescriptionImageUrl || selectedPrescription?.imageUrl || null,
         note: form.note,
+        prescriptionId: selectedPrescriptionId ? parseInt(selectedPrescriptionId) : null,
         // Send only selected items
         items: cartItems.map(item => ({
           medicineId: item.medicineId,
@@ -550,6 +615,46 @@ export default function CheckoutPage() {
                     ))}
                   </CardContent>
                 </Card>
+
+                {/* Prescription Summary Box */}
+                {selectedPrescription && (
+                  <div className="p-6 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center gap-5">
+                     <div className="h-14 w-14 relative rounded-xl overflow-hidden shadow-md border-2 border-white shrink-0">
+                        <Image src={selectedPrescription.imageUrl} alt="Don" fill className="object-cover" />
+                     </div>
+                     <div className="flex-1">
+                        <h4 className="text-[14px] font-black text-emerald-800 uppercase tracking-tight">ĐƠN THUỐC ĐÃ ĐƯỢC DUYỆT</h4>
+                        <p className="text-[13px] text-emerald-700 font-bold">
+                           BS. {selectedPrescription.doctorName || "---"} - {selectedPrescription.hospitalName || "Hệ thống y tế"}
+                        </p>
+                        <p className="text-[11px] text-emerald-600 mt-0.5 italic">Hạn sử dụng: {selectedPrescription.expiryDate || "---"}</p>
+                     </div>
+                     <div className="h-10 w-10 bg-emerald-500 rounded-full flex items-center justify-center text-white shadow-lg shadow-emerald-200">
+                        <ShieldCheck size={20} />
+                     </div>
+                  </div>
+                )}
+
+                {/* Safety Alert Banner */}
+                {(isCheckingSafety || safetyResult) && (
+                  <div className="pt-2">
+                    {isCheckingSafety ? (
+                      <div className="flex items-center gap-3 p-4 bg-blue-50/50 rounded-2xl border border-blue-100 border-dashed animate-pulse">
+                        <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
+                        <span className="text-sm font-bold text-blue-600">Đang phân tích tương tác thuốc & an toàn...</span>
+                      </div>
+                    ) : (
+                      safetyResult && (
+                        <SafetyAlertBanner 
+                          riskLevel={safetyResult.riskLevel}
+                          message={safetyResult.message}
+                          requiresConfirmation={safetyResult.requiresConfirmation}
+                          onConfirmChange={setSafetyConfirmed}
+                        />
+                      )
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* 2. Delivery Address Selection */}
@@ -728,7 +833,12 @@ export default function CheckoutPage() {
             </Button>
             <Button
               className="flex-1 sm:w-72 h-16 rounded-[1.25rem] bg-blue-600 hover:bg-blue-700 text-white text-xl font-black shadow-xl shadow-blue-200 transition-all active:scale-95 opacity-100 disabled:opacity-50"
-              disabled={isSubmitting || !form.name || cartItems.length === 0}
+              disabled={
+                isSubmitting || 
+                !form.name || 
+                cartItems.length === 0 || 
+                (safetyResult?.requiresConfirmation && !safetyConfirmed)
+              }
               onClick={handlePlaceOrder}
             >
               {isSubmitting ? (
@@ -751,7 +861,12 @@ export default function CheckoutPage() {
           </div>
           <Button
             className="flex-1 h-14 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white text-lg font-black shadow-lg shadow-blue-200 transition-all active:scale-95 opacity-100 disabled:opacity-50"
-            disabled={isSubmitting || !form.name || cartItems.length === 0}
+            disabled={
+              isSubmitting || 
+              !form.name || 
+              cartItems.length === 0 || 
+              (safetyResult?.requiresConfirmation && !safetyConfirmed)
+            }
             onClick={handlePlaceOrder}
           >
             {isSubmitting ? <Loader2 className="h-6 w-6 animate-spin" /> : "Đặt hàng"}

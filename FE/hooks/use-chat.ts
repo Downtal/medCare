@@ -9,6 +9,7 @@ interface Message {
   content: string;
   list_product_ids?: number[];
   detected_symptoms?: string[];
+  quick_actions?: string[];
   log_id?: number;
   rating?: boolean;
 }
@@ -121,6 +122,7 @@ export function useChat() {
                             content: fullContent, 
                             list_product_ids: metadata.list_product_ids, 
                             detected_symptoms: metadata.detected_symptoms,
+                            quick_actions: metadata.quick_actions,
                             log_id: metadata.log_id
                           } 
                         : m

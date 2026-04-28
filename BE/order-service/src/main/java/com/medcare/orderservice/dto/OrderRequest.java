@@ -39,5 +39,6 @@ public class OrderRequest {
     private String voucherCode;
     private java.math.BigDecimal discountAmount;
     private String note;
+    private Long prescriptionId;
     private java.util.List<OrderItemRequest> items;
 }

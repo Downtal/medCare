@@ -7,17 +7,17 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
-import { 
-  Phone, 
-  MessageSquare, 
-  Video, 
-  Clock, 
-  CheckCircle, 
-  Stethoscope, 
-  Mail, 
-  Star, 
-  ShieldCheck, 
-  Users, 
+import {
+  Phone,
+  MessageSquare,
+  Video,
+  Clock,
+  CheckCircle,
+  Stethoscope,
+  Mail,
+  Star,
+  ShieldCheck,
+  Users,
   ArrowRight,
   Send,
   Zap,
@@ -84,7 +84,7 @@ const consultationMethods = [
     title: "Video Call",
     description: "Tư vấn trực quan sinh động 1-1.",
     time: "Đặt lịch trước",
-    price: "50k / 15p",
+    price: "Miễn phí",
     color: "purple",
   },
 ]
@@ -93,9 +93,9 @@ export default function ConsultationPage() {
   return (
     <div className="flex min-h-screen flex-col bg-[#F8FAFC]">
       <Header />
-      
+
       <main className="flex-1">
-        
+
         {/* Modern Hero Section */}
         <section className="relative pt-20 pb-32 overflow-hidden">
           <div className="absolute inset-0 -z-10">
@@ -120,7 +120,7 @@ export default function ConsultationPage() {
                 <p className="text-lg md:text-xl text-slate-600 mb-10 leading-relaxed max-w-xl font-medium">
                   Giải đáp mọi thắc mắc về thuốc, cách phối hợp điều trị và dinh dưỡng. An tâm tuyệt đối với đội ngũ dược sĩ đạt chuẩn quốc tế.
                 </p>
-                
+
                 <div className="flex flex-wrap gap-4 mb-12">
                   <Button size="lg" className="rounded-2xl px-10 h-16 text-lg font-black shadow-xl shadow-primary/20 transition-all hover:scale-105 active:scale-95">
                     Tư vấn ngay <ArrowRight className="ml-2 w-5 h-5" />
@@ -153,10 +153,10 @@ export default function ConsultationPage() {
                 className="relative hidden lg:block"
               >
                 <div className="relative aspect-[4/5] rounded-[60px] overflow-hidden shadow-2xl shadow-blue-900/10 border-8 border-white group">
-                  <Image 
-                    src="https://res.cloudinary.com/dvp5v8scf/image/upload/v1740051834/medcare/pharmacist-hero.png" 
-                    alt="Pharmacist" 
-                    fill 
+                  <Image
+                    src="/pharmacist-consult.png"
+                    alt="Pharmacist"
+                    fill
                     className="object-cover transition-transform duration-700 group-hover:scale-105"
                     priority
                   />
@@ -191,7 +191,7 @@ export default function ConsultationPage() {
                   </div>
                   <h3 className="text-2xl font-black text-slate-900 mb-4">{method.title}</h3>
                   <p className="text-slate-500 font-medium mb-8 leading-relaxed">{method.description}</p>
-                  
+
                   <div className="flex items-center justify-between pt-6 border-t border-slate-200">
                     <div>
                       <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">{method.time}</p>
@@ -240,10 +240,10 @@ export default function ConsultationPage() {
                         TRỰC TUYẾN
                       </div>
                     ) : (
-                       <div className="absolute top-4 right-4 bg-slate-400 text-white text-[10px] font-black px-3 py-1.5 rounded-full">NGOẠI TUYẾN</div>
+                      <div className="absolute top-4 right-4 bg-slate-400 text-white text-[10px] font-black px-3 py-1.5 rounded-full">NGOẠI TUYẾN</div>
                     )}
                   </div>
-                  
+
                   <div className="mb-8">
                     <h3 className="text-2xl font-black text-slate-900 mb-1">{pharma.name}</h3>
                     <p className="text-primary font-bold text-sm mb-4">{pharma.title}</p>
@@ -308,8 +308,8 @@ export default function ConsultationPage() {
                 <CardContent className="p-10 md:p-14">
                   <form className="space-y-8">
                     <div className="grid md:grid-cols-2 gap-6">
-                       <Input placeholder="Họ và tên *" className="h-14 rounded-2xl bg-slate-50 border-none px-6 font-bold" />
-                       <Input placeholder="Số điện thoại *" className="h-14 rounded-2xl bg-slate-50 border-none px-6 font-bold" />
+                      <Input placeholder="Họ và tên *" className="h-14 rounded-2xl bg-slate-50 border-none px-6 font-bold" />
+                      <Input placeholder="Số điện thoại *" className="h-14 rounded-2xl bg-slate-50 border-none px-6 font-bold" />
                     </div>
                     <Input placeholder="Chủ đề bạn muốn tư vấn (VD: Thuốc dạ dày) *" className="h-14 rounded-2xl bg-slate-50 border-none px-6 font-bold" />
                     <Textarea placeholder="Mô tả chi tiết triệu chứng hoặc thắc mắc của bạn..." rows={5} className="rounded-[32px] bg-slate-50 border-none p-6 font-bold resize-none" />

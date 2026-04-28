@@ -1,4 +1,5 @@
 import json
+import asyncio
 import logging
 import httpx
 from typing import List, Dict
@@ -12,41 +13,40 @@ from sqlalchemy import or_
 logger = logging.getLogger(__name__)
 
 SYSTEM_PROMPT = """
-Bạn là "Dược sĩ số MedCare" - một chuyên gia y tế ảo Thận trọng, Đồng cảm và Chính xác.
+Bạn là "Dược sĩ số MedCare" - Trợ lý sức khỏe ảo tận tâm, thấu hiểu và chính xác. 
+
+PHONG CÁCH GIAO TIẾP:
+- Ngôn ngữ: Ấm áp, quan tâm, chuyên nghiệp (VD: "MedCare rất hiểu sự lo lắng của bạn...", "Dựa trên hồ sơ của ông/bà...").
+- Xưng hô: Linh hoạt theo độ tuổi/giới tính trong hồ sơ người dùng (Ông/Bà cho người lớn tuổi, Anh/Chị/Bạn cho người trẻ).
 
 NHIỆM VỤ:
-1. Tư vấn sức khỏe và thuốc dựa trên triệu chứng người dùng mô tả.
-2. Sử dụng THÔNG TIN NGỮ CẢNH (Context) được cung cấp từ cơ sở dữ liệu thuốc của MedCare để đưa ra gợi ý chính xác.
-3. KIỂM TRA DỊ ỨNG: Nếu trong thông tin người dùng có ghi chú về dị ứng hoặc bệnh lý nền, bạn TUYỆT ĐỐI không gợi ý các loại thuốc có thành phần gây dị ứng đó.
-4. Nếu triệu chứng có dấu hiệu CẤP CỨU (đau ngực dữ dội, khó thở, co giật, mất ý thức...), bạn PHẢI trả lời ngay lập tức: "Đây có vẻ là dấu hiệu cấp cứu, bạn hãy gọi 115 hoặc đến bệnh viện gần nhất ngay lập tức!"
+1. Tư vấn sức khỏe và thuốc dựa trên triệu chứng và HỒ SƠ NGƯỜI DÙNG (Giới tính, Tuổi, Dị ứng, Bệnh lý).
+2. KIỂM TRA AN TOÀN: Tuyệt đối không gợi ý thuốc chứa thành phần người dùng bị dị ứng.
+3. CẢNH BÁO CẤP CỨU: Phải ưu tiên cảnh báo ngay nếu phát hiện triệu chứng nguy kịch (đau ngực, khó thở...).
+4. GIỚI HẠN TƯ VẤN: 
+   - Tuyệt đối KHÔNG đưa ra chẩn đoán bệnh thay bác sĩ (VD: Đừng nói "Bạn đã bị viêm phổi", hãy nói "Các triệu chứng này có thể liên quan đến vấn đề hô hấp...").
+   - Nhắc nhở về đơn thuốc đối với các loại thuốc kê đơn.
 
-QUY TẮC TƯ VẤN THUỐC:
-- CHỈ gợi ý mua các loại thuốc không kê đơn (OTC) hoặc thực phẩm chức năng phù hợp.
-- Với thuốc KÊ ĐƠN (Prescription), bạn chỉ được cung cấp thông tin và PHẢI nhắc nhở: "Sản phẩm này cần có chỉ định và đơn thuốc từ bác sĩ chuyên khoa."
-- Nếu không có dữ liệu Context phù hợp (hoặc hệ thống đang cập nhật), bạn CÓ THỂ gợi ý các hoạt chất/thuốc thông dụng dựa trên kiến thức y khoa, nhưng phải nhắc nhở người dùng tham khảo thêm ý kiến chuyên gia.
-- BẮT BUỘC TRÍCH XUẤT ID: Trong NGỮ CẢNH luôn có trường "ID: ...". Bạn PHẢI lấy đúng số ID này cho `list_product_ids`. Tuyệt đối không dùng `id: 0` nếu sản phẩm đó có xuất hiện trong NGỮ CẢNH.
-- Nếu thuốc gợi ý KHÔNG có trong NGỮ CẢNH, hãy để `id` là `0` và KHÔNG thêm vào `list_product_ids`.
+QUY TẮC PHẢN HỒI (BẮT BUỘC):
+- Mỗi câu trả lời tư vấn thuốc/sức khỏe PHẢI kết thúc bằng câu: "Lưu ý: Thông tin trên chỉ mang tính chất tham khảo. Bạn vui lòng tham khảo ý kiến bác sĩ hoặc dược sĩ chuyên môn trước khi sử dụng."
+- Trích xuất đúng ID sản phẩm từ NGỮ CẢNH cung cấp.
 
-QUY TẮC ỨNG XỬ:
-- Thân thiện, lễ phép (Dùng xưng hô: Anh/Chị/Bạn).
-- TỪ CHỐI trả lời các câu hỏi ngoài phạm vi y tế (chính trị, tôn giáo, giải trí, v.v.).
-
-ĐỊNH DẠNG PHẢN HỒI (QUAN TRỌNG):
-Bạn phải luôn trả lời theo cấu trúc:
-[Nội dung câu trả lời tự nhiên] ||| {"detected_symptoms": [...], "suggested_medicines": [{"id": ID_SO, "name": "TEN"}], "list_product_ids": [ID1, ID2]}
-
-Lưu ý: Dấu phân cách "|||" là bắt buộc để hệ thống tách biệt phần văn bản và phần dữ liệu.
+ĐỊNH DẠNG PHẢN HỒI:
+[Nội dung câu trả lời tự nhiên] ||| {"detected_symptoms": [...], "suggested_medicines": [{"id": ID_SO, "name": "TEN"}], "list_product_ids": [ID1, ID2], "quick_actions": ["Action 1", "Action 2"]}
 """
 
 class ChatService:
     def __init__(self):
+        # Prioritize Key 2 to bypass exhausted quota on Key 1
+        api_key = settings.GEMINI_API_KEY_2 if settings.GEMINI_API_KEY_2 else settings.GEMINI_API_KEY
         self.llm = ChatGoogleGenerativeAI(
-            model="gemini-flash-latest",
-            google_api_key=settings.GEMINI_API_KEY,
+            model="gemini-2.5-flash-lite",
+            google_api_key=api_key,
             temperature=0.3,
             convert_system_message_to_human=True
         )
         self.user_service_url = "http://localhost:8081" # Direct to user-service
+        self.order_service_url = "http://localhost:8082" # Direct to order-service
 
     async def _get_user_info(self, user_id: int) -> str:
         if not user_id: return ""
@@ -56,15 +56,51 @@ class ChatService:
                 if response.status_code == 200:
                     user = response.json()
                     # Extract relevant health info
-                    info = f"Người dùng: {user.get('fullName', 'Khách')}\n"
+                    fullName = user.get('fullName', 'Khách')
+                    gender = user.get('gender', 'N/A')
+                    dob = user.get('dateOfBirth', 'N/A')
+                    
+                    info = f"Người dùng: {fullName} | Giới tính: {gender} | Ngày sinh: {dob}\n"
+                    
+                    health_note = user.get('healthNote')
+                    if health_note:
+                        if health_note.get('allergies'):
+                            info += f"DỊ ỨNG: {health_note.get('allergies')}\n"
+                        if health_note.get('chronicConditions'):
+                            info += f"Bệnh mãn tính: {health_note.get('chronicConditions')}\n"
+                        if health_note.get('specialStatus'):
+                            info += f"Trạng thái đặc biệt (Thai kỳ/Cho con bú): {health_note.get('specialStatus')}\n"
+                    
+                    # Legacy support if still using medicalHistory field
                     if user.get('medicalHistory'):
                         info += f"Tiền sử bệnh lý: {user.get('medicalHistory')}\n"
-                    if user.get('allergies'):
-                        info += f"Dị ứng: {user.get('allergies')}\n"
+                        
                     return info
             return ""
         except Exception as e:
             logger.warning(f"Failed to fetch user info: {e}")
+            return ""
+
+    async def _get_order_history(self, user_id: int) -> str:
+        if not user_id: return ""
+        try:
+            async with httpx.AsyncClient() as client:
+                # Order service headers needs to pass X-User-Id
+                headers = {"X-User-Id": str(user_id)}
+                response = await client.get(f"{self.order_service_url}/api/orders/my-orders", headers=headers, timeout=5.0)
+                if response.status_code == 200:
+                    orders = response.json()
+                    if not orders: return "Chưa có lịch sử mua hàng."
+                    
+                    history = "LỊCH SỬ MUA HÀNG GẦN ĐÂY:\n"
+                    # Get last 3 orders for context
+                    for order in orders[:3]:
+                        items = ", ".join([item.get('medicineName', 'Sản phẩm') for item in order.get('items', [])])
+                        history += f"- Đơn hàng {order.get('orderCode')} ({order.get('status')}): {items}\n"
+                    return history
+            return ""
+        except Exception as e:
+            logger.warning(f"Failed to fetch order history: {e}")
             return ""
     def _get_history(self, session_id: str, limit: int = 5) -> List:
         db = SessionLocal()
@@ -83,8 +119,9 @@ class ChatService:
 
     async def get_chat_response(self, user_message: str, session_id: str, user_id: int = None):
         try:
-            # 0. User Info (Allergies, Medical History)
+            # 0. User Info & History
             user_info = await self._get_user_info(user_id)
+            order_history = await self._get_order_history(user_id)
             
             # 1. Retrieval: Search for relevant products in local DB
             relevant_products = await self._search_relevant_products(user_message)
@@ -101,11 +138,26 @@ class ChatService:
             messages.extend(history)
             
             # Add Context and User Message
-            final_user_input = f"THÔNG TIN NGƯỜI DÙNG:\n{user_info}\n\nNGỮ CẢNH DỮ LIỆU THUỐC MEDCARE:\n{context_text}\n\nCÂU HỎI NGƯỜI DÙNG: {user_message}"
+            final_user_input = f"THÔNG TIN NGƯỜI DÙNG:\n{user_info}\n{order_history}\n\nNGỮ CẢNH DỮ LIỆU THUỐC MEDCARE:\n{context_text}\n\nCÂU HỎI NGƯỜI DÙNG: {user_message}"
             messages.append(HumanMessage(content=final_user_input))
 
             # 3. Call LLM
-            response = await self.llm.ainvoke(messages)
+            max_retries = 2
+            response = None
+            for attempt in range(max_retries):
+                try:
+                    response = await self.llm.ainvoke(messages)
+                    break
+                except Exception as e:
+                    if "429" in str(e) or "RESOURCE_EXHAUSTED" in str(e):
+                        if attempt < max_retries - 1:
+                            logger.warning(f"AI Quota exceeded, retrying in 3s... (Attempt {attempt+1})")
+                            await asyncio.sleep(3)
+                            continue
+                    raise e
+            
+            if not response:
+                raise Exception("Mô hình AI đang bận hoặc hết hạn mức.")
             
             # 4. Parse Response with Delimiter
             try:
@@ -123,13 +175,14 @@ class ChatService:
                     metadata = json.loads(json_part)
                 else:
                     answer = full_content
-                    metadata = {"detected_symptoms": [], "suggested_medicines": [], "list_product_ids": []}
+                    metadata = {"detected_symptoms": [], "suggested_medicines": [], "list_product_ids": [], "quick_actions": []}
                 
                 result = {
                     "answer": answer,
                     "detected_symptoms": metadata.get("detected_symptoms", []),
                     "suggested_medicines": metadata.get("suggested_medicines", []),
-                    "list_product_ids": metadata.get("list_product_ids", [])
+                    "list_product_ids": metadata.get("list_product_ids", []),
+                    "quick_actions": metadata.get("quick_actions", [])
                 }
             except Exception as e:
                 logger.error(f"Failed to parse AI response: {e}. Raw content: {response.content}")
@@ -163,6 +216,7 @@ class ChatService:
         try:
             # 0. User Info
             user_info = await self._get_user_info(user_id)
+            order_history = await self._get_order_history(user_id)
 
             relevant_products = await self._search_relevant_products(user_message)
             if not relevant_products:
@@ -174,33 +228,49 @@ class ChatService:
             history = self._get_history(session_id)
             messages.extend(history)
             
-            final_user_input = f"THÔNG TIN NGƯỜI DÙNG:\n{user_info}\n\nNGỮ CẢNH DỮ LIỆU THUỐC MEDCARE:\n{context_text}\n\nCÂU HỎI NGƯỜI DÙNG: {user_message}"
+            final_user_input = f"THÔNG TIN NGƯỜI DÙNG:\n{user_info}\n{order_history}\n\nNGỮ CẢNH DỮ LIỆU THUỐC MEDCARE:\n{context_text}\n\nCÂU HỎI NGƯỜI DÙNG: {user_message}"
             messages.append(HumanMessage(content=final_user_input))
 
             full_content = ""
             stop_yielding = False
-            async for chunk in self.llm.astream(messages):
-                content = chunk.content
-                if isinstance(content, dict):
-                    content = content.get("text", "")
-                elif isinstance(content, list):
-                    content = "".join([c.get("text", "") if isinstance(c, dict) else str(c) for c in content])
+            # 3. Call LLM
+            stream_success = False
+            try:
+                # Try to get the stream
+                async for chunk in self.llm.astream(messages):
+                    stream_success = True # We got at least one chunk
+                    content = chunk.content
+                    if isinstance(content, dict):
+                        content = content.get("text", "")
+                    elif isinstance(content, list):
+                        content = "".join([c.get("text", "") if isinstance(c, dict) else str(c) for c in content])
+                    
+                    content = str(content)
+                    
+                    if not stop_yielding:
+                        combined_temp = full_content + content
+                        if "|||" in combined_temp:
+                            stop_yielding = True
+                            start_idx = combined_temp.find("|||")
+                            to_yield = combined_temp[len(full_content):start_idx]
+                            if to_yield:
+                                yield to_yield
+                        else:
+                            yield content
+                    
+                    full_content += content
                 
-                content = str(content)
-                
-                if not stop_yielding:
-                    combined_temp = full_content + content
-                    if "|||" in combined_temp:
-                        stop_yielding = True
-                        # Yield only the part before "|||" from the current chunk
-                        start_idx = combined_temp.find("|||")
-                        to_yield = combined_temp[len(full_content):start_idx]
-                        if to_yield:
-                            yield to_yield
-                    else:
-                        yield content
-                
-                full_content += content
+            except Exception as e:
+                if not stream_success:
+                    logger.error(f"Streaming error: {e}")
+                    raise e
+                else:
+                    # If we already started yielding, we can't easily fallback mid-stream
+                    logger.error(f"Error during streaming: {e}")
+                    raise e
+            
+            if not stream_success:
+                raise Exception("Mô hình AI đang bận hoặc hết hạn mức.")
 
             # Post-processing after stream ends
             try:
@@ -219,6 +289,7 @@ class ChatService:
             metadata_payload = {
                 "detected_symptoms": result.get("detected_symptoms", []),
                 "list_product_ids": result.get("list_product_ids", []),
+                "quick_actions": result.get("quick_actions", []),
                 "log_id": 0 # Will be updated below
             }
             

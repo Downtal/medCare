@@ -163,6 +163,13 @@ export default function InventoryPage() {
   })
   const logs = Array.isArray(logsData) ? logsData : []
 
+  const { data: lowStockData } = useQuery({
+    queryKey: ["admin_low_stock"],
+    queryFn: () => inventoryService.getLowStockProducts(50),
+    refetchInterval: 30000 // Refetch every 30s
+  })
+  const lowStockProducts = Array.isArray(lowStockData) ? lowStockData : []
+
   // --- Helper: Get Product Info Fallback ---
   const getProductInfo = (item: any) => {
     const medId = item.medicineId;
@@ -594,7 +601,7 @@ export default function InventoryPage() {
         list = list.filter(s => productIdsInWarehouse.has(s.medicineId));
       }
       if (stockLevelFilter === "LOW") {
-        list = list.filter(s => s.totalQuantity < 20);
+        list = list.filter(s => s.totalQuantity < 50);
       }
       return list.filter(s => (s.medicineName || "").toLowerCase().includes(searchQuery.toLowerCase()))
     }
@@ -640,6 +647,44 @@ export default function InventoryPage() {
 
   return (
     <div className="p-10 space-y-6 max-w-full mx-auto min-h-screen">
+      {/* Low Stock Alerts */}
+      {lowStockProducts.length > 0 && (
+        <div className="bg-rose-50 border border-rose-200 rounded-[2rem] p-6 animate-in fade-in slide-in-from-top-4 duration-500">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="w-12 h-12 rounded-2xl bg-rose-500 flex items-center justify-center text-white shadow-lg shadow-rose-200">
+              <Boxes size={24} />
+            </div>
+            <div>
+              <h2 className="text-xl font-black text-rose-800 uppercase tracking-tight">Cảnh báo tồn kho thấp</h2>
+              <p className="text-rose-600 text-sm font-medium">Phát hiện {lowStockProducts.length} sản phẩm có số lượng dưới 50 đơn vị.</p>
+            </div>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setStockLevelFilter("LOW");
+                setActiveTab("summaries");
+              }}
+              className="ml-auto rounded-xl border-rose-200 text-rose-600 font-bold hover:bg-rose-100"
+            >
+              Xem chi tiết
+            </Button>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            {lowStockProducts.slice(0, 5).map(p => (
+              <Badge key={p.medicineId} variant="outline" className="bg-white border-rose-200 text-rose-700 px-3 py-1.5 rounded-lg font-bold gap-2">
+                <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
+                {p.medicineName}: <span className="font-black">{p.totalQuantity}</span>
+              </Badge>
+            ))}
+            {lowStockProducts.length > 5 && (
+              <Badge variant="outline" className="bg-white border-rose-200 text-rose-400 px-3 py-1.5 rounded-lg font-bold">
+                +{lowStockProducts.length - 5} sản phẩm khác...
+              </Badge>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Top Card: Tabs & Main Actions */}
       <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 flex flex-col xl:flex-row xl:items-center justify-between gap-8">
         <div className="space-y-6 flex-1 min-w-0">

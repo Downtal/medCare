@@ -78,3 +78,21 @@ export interface AddressDto {
   district: string;
   isDefault: boolean;
 }
+
+export type PrescriptionStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+
+export interface PrescriptionResponse {
+  id: number;
+  userId: number;
+  imageUrl: string;
+  status: PrescriptionStatus;
+  hospitalName?: string;
+  clinicName?: string;
+  doctorName?: string;
+  expiryDate?: string;
+  isUsed: boolean;
+  pharmacistNote?: string;
+  extractedData?: string; // JSON string
+  createdAt: string;
+  updatedAt: string;
+}

@@ -43,6 +43,29 @@ public class UserController {
         return ResponseEntity.ok(userService.getUserAddresses(Long.valueOf(userId)));
     }
 
+    @GetMapping("/profiles/me/health-notes")
+    public ResponseEntity<UserHealthNoteDto> getMyHealthNote(@AuthenticationPrincipal String userId) {
+        return ResponseEntity.ok(userService.getHealthNote(Long.valueOf(userId)));
+    }
+
+    @PutMapping("/profiles/me/health-notes")
+    public ResponseEntity<UserHealthNoteDto> updateMyHealthNote(@AuthenticationPrincipal String userId,
+                                                              @RequestBody UpdateHealthNoteRequest request) {
+        return ResponseEntity.ok(userService.updateHealthNote(Long.valueOf(userId), request));
+    }
+
+    @GetMapping("/profiles/me/metrics")
+    public ResponseEntity<List<HealthMetricDto>> getMyHealthMetrics(@AuthenticationPrincipal String userId,
+                                                                  @RequestParam(required = false) String type) {
+        return ResponseEntity.ok(userService.getHealthMetrics(Long.valueOf(userId), type));
+    }
+
+    @PostMapping("/profiles/me/metrics")
+    public ResponseEntity<HealthMetricDto> addMyHealthMetric(@AuthenticationPrincipal String userId,
+                                                           @RequestBody CreateMetricRequest request) {
+        return new ResponseEntity<>(userService.addHealthMetric(Long.valueOf(userId), request), HttpStatus.CREATED);
+    }
+
     // ── Profile endpoints (Admin restricted) ──
 
     /**
@@ -102,6 +125,12 @@ public class UserController {
     public ResponseEntity<String> hardDeleteProfile(@PathVariable Long userId) {
         userService.hardDeleteProfile(userId);
         return ResponseEntity.ok("Profile deleted permanently!");
+    }
+
+    @GetMapping("/profiles/{userId}/health-notes")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<UserHealthNoteDto> getUserHealthNote(@PathVariable Long userId) {
+        return ResponseEntity.ok(userService.getHealthNote(userId));
     }
 
     // ── Address endpoints ──

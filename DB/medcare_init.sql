@@ -62,8 +62,18 @@ CREATE TABLE user_profiles (
     role VARCHAR(50) DEFAULT 'USER',
     status VARCHAR(50) DEFAULT 'PENDING',
     date_of_birth DATE,
+    gender VARCHAR(10) COMMENT 'MALE, FEMALE, OTHER',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP NULL
+);
+
+CREATE TABLE user_health_notes (
+    user_id BIGINT PRIMARY KEY,
+    allergies TEXT,
+    chronic_conditions TEXT,
+    special_status TEXT COMMENT 'PREGNANT, NURSING, etc.',
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES user_profiles(user_id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS `addresses` (
@@ -83,6 +93,26 @@ CREATE TABLE IF NOT EXISTS `addresses` (
 );
 
 CREATE INDEX idx_address_user_id ON addresses(user_id);
+
+CREATE TABLE prescriptions (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    image_url VARCHAR(500) NOT NULL,
+    status ENUM('PENDING', 'APPROVED', 'REJECTED') DEFAULT 'PENDING',
+    hospital_name VARCHAR(255),
+    clinic_name VARCHAR(255),
+    doctor_name VARCHAR(150),
+    expiry_date DATE,
+    is_used BOOLEAN DEFAULT FALSE,
+    pharmacist_note TEXT,
+    extracted_data JSON COMMENT 'Lưu kết quả phân tích AI: {medicines: [...], dosage: ...}',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES user_profiles(user_id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_prescription_user ON prescriptions(user_id);
+CREATE INDEX idx_prescription_status ON prescriptions(status);
 
 -- ----------------------------------------------------------
 -- 3. PRODUCT SERVICE 
@@ -276,8 +306,9 @@ CREATE TABLE orders (
     voucher_code VARCHAR(50),
     discount_amount DECIMAL(12,2) DEFAULT 0,
     note TEXT,
-    prescription_image_url VARCHAR(500),
-    extracted_info TEXT,
+    prescription_image_url VARCHAR(500) COMMENT 'Legacy: Ảnh đính kèm trực tiếp',
+    extracted_info TEXT COMMENT 'Legacy: Thông tin trích xuất trực tiếp',
+    prescription_id BIGINT COMMENT 'New: Liên kết với bảng prescriptions trong user-service',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP NULL
@@ -467,6 +498,19 @@ CREATE INDEX idx_review_user ON reviews(user_id);
 CREATE INDEX idx_review_status ON reviews(is_approved, created_at);
 CREATE INDEX idx_review_guest_phone ON reviews(guest_phone);
 CREATE INDEX idx_review_guest_email ON reviews(guest_email);
+
+-- Bảng lưu lịch sử chỉ số sức khỏe (BMI, Cân nặng, v.v.)
+CREATE TABLE user_health_metrics (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    type VARCHAR(50) NOT NULL COMMENT 'WEIGHT, HEIGHT, BLOOD_PRESSURE, BMI, etc.',
+    value DOUBLE NOT NULL,
+    unit VARCHAR(20),
+    recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES user_profiles(user_id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_metric_user_type ON user_health_metrics(user_id, type);
 
 -- ----------------------------------------------------------
 -- 11. AI / CHATBOT SERVICE

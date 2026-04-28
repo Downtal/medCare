@@ -22,4 +22,12 @@ public interface UserService {
     AddressDto getAddressById(Long addressId);
     void deleteAddress(Long addressId, Long userId);
     AddressDto updateAddress(Long addressId, Long userId, CreateAddressRequest request);
+    
+    // Health Note operations
+    UserHealthNoteDto getHealthNote(Long userId);
+    UserHealthNoteDto updateHealthNote(Long userId, UpdateHealthNoteRequest request);
+
+    // Health Metric operations
+    HealthMetricDto addHealthMetric(Long userId, CreateMetricRequest request);
+    List<HealthMetricDto> getHealthMetrics(Long userId, String type);
 }

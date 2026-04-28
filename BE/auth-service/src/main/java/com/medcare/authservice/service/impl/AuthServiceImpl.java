@@ -9,7 +9,7 @@ import com.medcare.authservice.entity.UserRole;
 import com.medcare.authservice.entity.UserStatus;
 import com.medcare.authservice.repository.RefreshTokenRepository;
 import com.medcare.authservice.repository.UserRepository;
-import com.medcare.authservice.security.JwtService;
+import com.medcare.authservice.security.AuthJwtService;
 
 import com.medcare.authservice.service.AuthService;
 import lombok.RequiredArgsConstructor;
@@ -30,7 +30,7 @@ public class AuthServiceImpl implements AuthService {
     private final UserRepository userRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordEncoder passwordEncoder;
-    private final JwtService jwtService;
+    private final AuthJwtService jwtService;
     private final AuthenticationManager authenticationManager;
     private final com.medcare.authservice.client.UserClient userClient;
     private final com.medcare.authservice.service.MailService mailService;
@@ -46,14 +46,13 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public AuthResponse register(RegisterRequest request) {
-        if (userRepository.existsByUsername(request.getUsername())) {
-            throw new IllegalArgumentException("Tên đăng nhập đã tồn tại");
-        }
-        if (request.getEmail() != null && userRepository.existsByEmail(request.getEmail())) {
-            throw new IllegalArgumentException("Email đã tồn tại");
+        if (userRepository.existsByUsername(request.getUsername()) ||
+                (request.getEmail() != null && userRepository.existsByEmail(request.getEmail()))) {
+            throw new IllegalArgumentException(
+                    "Email này đã được đăng ký sử dụng. Vui lòng sử dụng email khác hoặc đăng nhập.");
         }
         if (request.getPhone() != null && userRepository.existsByPhone(request.getPhone())) {
-            throw new IllegalArgumentException("Số điện thoại đã tồn tại");
+            throw new IllegalArgumentException("Số điện thoại này đã được đăng ký sử dụng.");
         }
 
         User user = User.builder()
@@ -97,7 +96,8 @@ public class AuthServiceImpl implements AuthService {
                     .build();
             userClient.createProfile(profileRequest);
         } catch (Exception e) {
-            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Không thể tạo hồ sơ người dùng trong user-service: " + e.getMessage());
+            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR,
+                    "Không thể tạo hồ sơ người dùng trong user-service: " + e.getMessage());
         }
 
         return AuthResponse.builder()
@@ -147,11 +147,13 @@ public class AuthServiceImpl implements AuthService {
         if (storedToken.getRevoked()) {
             // Grace Period: Nếu bị thu hồi trong vòng 60 giây qua, có thể là Race Condition
             if (storedToken.getRevokedAt() != null &&
-                    storedToken.getRevokedAt().isAfter(LocalDateTime.now().minusSeconds(REFRESH_GRACE_PERIOD_SECONDS))) {
+                    storedToken.getRevokedAt()
+                            .isAfter(LocalDateTime.now().minusSeconds(REFRESH_GRACE_PERIOD_SECONDS))) {
                 // Cho phép làm mới thêm một lần nữa để tránh lỗi ở Frontend
                 System.out.println("Grace period triggered for token: " + request.getRefreshToken().substring(0, 8));
-                
-                // CRITICAL: Trả về một token mới nhưng KHÔNG cập nhật lại revokedAt của token cũ
+
+                // CRITICAL: Trả về một token mới nhưng KHÔNG cập nhật lại revokedAt của token
+                // cũ
                 // để tránh reset lại đồng hồ của grace period.
                 return issueNewTokensForUser(storedToken.getUserId());
             } else {

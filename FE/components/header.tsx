@@ -22,6 +22,7 @@ import { useRouter } from "next/navigation"
 import { useSession, signOut } from "next-auth/react"
 import { useCartStore } from "@/lib/store/useCartStore"
 import { SearchOverlay } from "./search-overlay"
+import { NotificationBell } from "./notification-bell"
 import {
   Dialog,
   DialogContent,
@@ -39,6 +40,10 @@ import {
   navigationMenuTriggerStyle,
 } from "@/components/ui/navigation-menu"
 import { cn } from "@/lib/utils"
+import Tesseract from "tesseract.js"
+import { useChatStore } from "@/lib/store/useChatStore"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { productService } from "@/services/productService"
 
 // Featured Products Component (Simplified: uses data passed from parent)
 function FeaturedProducts({ products }: { products: any[] }) {
@@ -82,6 +87,10 @@ export function Header() {
   const displayName = fullNameFromApi || session?.user?.fullName || session?.user?.name || session?.user?.username || null
   const [isListening, setIsListening] = useState(false)
   const [isScanning, setIsScanning] = useState(false)
+  const [scanResults, setScanResults] = useState<string[]>([])
+  const [showResults, setShowResults] = useState(false)
+  const [searchResultsMap, setSearchResultsMap] = useState<Record<string, any[]>>({})
+  const [isSearchingProducts, setIsSearchingProducts] = useState(false)
   const [voiceQuery, setVoiceQuery] = useState("")
   const [voiceModalOpen, setVoiceModalOpen] = useState(false)
   const [searchOverlayOpen, setSearchOverlayOpen] = useState(false)
@@ -92,6 +101,7 @@ export function Header() {
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const recognitionRef = useRef<any>(null)
+  const voiceQueryRef = useRef("")
   const searchContainerRef = useRef<HTMLDivElement>(null)
   const cartIconRef = useRef<HTMLAnchorElement>(null)
   const { animations, removeAnimation } = useCartAnimationStore()
@@ -195,16 +205,120 @@ export function Header() {
     }
   }
 
+  const { openChat } = useChatStore()
+  const [ocrProgress, setOcrProgress] = useState(0)
+
+  const handleScanPrescription = async () => {
+    if (!selectedImage) return;
+    
+    setIsScanning(true);
+    setOcrProgress(0);
+    
+    try {
+      const result = await Tesseract.recognize(
+        selectedImage,
+        'vie+eng', // Scan both Vietnamese and English
+        { 
+          logger: m => {
+            if (m.status === 'recognizing text') {
+              setOcrProgress(Math.floor(m.progress * 100));
+            }
+          }
+        }
+      );
+      
+      if (result.data.text.trim().length < 5) {
+        toast.error("Không thể nhận diện được nội dung trong ảnh. Vui lòng chụp rõ hơn.");
+      } else {
+        // Extract potential medicine names (lines with text, excluding noise)
+        const noiseWords = /BỆNH VIỆN|PHÒNG KHÁM|ĐỊA CHỈ|NGÀY|BS|BÁC SĨ|TUỔI|NAM|NỮ|CHẨN ĐOÁN|SỐ LƯỢNG|SỐ LƯƠNG|LIỀU DÙNG|CÁCH DÙNG|UỐNG|LẦN|SAU ĂN|TRƯỚC ĂN|TỐI|SÁNG|TRƯA|CHIỀU|MỖI/i;
+        
+        const lines = result.data.text.split('\n')
+          .map(l => l.trim())
+          .filter(l => l.length > 3 && !noiseWords.test(l));
+        
+        // Take unique items
+        const uniqueResults = Array.from(new Set(lines));
+        
+        if (uniqueResults.length === 0) {
+          toast.error("Không tìm thấy tên thuốc khả thi. Vui lòng thử lại.");
+        } else {
+          // Pass the text via sessionStorage for a cleaner URL
+          sessionStorage.setItem("pending_ocr_text", result.data.text);
+          setImageModalOpen(false);
+          router.push(`/tim-kiem-don-thuoc`);
+        }
+      }
+    } catch (error) {
+      console.error("OCR Error:", error);
+      toast.error("Lỗi trong quá trình quét ảnh. Vui lòng thử lại.");
+    } finally {
+      setIsScanning(false);
+      setOcrProgress(0);
+    }
+  }
+
+
   const startVoiceSearch = () => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
-    if (!SpeechRecognition) return
+    
+    if (!SpeechRecognition) {
+      toast.error("Trình duyệt của bạn không hỗ trợ tìm kiếm bằng giọng nói. Vui lòng sử dụng Chrome.")
+      return
+    }
+
+    if (isListening && recognitionRef.current) {
+      recognitionRef.current.stop()
+      setIsListening(false)
+      return
+    }
+
     const rec = new SpeechRecognition()
+    recognitionRef.current = rec
     rec.lang = 'vi-VN'
     rec.interimResults = true
-    rec.onstart = () => { setIsListening(true); setVoiceQuery("") }
-    rec.onresult = (e: any) => { setVoiceQuery(e.results[0][0].transcript); setSearchQuery(e.results[0][0].transcript) }
-    rec.onend = () => setIsListening(false)
-    rec.start()
+    rec.continuous = false
+
+    rec.onstart = () => { 
+      setIsListening(true)
+      setVoiceQuery("") 
+      voiceQueryRef.current = ""
+    }
+
+    rec.onresult = (e: any) => { 
+      let transcript = e.results[0][0].transcript
+      // Remove trailing period if exists
+      if (transcript.endsWith('.')) {
+        transcript = transcript.slice(0, -1)
+      }
+      voiceQueryRef.current = transcript
+      setVoiceQuery(transcript)
+      setSearchQuery(transcript)
+    }
+
+    rec.onerror = (e: any) => {
+      console.error("Speech Recognition Error:", e.error)
+      setIsListening(false)
+      if (e.error === 'not-allowed') {
+        toast.error("Vui lòng cấp quyền truy cập Micro để sử dụng tính năng này.")
+      } else if (e.error === 'no-speech') {
+        toast.error("Không nhận dạng được âm thanh. Vui lòng thử lại.")
+      } else {
+        toast.error("Lỗi khi kết nối giọng nói. Vui lòng thử lại.")
+      }
+    }
+
+    rec.onend = () => { 
+      setIsListening(false)
+      // Do NOT trigger search automatically anymore
+    }
+
+    try {
+      rec.start()
+    } catch (err) {
+      console.error("Start recording failed:", err)
+      setIsListening(false)
+    }
   }
 
   return (
@@ -250,7 +364,7 @@ export function Header() {
                 <Search className="absolute left-4 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
                 <Input type="search" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onFocus={() => setSearchOverlayOpen(true)} placeholder="Tìm tên thuốc, triệu chứng, thương hiệu..." className="pl-12 pr-28 h-12 rounded-2xl border-2 border-muted focus-visible:border-primary transition-all bg-muted/30 font-medium text-sm lg:text-base outline-none !ring-0" />
                 <div className="absolute right-3 hidden sm:flex items-center gap-1.5">
-                  <Button type="button" variant="ghost" size="icon" className="h-9 w-9 rounded-xl text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors" onClick={() => { setVoiceModalOpen(true); setVoiceQuery("") }}><Mic className="h-5 w-5" /></Button>
+                  <Button type="button" variant="ghost" size="icon" className="h-9 w-9 rounded-xl text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors" onClick={() => { setVoiceModalOpen(true); setVoiceQuery(""); voiceQueryRef.current = "" }}><Mic className="h-5 w-5" /></Button>
                   <Button type="button" variant="ghost" size="icon" className="h-9 w-9 rounded-xl text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors" onClick={() => { setImageModalOpen(true); setSelectedImage(null); setIsScanning(false) }}><Scan className="h-5 w-5" /></Button>
                 </div>
               </form>
@@ -279,6 +393,8 @@ export function Header() {
                   <Link href="/dang-nhap">Đăng nhập</Link>
                 </Button>
               )}
+
+              <NotificationBell />
 
               <Link
                 ref={cartIconRef}
@@ -429,35 +545,44 @@ export function Header() {
       </AnimatePresence>
 
       {/* Image Search Modal */}
-      <Dialog open={imageModalOpen} onOpenChange={(open) => { setImageModalOpen(open); if (!open) setIsScanning(false) }}>
-        <DialogContent className="sm:max-w-md rounded-[2.5rem] p-0 overflow-hidden border-none shadow-2xl">
+      <Dialog open={imageModalOpen} onOpenChange={(open) => { 
+        setImageModalOpen(open); 
+        if (!open) {
+          setIsScanning(false);
+          setShowResults(false);
+          setScanResults([]);
+          setSearchResultsMap({});
+          setIsSearchingProducts(false);
+        }
+      }}>
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto rounded-[2.5rem] p-0 border-none shadow-2xl">
           <DialogTitle className="sr-only">Tìm kiếm bằng hình ảnh</DialogTitle>
-          <div className="bg-gradient-to-br from-indigo-600 via-primary to-blue-700 p-10 text-white relative overflow-hidden text-center">
+          <div className="bg-gradient-to-br from-indigo-600 via-primary to-blue-700 p-6 text-white relative overflow-hidden text-center">
              <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
                 <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-white rounded-full blur-3xl"></div>
                 <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-300 rounded-full blur-3xl"></div>
              </div>
              <div className="relative z-10">
-               <div className="mx-auto w-16 h-16 bg-white/20 backdrop-blur-xl border border-white/30 rounded-2xl flex items-center justify-center mb-4 shadow-xl">
-                 <Scan className="h-8 w-8 text-white" />
+               <div className="mx-auto w-12 h-12 bg-white/20 backdrop-blur-xl border border-white/30 rounded-2xl flex items-center justify-center mb-3 shadow-xl">
+                 <Scan className="h-6 w-6 text-white" />
                </div>
-               <h2 className="text-2xl font-black mb-2 uppercase tracking-tight">Scan Toa Thuốc</h2>
-               <p className="text-white/80 text-sm font-medium">Tải ảnh đơn thuốc hoặc vỏ thuốc để MedCare tư vấn chính xác nhất</p>
+               <h2 className="text-xl font-black mb-1 uppercase tracking-tight">Scan Toa Thuốc</h2>
+               <p className="text-white/80 text-xs font-medium">Tải ảnh đơn thuốc hoặc vỏ thuốc để MedCare tư vấn</p>
              </div>
           </div>
           
-          <div className="p-8 bg-white">
+          <div className="p-6 bg-white">
             {!selectedImage ? (
               <div 
                 onClick={() => fileInputRef.current?.click()}
-                className="border-2 border-dashed border-slate-200 rounded-3xl p-10 flex flex-col items-center justify-center gap-4 hover:border-primary hover:bg-primary/5 cursor-pointer transition-all group"
+                className="border-2 border-dashed border-slate-200 rounded-3xl p-6 flex flex-col items-center justify-center gap-3 hover:border-primary hover:bg-primary/5 cursor-pointer transition-all group"
               >
-                <div className="h-14 w-14 rounded-2xl bg-slate-50 flex items-center justify-center group-hover:bg-white transition-colors">
-                  <Upload className="h-7 w-7 text-slate-400 group-hover:text-primary transition-colors" />
+                <div className="h-10 w-10 rounded-xl bg-slate-50 flex items-center justify-center group-hover:bg-white transition-colors">
+                  <Upload className="h-5 w-5 text-slate-400 group-hover:text-primary transition-colors" />
                 </div>
                 <div className="text-center">
-                  <p className="font-bold text-slate-800">Tải lên từ thiết bị</p>
-                  <p className="text-xs text-slate-500 mt-1 whitespace-nowrap">Hỗ trợ JPG, PNG (Tối đa 5MB)</p>
+                  <p className="font-bold text-slate-800 text-sm">Tải lên từ thiết bị</p>
+                  <p className="text-[10px] text-slate-500 mt-1 whitespace-nowrap">Hỗ trợ JPG, PNG (Tối đa 5MB)</p>
                 </div>
                 <input 
                   type="file" 
@@ -475,26 +600,88 @@ export function Header() {
                 />
               </div>
             ) : (
-              <div className="space-y-6">
-                <div className="relative aspect-video rounded-2xl overflow-hidden border-2 border-primary/20 bg-slate-900 group">
-                  <Image src={selectedImage} alt="Preview" fill className="object-contain" />
-                  <div className="absolute inset-0 bg-blue-500/10 pointer-events-none">
-                    <div className="absolute top-0 left-0 w-full h-[2px] bg-primary/80 shadow-[0_0_15px_rgba(29,78,216,0.8)] animate-scan-line"></div>
+              <div className="space-y-4">
+                {!showResults ? (
+                  <>
+                    <div className="relative aspect-video rounded-2xl overflow-hidden border-2 border-primary/20 bg-slate-900 group">
+                      <Image src={selectedImage} alt="Preview" fill className="object-contain" />
+                      <div className="absolute inset-0 bg-blue-500/10 pointer-events-none">
+                        <div className="absolute top-0 left-0 w-full h-[2px] bg-primary/80 shadow-[0_0_15px_rgba(29,78,216,0.8)] animate-scan-line"></div>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button variant="outline" className="flex-1 rounded-xl h-10 font-bold text-xs" onClick={() => setSelectedImage(null)}>Chọn lại</Button>
+                      <Button className="flex-1 rounded-xl h-10 font-bold text-xs bg-primary shadow-lg shadow-primary/20" onClick={handleScanPrescription} disabled={isScanning}>
+                        {isScanning ? (
+                          <div className="flex items-center gap-2">
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            <span>{ocrProgress}%</span>
+                          </div>
+                        ) : "BẮT ĐẦU QUÉT"}
+                      </Button>
+                    </div>
+                  </>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-bold text-slate-500 uppercase tracking-wider">Kết quả bóc tách ({scanResults.length})</p>
+                        {isSearchingProducts && (
+                          <span className="text-[10px] text-primary animate-pulse font-bold">Đang tìm sản phẩm khớp...</span>
+                        )}
+                      </div>
+                      <Button variant="ghost" size="sm" className="h-8 text-primary font-bold" onClick={() => {
+                        setShowResults(false);
+                        setSearchResultsMap({});
+                      }}>
+                        Quay lại
+                      </Button>
+                    </div>
+                    <ScrollArea className="h-[380px] pr-4">
+                      <div className="grid gap-4">
+                        {scanResults.map((result, idx) => {
+                          const products = searchResultsMap[result] || [];
+                          return (
+                            <div key={idx} className="space-y-2">
+                               <div className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 border border-slate-100 transition-all text-left">
+                                  <span className="font-bold text-sm text-slate-700">{result}</span>
+                                  {products.length === 0 && !isSearchingProducts && (
+                                    <span className="text-[10px] text-slate-400 font-medium italic">Không tìm thấy sản phẩm khớp</span>
+                                  )}
+                               </div>
+                               
+                               {products.length > 0 && (
+                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pl-4">
+                                   {products.map((p) => (
+                                     <div 
+                                      key={p.id} 
+                                      onClick={() => {
+                                        router.push(`/cua-hang?q=${encodeURIComponent(p.name)}`);
+                                        setImageModalOpen(false);
+                                      }}
+                                      className="flex items-center gap-3 p-3 rounded-xl bg-white border border-primary/10 hover:border-primary hover:shadow-md cursor-pointer transition-all group"
+                                     >
+                                       <div className="relative w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 bg-slate-50">
+                                         <Image src={p.primaryImageUrl || "/placeholder.svg"} alt={p.name} fill className="object-contain" />
+                                       </div>
+                                       <div className="min-w-0">
+                                          <p className="text-xs font-bold text-slate-800 line-clamp-1 group-hover:text-primary transition-colors">{p.name}</p>
+                                          <p className="text-[10px] font-black text-primary">{p.price?.toLocaleString("vi-VN")}đ</p>
+                                       </div>
+                                     </div>
+                                   ))}
+                                 </div>
+                               )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </ScrollArea>
+                    <p className="text-center text-[10px] text-slate-400 font-medium italic">
+                      Mẹo: Nhấp vào tên thuốc để tìm kiếm trong cửa hàng
+                    </p>
                   </div>
-                </div>
-                <div className="flex gap-3">
-                  <Button variant="outline" className="flex-1 rounded-xl h-12 font-bold" onClick={() => setSelectedImage(null)}>Chọn lại</Button>
-                  <Button className="flex-1 rounded-xl h-12 font-bold bg-primary shadow-lg shadow-primary/20" onClick={() => {
-                    setIsScanning(true);
-                    setTimeout(() => {
-                      setIsScanning(false);
-                      setImageModalOpen(false);
-                      toast.success("Đã phân tích toa thuốc thành công! Dược sĩ sẽ tư vấn cho bạn.");
-                    }, 2500);
-                  }}>
-                    {isScanning ? <Loader2 className="h-5 w-5 animate-spin" /> : "GỬI YÊU CẦU SCAN"}
-                  </Button>
-                </div>
+                )}
               </div>
             )}
           </div>
@@ -502,7 +689,17 @@ export function Header() {
       </Dialog>
 
       {/* Voice Search Modal */}
-      <Dialog open={voiceModalOpen} onOpenChange={(open) => { setVoiceModalOpen(open); if (!open) setIsListening(false) }}>
+      <Dialog open={voiceModalOpen} onOpenChange={(open) => { 
+        setVoiceModalOpen(open); 
+        if (!open) {
+          setIsListening(false);
+          if (recognitionRef.current) {
+            try {
+              recognitionRef.current.stop();
+            } catch (e) {}
+          }
+        }
+      }}>
         <DialogContent className="sm:max-w-md rounded-[2.5rem] p-0 overflow-hidden border-none shadow-2xl">
           <DialogTitle className="sr-only">Tìm kiếm bằng giọng nói</DialogTitle>
           <div className="bg-gradient-to-br from-indigo-600 via-primary to-blue-700 p-10 text-white relative overflow-hidden text-center">
@@ -527,13 +724,46 @@ export function Header() {
               {voiceQuery || (isListening ? "Đang lắng nghe..." : "Nhấn nút để bắt đầu nói")}
             </div>
             
-            <Button 
-              className={cn("w-full h-14 rounded-2xl font-black text-lg shadow-xl transition-all active:scale-95", 
-                isListening ? 'bg-destructive shadow-destructive/20' : 'bg-primary shadow-primary/20')} 
-              onClick={startVoiceSearch}
-            >
-              {isListening ? "DỪNG GHI ÂM" : "BẮT ĐẦU NÓI"}
-            </Button>
+            <div className="flex flex-col gap-3">
+              {isListening ? (
+                <Button 
+                  className="w-full h-14 rounded-2xl font-black text-lg shadow-xl bg-destructive shadow-destructive/20 transition-all active:scale-95"
+                  onClick={startVoiceSearch}
+                >
+                  DỪNG GHI ÂM
+                </Button>
+              ) : voiceQuery ? (
+                <>
+                  <Button 
+                    className="w-full h-14 rounded-2xl font-black text-lg shadow-xl bg-primary shadow-primary/20 transition-all active:scale-95"
+                    onClick={() => {
+                      handleSearch(undefined, voiceQuery);
+                      setVoiceModalOpen(false);
+                    }}
+                  >
+                    TÌM KIẾM NGAY
+                  </Button>
+                  <Button 
+                    variant="outline"
+                    className="w-full h-14 rounded-2xl font-bold text-slate-600 border-2 border-slate-100 hover:bg-slate-50 transition-all active:scale-95"
+                    onClick={() => {
+                      setVoiceQuery("");
+                      voiceQueryRef.current = "";
+                      startVoiceSearch();
+                    }}
+                  >
+                    GHI ÂM LẠI
+                  </Button>
+                </>
+              ) : (
+                <Button 
+                  className="w-full h-14 rounded-2xl font-black text-lg shadow-xl bg-primary shadow-primary/20 transition-all active:scale-95"
+                  onClick={startVoiceSearch}
+                >
+                  BẮT ĐẦU NÓI
+                </Button>
+              )}
+            </div>
           </div>
         </DialogContent>
       </Dialog>

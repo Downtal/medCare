@@ -23,6 +23,8 @@ public class UserServiceImpl implements UserService {
 
     private final UserProfileRepository userProfileRepository;
     private final AddressRepository addressRepository;
+    private final com.medcare.userservice.repository.UserHealthNoteRepository userHealthNoteRepository;
+    private final com.medcare.userservice.repository.UserHealthMetricRepository userHealthMetricRepository;
 
     // ───────────────── Profile operations ─────────────────
 
@@ -104,6 +106,7 @@ public class UserServiceImpl implements UserService {
         if (request.getRole() != null) profile.setRole(request.getRole());
         if (request.getStatus() != null) profile.setStatus(request.getStatus());
         if (request.getDateOfBirth() != null) profile.setDateOfBirth(request.getDateOfBirth());
+        if (request.getGender() != null) profile.setGender(request.getGender());
 
         UserProfile updated = userProfileRepository.save(profile);
         return mapToDto(updated);
@@ -228,6 +231,65 @@ public class UserServiceImpl implements UserService {
         return mapToAddressDto(updated);
     }
 
+    // ───────────────── Health Note operations ─────────────────
+
+    @Override
+    public UserHealthNoteDto getHealthNote(Long userId) {
+        com.medcare.userservice.entity.UserHealthNote note = userHealthNoteRepository.findById(userId)
+                .orElse(null);
+        return note != null ? mapToHealthNoteDto(note) : null;
+    }
+
+    @Override
+    @Transactional
+    public UserHealthNoteDto updateHealthNote(Long userId, UpdateHealthNoteRequest request) {
+        UserProfile profile = userProfileRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Profile not found for user_id: " + userId));
+
+        com.medcare.userservice.entity.UserHealthNote note = userHealthNoteRepository.findById(userId)
+                .orElse(new com.medcare.userservice.entity.UserHealthNote());
+        
+        note.setUserId(userId);
+        note.setUserProfile(profile);
+        note.setAllergies(request.getAllergies());
+        note.setChronicConditions(request.getChronicConditions());
+        note.setSpecialStatus(request.getSpecialStatus());
+
+        com.medcare.userservice.entity.UserHealthNote saved = userHealthNoteRepository.save(note);
+        return mapToHealthNoteDto(saved);
+    }
+
+    // ───────────────── Health Metric operations ─────────────────
+
+    @Override
+    @Transactional
+    public HealthMetricDto addHealthMetric(Long userId, CreateMetricRequest request) {
+        if (!userProfileRepository.existsById(userId)) {
+            throw new ResourceNotFoundException("Profile not found for user_id: " + userId);
+        }
+
+        com.medcare.userservice.entity.UserHealthMetric metric = com.medcare.userservice.entity.UserHealthMetric.builder()
+                .userId(userId)
+                .type(request.getType().toUpperCase())
+                .value(request.getValue())
+                .unit(request.getUnit())
+                .build();
+
+        com.medcare.userservice.entity.UserHealthMetric saved = userHealthMetricRepository.save(metric);
+        return mapToMetricDto(saved);
+    }
+
+    @Override
+    public List<HealthMetricDto> getHealthMetrics(Long userId, String type) {
+        List<com.medcare.userservice.entity.UserHealthMetric> metrics;
+        if (type != null && !type.isEmpty()) {
+            metrics = userHealthMetricRepository.findByUserIdAndTypeOrderByRecordedAtDesc(userId, type.toUpperCase());
+        } else {
+            metrics = userHealthMetricRepository.findByUserIdOrderByRecordedAtDesc(userId);
+        }
+        return metrics.stream().map(this::mapToMetricDto).collect(Collectors.toList());
+    }
+
     // ───────────────── Mappers ─────────────────
 
     private UserProfileDto mapToDto(UserProfile profile) {
@@ -240,7 +302,19 @@ public class UserServiceImpl implements UserService {
                 .role(profile.getRole())
                 .status(profile.getStatus())
                 .dateOfBirth(profile.getDateOfBirth())
+                .gender(profile.getGender())
+                .healthNote(profile.getHealthNote() != null ? mapToHealthNoteDto(profile.getHealthNote()) : null)
                 .createdAt(profile.getCreatedAt())
+                .build();
+    }
+
+    private UserHealthNoteDto mapToHealthNoteDto(com.medcare.userservice.entity.UserHealthNote note) {
+        return UserHealthNoteDto.builder()
+                .userId(note.getUserId())
+                .allergies(note.getAllergies())
+                .chronicConditions(note.getChronicConditions())
+                .specialStatus(note.getSpecialStatus())
+                .updatedAt(note.getUpdatedAt())
                 .build();
     }
 
@@ -258,6 +332,16 @@ public class UserServiceImpl implements UserService {
                 .districtId(address.getDistrictId())
                 .wardCode(address.getWardCode())
                 .isDefault(address.getIsDefault())
+                .build();
+    }
+
+    private HealthMetricDto mapToMetricDto(com.medcare.userservice.entity.UserHealthMetric metric) {
+        return HealthMetricDto.builder()
+                .id(metric.getId())
+                .type(metric.getType())
+                .value(metric.getValue())
+                .unit(metric.getUnit())
+                .recordedAt(metric.getRecordedAt())
                 .build();
     }
 }

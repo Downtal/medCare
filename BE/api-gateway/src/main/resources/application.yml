@@ -84,7 +84,7 @@ spring:
             - AuthenticationFilter
 
         - id: ai-service
-          uri: http://localhost:8095
+          uri: http://127.0.0.1:8095
           predicates:
             - Path=/ai-service/**
           filters:

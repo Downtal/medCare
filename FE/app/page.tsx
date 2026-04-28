@@ -24,6 +24,7 @@ import type { Category, Product } from "@/lib/types"
 import { motion, AnimatePresence } from "framer-motion"
 import Image from "next/image"
 import Link from "next/link"
+import { PersonalizedProducts } from "@/components/personalized-products"
 
 const categoryIcons = {
   "Không kê đơn": Pill,
@@ -122,7 +123,7 @@ export default function HomePage() {
                     <Link href="/cua-hang">Mua sắm ngay <ArrowRight className="ml-2 w-5 h-5" /></Link>
                   </Button>
                   <Button size="lg" variant="outline" className="rounded-2xl px-8 h-14 text-base font-bold border-2 transition-all hover:bg-slate-50" asChild>
-                    <Link href="/tu-van">Tư vấn Dược sĩ</Link>
+                    <Link href="/tu-van">Tư vấn sức khỏe</Link>
                   </Button>
                 </div>
 
@@ -220,55 +221,9 @@ export default function HomePage() {
           </div>
         </section>
 
+        {/* Personalized Products Section */}
+        <PersonalizedProducts />
 
-        {/* Featured Products */}
-        <section className="py-24 bg-white">
-          <div className="container mx-auto px-4">
-            <div className="flex flex-col md:flex-row justify-between items-center mb-16 gap-6 text-center md:text-left">
-              <div>
-                <h2 className="text-3xl md:text-5xl font-black text-slate-900">Sản phẩm nổi bật</h2>
-              </div>
-              <div className="flex gap-2">
-                <Button variant="outline" className="rounded-full px-8 h-12 border-2 font-bold" asChild>
-                  <Link href="/cua-hang">Khám phá bộ sưu tập</Link>
-                </Button>
-              </div>
-            </div>
-
-            <AnimatePresence mode="wait">
-              {loading ? (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-                  {[1, 2, 3, 4].map(i => (
-                    <div key={i} className="aspect-[4/5] bg-slate-50 animate-pulse rounded-[32px]" />
-                  ))}
-                </div>
-              ) : (
-                <motion.div
-                  variants={containerVariants}
-                  initial="hidden"
-                  whileInView="visible"
-                  viewport={{ once: true }}
-                  className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8 md:gap-10"
-                >
-                  {featuredProducts.map((product) => (
-                    <motion.div key={product.id} variants={itemVariants}>
-                      <ProductCard
-                        id={product.id.toString()}
-                        slug={product.slug}
-                        name={product.name}
-                        ingredient={product.activeIngredients || ""}
-                        price={product.price}
-                        rating={4.8}
-                        image={product.primaryImageUrl || "/placeholder.svg"}
-                        requiresPrescription={product.requiresPrescription}
-                      />
-                    </motion.div>
-                  ))}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-        </section>
 
         {/* Professional Consultation Section */}
         <section className="py-24 bg-slate-900 relative overflow-hidden">

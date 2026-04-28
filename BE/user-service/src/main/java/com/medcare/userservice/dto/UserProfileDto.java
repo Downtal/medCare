@@ -19,5 +19,7 @@ public class UserProfileDto {
     private String role;
     private String status;
     private LocalDate dateOfBirth;
+    private String gender;
+    private UserHealthNoteDto healthNote;
     private LocalDateTime createdAt;
 }

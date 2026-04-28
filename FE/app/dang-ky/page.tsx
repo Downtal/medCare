@@ -191,19 +191,19 @@ export default function RegisterPage() {
               <form onSubmit={handleSubmit} className="space-y-4" noValidate>
                 <div className="space-y-1.5">
                   <Label htmlFor="fullname">Họ và tên <span className="text-destructive">*</span></Label>
-                  <Input id="fullname" placeholder="Nguyễn Văn A" value={form.fullname} onChange={(e) => update("fullname", e.target.value)} className={errors.fullname ? "border-destructive h-11" : "h-11"} />
+                  <Input id="fullname" placeholder="Nhập họ và tên" value={form.fullname} onChange={(e) => update("fullname", e.target.value)} className={errors.fullname ? "border-destructive h-11" : "h-11"} />
                   {errors.fullname && <p className="text-destructive text-xs">{errors.fullname}</p>}
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5">
                     <Label htmlFor="phone">Số điện thoại <span className="text-destructive">*</span></Label>
-                    <Input id="phone" type="tel" placeholder="091..." value={form.phone} onChange={(e) => update("phone", e.target.value)} className={errors.phone ? "border-destructive h-11" : "h-11"} />
+                    <Input id="phone" type="tel" placeholder="Nhập số điện thoại" value={form.phone} onChange={(e) => update("phone", e.target.value)} className={errors.phone ? "border-destructive h-11" : "h-11"} />
                     {errors.phone && <p className="text-destructive text-xs">{errors.phone}</p>}
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="email">Email <span className="text-destructive">*</span></Label>
-                    <Input id="email" type="email" placeholder="email@..." value={form.email} onChange={(e) => update("email", e.target.value)} className={errors.email ? "border-destructive h-11" : "h-11"} />
+                    <Input id="email" type="email" placeholder="Nhập email" value={form.email} onChange={(e) => update("email", e.target.value)} className={errors.email ? "border-destructive h-11" : "h-11"} />
                     {errors.email && <p className="text-destructive text-xs">{errors.email}</p>}
                   </div>
                 </div>
@@ -223,6 +223,7 @@ export default function RegisterPage() {
                     <Input id="confirmPassword" type={showConfirm ? "text" : "password"} value={form.confirmPassword} onChange={(e) => update("confirmPassword", e.target.value)} className={errors.confirmPassword ? "border-destructive h-11 pr-10" : "h-11 pr-10"} />
                     <button type="button" onClick={() => setShowConfirm(!showConfirm)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">{showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}</button>
                   </div>
+                  {errors.confirmPassword && <p className="text-destructive text-xs">{errors.confirmPassword}</p>}
                 </div>
 
                 {form.password && (

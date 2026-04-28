@@ -1,3 +1,4 @@
+import os
 import logging
 from fastapi import FastAPI
 from app.config.settings import settings
@@ -9,6 +10,7 @@ from slowapi.errors import RateLimitExceeded
 from fastapi import Request
 
 app = FastAPI(title=settings.PROJECT_NAME)
+
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
@@ -42,9 +44,11 @@ async def health_check():
     return {"status": "UP", "service": settings.APP_NAME}
 
 # Routes (Imported and included at the end to prevent circular dependency)
-from app.api import chat, admin
+from app.api import chat, admin, recommendations, prescriptions
 app.include_router(chat.router, prefix="/api/ai", tags=["AI"])
 app.include_router(admin.router, prefix="/api/ai", tags=["Admin"])
+app.include_router(prescriptions.router, prefix="/api/ai", tags=["Prescription"])
+app.include_router(recommendations.router)
 
 if __name__ == "__main__":
     import uvicorn

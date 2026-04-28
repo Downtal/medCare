@@ -26,6 +26,14 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(ex.getErrorCode().getHttpStatus()).body(body);
     }
 
+    @ExceptionHandler({IllegalArgumentException.class, IllegalStateException.class})
+    public ResponseEntity<ApiResponse<Void>> handleBadRequestException(RuntimeException ex) {
+        log.warn("[BadRequest] type={} message={}", ex.getClass().getSimpleName(), ex.getMessage());
+        ApiResponse<Void> body = ApiResponse.error(ex.getMessage(), 
+                String.valueOf(ErrorCode.VALIDATION_ERROR.getCode()));
+        return ResponseEntity.badRequest().body(body);
+    }
+
     /**
      * Handle @Valid / @Validated constraint violations (field-level errors).
      * Returns a map of fieldName -> errorMessage inside the "data" field.

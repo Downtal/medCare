@@ -8,6 +8,7 @@ import { GlobalAuthGuard } from "@/components/global-auth-guard"
 import { Toaster } from "@/components/ui/sonner"
 import { QueryProvider } from "@/components/providers/query-provider"
 import { AIChatbot } from "@/components/chat/ai-chatbot"
+import { SocketProvider } from "@/components/providers/socket-provider"
 import "./globals.css"
 
 const inter = Inter({ subsets: ["latin"] })
@@ -48,7 +49,9 @@ export default async function RootLayout({
         <AuthProvider session={session}>
           <QueryProvider>
             <GlobalAuthGuard>
-              {children}
+              <SocketProvider>
+                {children}
+              </SocketProvider>
             </GlobalAuthGuard>
             <AIChatbot />
           </QueryProvider>

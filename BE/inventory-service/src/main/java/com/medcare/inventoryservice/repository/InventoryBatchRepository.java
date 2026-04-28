@@ -26,4 +26,14 @@ public interface InventoryBatchRepository extends JpaRepository<InventoryBatch, 
            "GROUP BY ib.medicineId, ib.medicineName, ib.medicineSlug, ib.medicineImage, ib.brand, ib.registrationNumber, ib.countryOfOrigin " +
            "ORDER BY ib.medicineName ASC")
     List<ProductStockSummary> findProductStockSummaries();
+
+    @Query("SELECT new com.medcare.inventoryservice.dto.ProductStockSummary(" +
+           "ib.medicineId, ib.medicineName, ib.medicineSlug, ib.medicineImage, " +
+           "ib.brand, ib.registrationNumber, ib.countryOfOrigin, " +
+           "SUM(CAST(ib.quantityAvailable AS long)), SUM(CAST(ib.quantityReserved AS long)), COUNT(ib)) " +
+           "FROM InventoryBatch ib " +
+           "GROUP BY ib.medicineId, ib.medicineName, ib.medicineSlug, ib.medicineImage, ib.brand, ib.registrationNumber, ib.countryOfOrigin " +
+           "HAVING SUM(CAST(ib.quantityAvailable AS long)) < :threshold " +
+           "ORDER BY SUM(CAST(ib.quantityAvailable AS long)) ASC")
+    List<ProductStockSummary> findLowStockSummaries(long threshold);
 }
