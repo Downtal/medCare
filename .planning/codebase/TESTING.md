@@ -1,12 +1,17 @@
 # Chiến lược kiểm thử của MedCare
 
-## Trạng thái hiện tại
-- **Kiểm thử tự động (Automated Tests):** Rất ít hoặc không tìm thấy trong các thư mục `src/test`.
-- **Kiểm thử thủ công (Manual Testing):** Dựa vào thư mục `Data_test/` cho các dữ liệu đầu vào mẫu.
-- **Công cụ:** JUnit 5 có mặt trong các phụ thuộc Gradle nhưng chưa được sử dụng rộng rãi.
+## Công cụ & Framework
+- **Backend (Java):** JUnit 5, Mockito.
+- **Backend (Python):** Pytest (khuyến nghị).
+- **Frontend:** Vitest (Unit/Component), React Testing Library.
+- **E2E:** Playwright (đã cấu hình trong thư mục `FE/e2e`).
 
-## Chiến lược khuyến nghị
-- **Kiểm thử đơn vị (Unit Testing):** Thêm các bài kiểm tra cho logic nghiệp vụ phức tạp trong các lớp Service.
-- **Kiểm thử tích hợp (Integration Testing):** Kiểm tra các endpoint REST và tương tác với repository.
-- **Kiểm thử Frontend:** Triển khai Vitest hoặc Jest cho các thành phần UI quan trọng.
-- **Kiểm thử E2E (End-to-End):** Sử dụng Playwright hoặc Cypress cho các luồng người dùng cốt lõi (Thanh toán, Đăng nhập).
+## Trạng thái hiện tại
+- **Unit Testing:** Đã có nền tảng Vitest trong FE. BE vẫn còn hạn chế về coverage.
+- **E2E Testing:** Đã có cấu hình Playwright, cần bổ sung các kịch bản cho luồng OCR và Thanh toán.
+- **Dữ liệu mẫu:** Sử dụng thư mục `Data_test/` để import sản phẩm và kiểm thử thủ công.
+
+## Kế hoạch cải thiện
+1. Tăng cường Unit Test cho `ai-service` để đảm bảo logic trích xuất text ổn định.
+2. Xây dựng bộ test E2E cho luồng: Đăng nhập -> Tải đơn thuốc -> AI OCR -> Thanh toán.
+3. Kiểm thử tích hợp giữa `api-gateway` và các dịch vụ sau khi update dependency.

@@ -1,35 +1,32 @@
 # Kiến trúc hệ thống MedCare
 
-## Kiến trúc Microservices
-Dự án được xây dựng theo mô hình Microservices với các trách nhiệm được phân tán:
+## Kiến trúc Microservices (Polyglot)
+Hệ thống sử dụng kiến trúc microservices đa ngôn ngữ để tận dụng thế mạnh của từng nền tảng:
 
-### Các dịch vụ cốt lõi (Core Services)
-- **Discovery Server:** Bộ đăng ký dịch vụ dựa trên Eureka.
-- **API Gateway:** Điểm truy cập tập trung cho tất cả các yêu cầu từ Frontend.
-- **Auth Service:** Xử lý xác thực và cấp phát mã thông báo (token).
-- **User Service:** Quản lý thông tin hồ sơ và địa chỉ người dùng.
+### Dịch vụ Hạ tầng (Infrastructure)
+- **Discovery Server:** Eureka (Java) - Quản lý danh sách dịch vụ.
+- **API Gateway:** Spring Cloud Gateway (Java) - Entry point duy nhất.
 
-### Các dịch vụ nghiệp vụ (Business Services)
-- **Product Service:** Quản lý danh mục sản phẩm.
-- **Inventory Service:** Theo dõi tồn kho.
-- **Order Service:** Luồng giao dịch và lưu trữ đơn hàng.
-- **Shipping Service:** Logistics vận chuyển và tính phí vận chuyển.
-- **Promotion Service:** Quản lý Voucher và khuyến mãi.
-- **Review Service:** Phản hồi và đánh giá từ khách hàng.
-- **Notification Service:** Thông báo bất đồng bộ (dự kiến).
+### Dịch vụ Nghiệp vụ Java (Spring Boot)
+- **Auth Service:** Quản lý danh tính, JWT.
+- **User Service:** Thông tin người dùng.
+- **Product Service:** Quản lý thuốc và dược phẩm.
+- **Order Service:** Quy trình mua hàng.
+- **Payment Service:** Tích hợp VNPay.
+- **Shipping Service:** Tích hợp GHN.
+- **Inventory, Promotion, Review, Notification Services:** Các module nghiệp vụ khác.
 
-### Frontend
-- **Next.js App Router:** Kết xuất phía máy chủ (SSR) hiện đại và tương tác phía máy khách.
-- **Modular Services:** Các dịch vụ frontend (trong `FE/services/`) được ánh xạ chặt chẽ với các microservices backend.
+### Dịch vụ AI (Python/FastAPI)
+- **AI Service:** Xử lý logic AI, LangChain, kết nối Gemini API. Hỗ trợ streaming response qua SSE.
 
-## Luồng dữ liệu (Data Flow)
-1. Client (FE) yêu cầu API thông qua `api-gateway`.
-2. `api-gateway` xác thực JWT nếu cần thiết và định tuyến đến dịch vụ đích.
-3. Các dịch vụ giao tiếp với nhau thông qua `OpenFeign` bằng tên được giải quyết bởi `Eureka`.
-4. Trạng thái được lưu trữ trong `MySQL` hoặc lưu vào bộ nhớ đệm `Redis`.
+## Luồng xử lý AI OCR (Milestone 5)
+1. Người dùng tải ảnh đơn thuốc lên FE.
+2. FE sử dụng **Tesseract.js** để tiền xử lý và trích xuất text sơ bộ.
+3. Text và ảnh được gửi đến **AI Service**.
+4. AI Service sử dụng **Gemini 1.5 Pro/Flash** để phân tích, trích xuất thông tin thuốc và ánh xạ vào danh mục sản phẩm của hệ thống.
+5. Kết quả trả về FE để người dùng xác nhận và tạo đơn hàng.
 
-## Các mẫu thiết kế (Design Patterns)
-- **API Gateway Pattern:** Điểm truy cập thống nhất.
-- **Service Discovery Pattern:** Giải quyết endpoint động.
-- **Sidecar/Proxy Pattern:** Các Eureka clients.
-- **DTO (Data Transfer Object):** Tách biệt các thực thể nội bộ khỏi các hợp đồng API bên ngoài.
+## Luồng dữ liệu & Giao tiếp
+- **Đồng bộ:** REST API qua OpenFeign/HTTPX.
+- **Bất đồng bộ:** Notification (dự kiến sử dụng Message Broker).
+- **Trạng thái:** MySQL (Bền vững), Redis (Tạm thời/Tốc độ cao).

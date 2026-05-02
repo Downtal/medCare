@@ -1,18 +1,21 @@
 # Các tích hợp của MedCare
 
 ## Tích hợp nội bộ (Internal Integrations)
-- **Eureka Discovery Server:** Tất cả các microservices đăng ký với `discovery-server` để tự động phát hiện dịch vụ.
-- **Spring Cloud Gateway:** `api-gateway` định tuyến các yêu cầu từ bên ngoài đến các dịch vụ nội bộ dựa trên đường dẫn (path).
-- **OpenFeign:** Được sử dụng cho việc giao tiếp REST đồng bộ giữa các dịch vụ (ví dụ: `shipping-service` giao tiếp với các dịch vụ khác).
-- **Redis:** Được sử dụng để lưu trữ bộ nhớ đệm (caching) và quản lý phiên (session) (ví dụ: dữ liệu giỏ hàng, danh sách đen JWT/phiên bản JWT).
-- **MySQL:** Cơ sở dữ liệu quan hệ chính được sử dụng bởi tất cả các dịch vụ cần lưu trữ dữ liệu bền vững.
+- **Eureka Discovery Server:** Tất cả các microservices (bao gồm cả AI Service chạy Python) đăng ký với `discovery-server` để tự động phát hiện dịch vụ.
+- **Spring Cloud Gateway:** `api-gateway` định tuyến các yêu cầu từ bên ngoài đến các dịch vụ nội bộ.
+- **OpenFeign / HTTPX:** Giao tiếp REST giữa các dịch vụ Java (OpenFeign) và Python (HTTPX).
+- **Redis:** Sử dụng cho caching giỏ hàng và quản lý phiên bản JWT. FE cũng sử dụng `ioredis` cho một số tác vụ backend-side.
+- **MySQL:** Cơ sở dữ liệu quan hệ trung tâm cho tất cả các dịch vụ.
 
 ## Tích hợp bên ngoài (External Integrations)
-- **Cloudinary:** Được sử dụng để lưu trữ và phân phối hình ảnh trong `product-service` và `FE`.
-- **GHN (Giao Hàng Nhanh):** Được tích hợp trong `shipping-service` để lấy dữ liệu Tỉnh/Huyện/Xã và tính phí vận chuyển.
-- **VNPay:** Được tích hợp trong `payment-service` để xử lý thanh toán trực tuyến.
-- **NextAuth.js:** Được tích hợp với `auth-service` cho các luồng xác thực trên Frontend.
+- **Google Gemini AI:** Tích hợp qua `ai-service` (Python) để xử lý tư vấn y tế và phân tích đơn thuốc.
+- **Cloudinary:** Lưu trữ hình ảnh sản phẩm và đơn thuốc.
+- **GHN (Giao Hàng Nhanh):** Tích hợp trong `shipping-service` để quản lý logictics và phí vận chuyển.
+- **VNPay:** Xử lý thanh toán trực tuyến trong `payment-service`.
+- **Tesseract.js:** Thực hiện OCR phía client để trích xuất văn bản từ đơn thuốc trước khi gửi lên AI.
+- **NextAuth.js:** Xác thực người dùng và liên kết với `auth-service`.
 
-## Giao thức tích hợp
-- **REST/JSON:** Giao thức chính cho tất cả các giao tiếp dịch vụ-với-dịch vụ và khách-với-máy chủ.
-- **JWT:** Được sử dụng để bảo mật các API và truyền ngữ cảnh người dùng giữa các dịch vụ.
+## Giao thức & Bảo mật
+- **REST/JSON:** Phương thức giao tiếp chuẩn.
+- **JWT:** Cơ chế bảo mật chính, được truyền qua header Authorization.
+- **SSE (Server-Sent Events):** Sử dụng trong `ai-service` để stream kết quả phản hồi từ AI.

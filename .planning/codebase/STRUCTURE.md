@@ -1,27 +1,27 @@
 # Cấu trúc thư mục của MedCare
 
 ## Thư mục gốc (Root)
-- `BE/`: Các microservices của Backend (Dự án đa module Gradle).
-- `FE/`: Ứng dụng Frontend Next.js.
-- `DB/`: Các script khởi tạo và di cư (migration) cơ sở dữ liệu.
-- `Data_test/`: Dữ liệu mẫu để kiểm thử (chủ yếu liên quan đến sản phẩm).
-- `.planning/`: Các artifact của quy trình GSD và sơ đồ codebase.
+- `BE/`: Backend Microservices.
+- `FE/`: Frontend Next.js (TypeScript).
+- `DB/`: Database scripts.
+- `Data_test/`: Dữ liệu kiểm thử.
+- `.planning/`: Tài liệu dự án và lộ trình phát triển.
 
 ## Backend (BE/)
-- `api-gateway/`: Dịch vụ Gateway.
-- `auth-service/`: Quản lý danh tính và quyền truy cập (IAM).
-- `discovery-server/`: Bộ đăng ký Eureka.
-- `common-lib/`: Các tiện ích và DTO dùng chung (nếu có).
-- `product-service/`, `order-service/`, v.v.: Các microservices theo nghiệp vụ cụ thể.
-  - `src/main/java/.../controller/`: Các endpoint REST.
-  - `src/main/java/.../service/`: Logic nghiệp vụ.
-  - `src/main/java/.../entity/`: Các thực thể JPA.
-  - `src/main/java/.../repository/`: Truy cập dữ liệu.
+- **Dịch vụ Java:**
+  - `auth-service/`, `product-service/`, v.v. (Cấu trúc Spring Boot chuẩn).
+  - `common-lib/`: Module chứa các class dùng chung cho Java services.
+- **Dịch vụ Python:**
+  - `ai-service/`:
+    - `app/`: Source code FastAPI (routers, services, core).
+    - `requirements.txt`: Dependencies.
+    - `venv/`: Virtual environment.
 
 ## Frontend (FE/)
-- `app/`: Các trang và layout của Next.js (App Router).
-- `components/`: Các thành phần UI có thể tái sử dụng (Shadcn/UI).
-- `services/`: Các hàm gọi API (API client).
-- `hooks/`: Các React hooks tùy chỉnh.
-- `lib/`: Các hàm tiện ích và cấu hình dùng chung.
-- `types/`: Các interface và kiểu dữ liệu TypeScript.
+- `app/`: Next.js App Router (Pages, Layouts, API routes).
+- `components/`: UI Components (Shadcn UI).
+- `services/`: API Clients mapped to Microservices.
+- `hooks/`: Custom React hooks.
+- `lib/`: Utilities (VNPay logic, Cloudinary config).
+- `types/`: TypeScript definitions.
+- `e2e/`: Playwright test scripts.
