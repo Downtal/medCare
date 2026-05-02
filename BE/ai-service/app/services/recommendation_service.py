@@ -33,30 +33,49 @@ class RecommendationService:
                 except Exception as e:
                     logger.warning(f"Failed to gather user info: {e}")
 
-            # 1. Base suggestions (Rule-based)
-            suggestions = await self._get_rule_based_suggestions(user_profile)
+            # Fetch ALL active products once to avoid multiple calls
+            all_products = await self._fetch_all_products()
+            if not all_products:
+                return []
+
+            # 1. Base suggestions (Keywords based on profile)
+            keywords = self._get_profile_keywords(user_profile)
+            rule_based_prods = self._filter_by_keywords(all_products, keywords)
             
             # 2. History-based suggestions
-            history_suggestions = await self._get_history_based_suggestions(order_history)
+            history_ids = self._get_history_ids(order_history)
+            history_prods = [p for p in all_products if p.get('id') in history_ids]
             
-            # Combine and unique
-            all_medicine_ids = list(dict.fromkeys(suggestions + history_suggestions))
-            
-            # 3. Wildcard Rule: Add 20% trending/new products
-            trending_ids = await self._get_trending_products(limit=3)
-            all_medicine_ids.extend([tid for tid in trending_ids if tid not in all_medicine_ids])
-            
-            # 4. Fetch full product details
-            products = await self._fetch_products_by_ids(all_medicine_ids[:limit])
-            
-            # 5. Safety Filter: Check against allergies
-            health_note = user_profile.get('healthNote')
-            if user_id and health_note and isinstance(health_note, dict):
-                allergies = health_note.get('allergies')
-                if allergies:
-                    products = [p for p in products if not self._is_allergic(p, allergies.lower())]
+            # Combine results
+            combined = []
+            seen_ids = set()
 
-            return products
+            # Add history first (highly relevant)
+            for p in history_prods:
+                if p.get('id') not in seen_ids:
+                    combined.append(p)
+                    seen_ids.add(p.get('id'))
+            
+            # Add rule-based (profile match)
+            for p in rule_based_prods:
+                if p.get('id') not in seen_ids:
+                    combined.append(p)
+                    seen_ids.add(p.get('id'))
+
+            # 3. Fill with random active products if not enough
+            remaining = limit - len(combined)
+            if remaining > 0:
+                others = [p for p in all_products if p.get('id') not in seen_ids]
+                random.shuffle(others)
+                combined.extend(others[:remaining])
+
+            # 4. Safety Filter: Check against allergies
+            health_note = user_profile.get('healthNote')
+            if user_id and health_note and isinstance(health_note, str):
+                allergies = health_note.lower()
+                combined = [p for p in combined if not self._is_allergic(p, allergies)]
+
+            return combined[:limit]
         except Exception as e:
             logger.error(f"Recommendation failed: {e}")
             return []
@@ -82,13 +101,13 @@ class RecommendationService:
         except:
             return []
 
-    async def _get_rule_based_suggestions(self, profile: Dict) -> List[int]:
+    def _get_profile_keywords(self, profile: Dict) -> List[str]:
         """
-        Simple rule-based mapping for Cold Start.
+        Map profile to descriptive keywords.
         """
         gender = (profile.get('gender') or "").upper()
-        # Calculate age if DOB exists
-        age = 25 # Default
+        # Calculate age
+        age = 25
         dob = profile.get('dateOfBirth')
         if dob:
             try:
@@ -97,45 +116,58 @@ class RecommendationService:
                 age = datetime.now().year - birth_year
             except: pass
 
-        # Mapping (Placeholder IDs - in real app, these would be category/product IDs)
-        # Note: In our current SQL, we don't have many products, so we'll return a mix
+        keywords = []
         if gender == "MALE":
-            if age < 30: return [1, 5, 10] # Gym, Vitamin, Energy
-            return [2, 6, 11] # Heart, Joints
+            keywords.extend(["nam", "phái mạnh", "sinh lý nam", "cơ bắp", "thể thao"])
+            if age > 45:
+                keywords.extend(["tim mạch", "huyết áp", "tiểu đường", "xương khớp"])
+            else:
+                keywords.extend(["vitamin", "tăng cường", "năng lượng"])
         elif gender == "FEMALE":
-            if age < 30: return [3, 7, 12] # Beauty, Skincare
-            return [4, 8, 13] # Bone health, Menopause
-        
-        return [1, 2, 3] # Default
+            keywords.extend(["nữ", "phái đẹp", "làm đẹp", "chăm sóc da", "nội tiết"])
+            if age > 45:
+                keywords.extend(["xương khớp", "loãng xương", "tiền mãn kinh", "chống lão hóa"])
+            else:
+                keywords.extend(["skincare", "collagen", "vitamin e", "giảm cân"])
+        else:
+            # Default for undefined profile
+            keywords.extend(["vitamin", "đề kháng", "sức khỏe", "phổ biến"])
 
-    async def _get_history_based_suggestions(self, history: List[Dict]) -> List[int]:
-        if not history: return []
+        return keywords
+
+    def _filter_by_keywords(self, products: List[Dict], keywords: List[str]) -> List[Dict]:
+        matched = []
+        for p in products:
+            content = f"{p.get('name', '')} {p.get('categoryName', '')} {p.get('description', '')}".lower()
+            score = 0
+            for kw in keywords:
+                if kw.lower() in content:
+                    score += 1
+            if score > 0:
+                p['_score'] = score
+                matched.append(p)
+        
+        # Sort by score descending
+        matched.sort(key=lambda x: x.get('_score', 0), reverse=True)
+        return matched
+
+    def _get_history_ids(self, history: List[Dict]) -> List[int]:
         ids = []
         for order in history[:5]:
             for item in order.get('items', []):
-                ids.append(item.get('medicineId'))
-        return ids
+                mid = item.get('medicineId')
+                if mid: ids.append(mid)
+        return list(set(ids))
 
-    async def _get_trending_products(self, limit: int = 5) -> List[int]:
-        # Placeholder: Return some IDs
-        return [1, 2, 3, 4, 5]
-
-    async def _fetch_products_by_ids(self, ids: List[int]) -> List[Dict]:
-        if not ids: return []
+    async def _fetch_all_products(self) -> List[Dict]:
         try:
             async with httpx.AsyncClient() as client:
-                # Correcting path from /api/medicines to /api/products
                 response = await client.get(f"{self.product_service_url}/api/products", timeout=5.0)
                 if response.status_code == 200:
-                    all_prods = response.json()
-                    # If it's a PageResponse, it might be in 'content'
-                    if isinstance(all_prods, dict) and 'content' in all_prods:
-                        all_prods = all_prods['content']
-                    
-                    if not isinstance(all_prods, list):
-                        return []
-                        
-                    return [p for p in all_prods if p and isinstance(p, dict) and p.get('id') in ids]
+                    data = response.json()
+                    if isinstance(data, dict) and 'content' in data:
+                        return data['content']
+                    return data if isinstance(data, list) else []
             return []
         except Exception as e:
             logger.error(f"Failed to fetch products: {e}")
