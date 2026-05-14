@@ -1,41 +1,65 @@
-# Milestone 5 Requirements: Prescription Management & AI OCR
+# Milestone 6 Requirements: Stability & Data Consistency Hardening
 
-## 1. Mục tiêu (Objectives)
-Thiết lập quy trình chuyên nghiệp cho việc mua thuốc kê đơn (RX), kết hợp sức mạnh của AI OCR để tự động hóa việc đọc đơn thuốc và hệ thống phê duyệt đơn thuốc từ Dược sĩ.
+**Defined:** 2026-05-14
+**Core Value:** Cung cấp trải nghiệm mua dược phẩm an toàn, tin cậy với dữ liệu nhất quán và phản hồi xác thực chuẩn.
 
-## 2. Các yêu cầu chức năng (Functional Requirements)
+## v1 Requirements
 
-### PRE-01: Hệ thống lưu trữ đơn thuốc (Prescription Storage)
-- **Mô tả:** Cho phép người dùng upload ảnh đơn thuốc (JPG, PNG).
-- **Kỹ thuật:** Tích hợp Cloudinary API để lưu trữ ảnh và trả về URL. Lưu URL và metadata đơn thuốc vào Database.
-- **Dữ liệu:** `user_id`, `image_url`, `status` (PENDING, APPROVED, REJECTED), `note`, `pharmacist_id`.
+### Cart Reliability
 
-### PRE-02: Quy trình Phê duyệt (Workflow)
-- **Trạng thái PENDING:** Khi người dùng upload đơn thuốc.
-- **Trạng thái APPROVED:** Dược sĩ xác nhận đơn thuốc hợp lệ.
-- **Trạng thái REJECTED:** Dược sĩ từ chối (kèm lý do).
-- **Ràng buộc:** Các sản phẩm thuốc có thuộc tính `requiresPrescription = true` chỉ có thể được nhấn "Đặt hàng" nếu người dùng có đơn thuốc tương ứng được APPROVED.
+- [ ] **CART-01**: User có thể đọc/ghi giỏ hàng mà không phát sinh `ClassCastException` khi dữ liệu lưu trên Redis hash.
+- [ ] **CART-02**: User vẫn truy cập được giỏ hàng đã tồn tại sau khi chuẩn hóa sang `GenericJackson2JsonRedisSerializer` (không mất dữ liệu hợp lệ).
 
-### PRE-03: AI OCR & Analysis (Gemini Multimodal)
-- **OCR:** Sử dụng Gemini 1.5 Flash để đọc văn bản từ hình ảnh đơn thuốc.
-- **Trích xuất thông tin:** Tên thuốc, liều lượng, cách dùng, bác sĩ kê đơn, ngày kê đơn.
-- **Mapping:** Đối soát Text thuốc từ OCR với danh mục `medicine` trong Database để gợi ý sản phẩm cho người dùng.
+### Authentication Robustness
 
-### PRE-04: Giao diện Dược sĩ (Pharmacist UI)
-- **Dashboard Duyệt đơn:** Danh sách các đơn thuốc PENDING.
-- **Xem chi tiết:** Hiển thị ảnh đơn thuốc và thông tin AI trích xuất được để Dược sĩ đối chiếu và nhấn nút Duyệt/Từ chối.
+- [ ] **AUTH-01**: User nhận `401 Unauthorized` (không phải `500`) khi access token hết hạn.
+- [ ] **AUTH-02**: User nhận `401 Unauthorized` (không phải `500`) khi access token sai định dạng hoặc chữ ký không hợp lệ.
+- [ ] **AUTH-03**: FE nhận payload lỗi xác thực ổn định để kích hoạt luồng refresh token tự động.
 
-### PRE-05: Thông báo Real-time
-- **WebSocket/FCM:** Gửi thông báo ngay lập tức cho người dùng khi đơn thuốc được cập nhật trạng thái.
+### Inventory Consistency
 
-## 3. Các yêu cầu phi chức năng (Non-functional Requirements)
-- **Bảo mật:** Ảnh đơn thuốc chỉ được truy cập bởi người dùng sở hữu và Dược sĩ hệ thống.
-- **Độ trễ AI:** Quá trình OCR không nên quá 10 giây.
-- **UX:** Luồng upload ảnh và nhận kết quả từ AI phải có loading states rõ ràng và chuyên nghiệp.
+- [ ] **INV-01**: User checkout đồng thời không gây trừ tồn kho trùng cho cùng lô hàng/sản phẩm.
+- [ ] **INV-02**: User luôn thấy số lượng tồn kho phản ánh đúng ngay sau giao dịch checkout thành công.
 
-## 4. Tiêu chí nghiệm thu (UAT)
-- [ ] Người dùng upload được ảnh đơn thuốc lên Cloudinary.
-- [ ] AI Gemini trả về đúng JSON thông tin thuốc từ ảnh.
-- [ ] Dược sĩ có thể duyệt đơn thuốc và trạng thái cập nhật đúng trong DB.
-- [ ] Người dùng nhận được thông báo khi đơn được duyệt.
-- [ ] Nút "Đặt hàng" của thuốc RX hoạt động đúng theo trạng thái đơn thuốc.
+### Quality Guardrails
+
+- [ ] **QUAL-01**: Dev có test bao phủ các nhánh lỗi serialization cart, JWT expired/malformed, và stock deduction cạnh tranh.
+- [ ] **QUAL-02**: Dev có log/chỉ báo đủ để truy vết lỗi xác thực hoặc lệch tồn kho khi vận hành.
+
+## v2 Requirements
+
+### Future Hardening
+
+- **LOCK-01**: Mở rộng sang Redis distributed lock đa node nếu tải tăng vượt khả năng pessimistic lock.
+- **QUAL-03**: Bổ sung stress test tự động với tải cao cho luồng checkout song song.
+
+## Out of Scope
+
+| Feature | Reason |
+|---------|--------|
+| Refactor toàn bộ kiến trúc Redis các service khác ngoài cart | Không cần thiết cho phạm vi bug-fix milestone này |
+| Thiết kế lại cơ chế auth end-to-end (OAuth flow, session model) | Chỉ cần chuẩn hóa handling lỗi JWT hiện có |
+| Tối ưu hiệu năng toàn hệ thống ở mức hạ tầng | Milestone tập trung độ đúng và độ ổn định nghiệp vụ |
+
+## Traceability
+
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| CART-01 | Phase 23 | Pending |
+| CART-02 | Phase 23 | Pending |
+| AUTH-01 | Phase 24 | Pending |
+| AUTH-02 | Phase 24 | Pending |
+| AUTH-03 | Phase 24 | Pending |
+| INV-01 | Phase 25 | Pending |
+| INV-02 | Phase 25 | Pending |
+| QUAL-01 | Phase 26 | Pending |
+| QUAL-02 | Phase 26 | Pending |
+
+**Coverage:**
+- v1 requirements: 9 total
+- Mapped to phases: 9
+- Unmapped: 0
+
+---
+*Requirements defined: 2026-05-14*
+*Last updated: 2026-05-14 after milestone v1.6 definition*

@@ -2,7 +2,7 @@
 
 ## Project Reference
 
-See: [.planning/PROJECT.md](file:///v:/TieuLuanTN\MedCare/.planning/PROJECT.md) (updated 2026-04-26)
+See: [.planning/PROJECT.md](file:///v:/TieuLuanTN\MedCare/.planning/PROJECT.md) (updated 2026-05-14)
 
 ## Quick Tasks
 
@@ -14,7 +14,7 @@ See: [.planning/PROJECT.md](file:///v:/TieuLuanTN\MedCare/.planning/PROJECT.md) 
 | project-progress-report | 2026-05-02 | Viết báo cáo tiến độ tiểu luận đồ án (Bao_Cao_Tien_Do.md) dựa trên codebase map hiện tại. |
 
 **Core value:** Cá nhân hóa trải nghiệm y tế và mang lại giá trị từ trí tuệ dữ liệu sức khỏe.
-**Current status:** Milestone 4 Started — Defining Requirements.
+**Current status:** Milestone 6 Started — Defining Requirements.
 
 ## Milestone 1: Core Flow Integration [COMPLETED]
 
@@ -22,16 +22,16 @@ See: [.planning/PROJECT.md](file:///v:/TieuLuanTN\MedCare/.planning/PROJECT.md) 
 
 ## Milestone 3: Hệ thống Chatbot AI Tư vấn [COMPLETED]
 
-## Current Milestone: Milestone 5 - Prescription Management & AI OCR
+## Current Milestone: Milestone 6 - Stability & Data Consistency Hardening
 
 ### Status
-- [x] Phase 19: Prescription Storage & Backend Workflow (Completed)
-- [x] Phase 20: AI OCR & Medicine Mapping (Completed)
-- [x] Phase 21: Real-time Notifications & Pharmacist UI (Completed)
-- [x] Phase 22: End-to-end Prescription Checkout Flow (Completed)
+- [ ] Phase 23: Cart Redis Serialization Hardening (Planned)
+- [ ] Phase 24: JWT Error Handling Standardization (Planned)
+- [ ] Phase 25: Inventory Concurrency Control (Planned)
+- [ ] Phase 26: Regression, Tests, and Observability (Planned)
 
 ### Next Action
-**MILESTONE 5 HOÀN TẤT.** Sẵn sàng cho việc đánh giá tổng thể hoặc chuyển sang Milestone tiếp theo.
+**MILESTONE 6 KHỞI TẠO.** Bắt đầu với Phase 23 để xử lý đồng nhất Redis serialization cho CartService.
 
 ---
-*Last updated: 2026-04-26*
+*Last updated: 2026-05-14*

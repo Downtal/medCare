@@ -49,16 +49,14 @@ Cung cấp trải nghiệm mua sắm dược phẩm an toàn, tin cậy với qu
 - [x] **Proactive Safety:** Cảnh báo tương tác thuốc tại Checkout dựa trên lịch sử mua hàng.
 - [x] **Adaptive Chatbot:** Xưng hô theo độ tuổi và hỗ trợ nhắc lịch/tái đặt đơn thuốc.
 
-## Current Milestone: v1.5 Prescription Management & AI OCR
+## Current Milestone: v1.6 Stability & Data Consistency Hardening
 
-**Goal:** Chuyên nghiệp hóa quy trình bán thuốc kê đơn (RX) bằng cách tích hợp quy trình duyệt đơn thuốc thực tế và công nghệ AI OCR để số hóa đơn thuốc bác sĩ.
+**Goal:** Ổn định các luồng nghiệp vụ cốt lõi bằng cách xử lý triệt để lỗi Redis serialization, chuẩn hóa phản hồi JWT lỗi về `401 Unauthorized`, và đồng bộ tồn kho an toàn khi checkout đồng thời.
 
 **Target features:**
-- **Prescription Workflow:** Quy trình Upload -> PENDING -> APPROVED/REJECTED dành cho các loại thuốc đặc biệt.
-- **AI OCR & Analysis:** Sử dụng Gemini Multimodal để đọc đơn thuốc từ ảnh, trích xuất dữ liệu thuốc và liều dùng.
-- **Prescription Mapping:** Tự động đối soát thuốc trong đơn với danh mục sản phẩm MedCare.
-- **Real-time Notifications:** Thông báo trạng thái duyệt đơn thuốc qua WebSocket/FCM.
-- **Storage Integration:** Lưu trữ ảnh đơn thuốc an toàn trên Cloudinary.
+- **Cart Redis Serialization:** Chuẩn hóa cấu hình serialization Redis của giỏ hàng sang `GenericJackson2JsonRedisSerializer` để loại bỏ `ClassCastException` khi đọc/ghi hash.
+- **JWT Error Handling:** Bắt `ExpiredJwtException`/token lỗi ngay tại Spring Security Filter và trả lỗi chuẩn `401` để FE xử lý refresh token.
+- **Inventory Concurrency Control:** Áp dụng khóa khi trừ tồn kho (ưu tiên pessimistic lock trong JPA, phương án mở rộng là Redis distributed lock) để tránh race condition và lệch tồn kho hiển thị.
 
 ### Ngoài phạm vi (Out of Scope)
 
@@ -67,8 +65,8 @@ Cung cấp trải nghiệm mua sắm dược phẩm an toàn, tin cậy với qu
 
 ## Ngữ cảnh dự án
 
-- Dự án đã hoàn thành Milestone 1, 2 và 3, thiết lập thành công luồng nghiệp vụ cốt lõi, kiểm thử và hệ thống Chatbot tư vấn.
-- Milestone 5 tập trung vào quản lý đơn thuốc (Prescription Management) và ứng dụng AI OCR để tự động hóa việc nhập liệu từ đơn thuốc giấy, giúp người dùng dễ dàng mua thuốc kê đơn một cách an toàn và đúng quy định.
+- Dự án đã hoàn thành Milestone 1, 2, 3, 4 và 5; các năng lực nghiệp vụ chính đã đi vào trạng thái vận hành.
+- Milestone 6 tập trung vào hardening kỹ thuật sau triển khai: xử lý lỗi runtime có tác động trải nghiệm người dùng, tăng tính nhất quán dữ liệu, và giảm rủi ro regression ở các luồng checkout/profile/cart.
 
 ## Các ràng buộc (Constraints)
 
@@ -90,10 +88,30 @@ Cung cấp trải nghiệm mua sắm dược phẩm an toàn, tin cậy với qu
 | Vitest cho Frontend | Tích hợp sẵn với Vite/Next.js, nhanh hơn Jest. | Milestone 2 |
 | Gemini Multimodal | OCR và phân tích đơn thuốc từ hình ảnh. | Milestone 5 |
 | Cloudinary Storage | Lưu trữ ảnh đơn thuốc và ảnh sản phẩm hiệu quả. | Milestone 5 |
+| GenericJackson2JsonRedisSerializer cho cart | Đồng nhất hash key/value serialization, giảm lỗi cast khi đọc dữ liệu Redis. | Milestone 6 |
+| JWT lỗi phải trả 401 tại filter | FE cần trạng thái xác thực chuẩn để điều phối refresh token. | Milestone 6 |
+| Pessimistic lock cho trừ tồn kho | Ngăn oversell và lệch tồn kho khi có nhiều checkout đồng thời. | Milestone 6 |
+
+## Evolution
+
+This document evolves at phase transitions and milestone boundaries.
+
+**After each phase transition** (via `$gsd-transition`):
+1. Requirements invalidated? -> Move to Out of Scope with reason
+2. Requirements validated? -> Move to Validated with phase reference
+3. New requirements emerged? -> Add to Active
+4. Decisions to log? -> Add to Key Decisions
+5. "What This Is" still accurate? -> Update if drifted
+
+**After each milestone** (via `$gsd-complete-milestone`):
+1. Full review of all sections
+2. Core Value check - still the right priority?
+3. Audit Out of Scope - reasons still valid?
+4. Update Context with current state
 
 ## Sự tiến triển
 
 Tài liệu này sẽ tiếp tục được cập nhật theo từng Milestone mới.
 
 ---
-*Cập nhật lần cuối: 2026-04-26 — Bắt đầu Milestone 5: Prescription Management & AI OCR*
+*Cập nhật lần cuối: 2026-05-14 — Bắt đầu Milestone 6: Stability & Data Consistency Hardening*
