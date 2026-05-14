@@ -10,7 +10,7 @@
 ## Tích hợp bên ngoài (External Integrations)
 - **Google Gemini AI:** Tích hợp qua `ai-service` (Python) để xử lý tư vấn y tế và phân tích đơn thuốc.
 - **Cloudinary:** Lưu trữ hình ảnh sản phẩm và đơn thuốc.
-- **GHN (Giao Hàng Nhanh):** Tích hợp trong `shipping-service` để quản lý logictics và phí vận chuyển.
+- **GHN (Giao Hàng Nhanh):** Tích hợp trong `shipping-service` để lấy dữ liệu Tỉnh/Huyện/Xã và tính phí vận chuyển.
 - **VNPay:** Xử lý thanh toán trực tuyến trong `payment-service`.
 - **Tesseract.js:** Thực hiện OCR phía client để trích xuất văn bản từ đơn thuốc trước khi gửi lên AI.
 - **NextAuth.js:** Xác thực người dùng và liên kết với `auth-service`.
