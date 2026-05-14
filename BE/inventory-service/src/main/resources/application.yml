@@ -17,6 +17,12 @@ spring:
       hibernate:
         format_sql: true
 
+management:
+  health:
+    redis:
+      enabled: false
+
+
 eureka:
   client:
     service-url:
@@ -30,3 +36,13 @@ application:
   security:
     jwt:
       secret-key: ${JWT_SECRET}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus,info
+  metrics:
+    tags:
+      application: ${spring.application.name}
+

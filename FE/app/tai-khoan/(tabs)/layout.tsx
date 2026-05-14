@@ -2,7 +2,7 @@
 
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
-import { User, Package, MapPin, FileCheck, Ticket, Star, Lock, LogOut, ChevronRight, Activity } from "lucide-react"
+import { User, Package, MapPin, FileCheck, Ticket, Star, Lock, LogOut, ChevronRight, Activity, ShieldCheck } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useSession } from "next-auth/react"
@@ -26,6 +26,16 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
     { id: "doi-mat-khau", label: "Đổi mật khẩu", icon: Lock, path: "/tai-khoan/doi-mat-khau" },
   ]
 
+  const isAdmin = user?.role === "ADMIN" || user?.role === "PHARMACIST"
+
+  const filteredMenuItems = isAdmin
+    ? [
+      { id: "admin", label: "Trang quản trị", icon: ShieldCheck, path: "/admin" },
+      ...menuItems.filter(item => !["voucher", "danh-gia", "suc-khoe", "don-thuoc", "dia-chi", "don-hang"].includes(item.id))
+    ]
+    : menuItems
+
+
   const handleLogout = async () => {
     await logoutUser(session?.user?.accessToken)
   }
@@ -33,7 +43,7 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
   return (
     <div className="min-h-screen flex flex-col bg-blue-50/30">
       <Header />
-      
+
       <main className="flex-1 container mx-auto px-4 py-8">
         <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-8">
           <div className="w-full lg:w-80 shrink-0 space-y-6">
@@ -56,17 +66,16 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
 
             <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
               <div className="p-2">
-                {menuItems.map((item) => {
+                {filteredMenuItems.map((item) => {
                   const isActive = pathname === item.path
                   return (
                     <Link
                       key={item.id}
                       href={item.path}
-                      className={`w-full flex items-center justify-between px-4 py-3.5 rounded-2xl transition-all ${
-                        isActive 
-                          ? "bg-blue-50 text-blue-700 font-bold" 
+                      className={`w-full flex items-center justify-between px-4 py-3.5 rounded-2xl transition-all ${isActive
+                          ? "bg-blue-50 text-blue-700 font-bold"
                           : "text-slate-600 hover:bg-slate-50"
-                      }`}
+                        }`}
                     >
                       <div className="flex items-center gap-3">
                         <item.icon className={`h-5 w-5 ${isActive ? "text-blue-600" : "text-slate-400"}`} />
@@ -76,9 +85,9 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
                     </Link>
                   )
                 })}
-                
+
                 <Separator className="my-2 mx-4 bg-slate-100" />
-                
+
                 <button
                   onClick={handleLogout}
                   className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl text-rose-600 hover:bg-rose-50 transition-all font-bold"

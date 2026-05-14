@@ -36,6 +36,9 @@ public class InventoryLog {
     @Column(name = "reference_id")
     private String referenceId;
 
+    @Column(name = "idempotency_key", unique = true, length = 120)
+    private String idempotencyKey;
+
     @Column(columnDefinition = "TEXT")
     private String notes;
 

@@ -1,10 +1,11 @@
 "use client"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Pencil, Save, X, Loader2, User, Phone, Mail, Calendar, UserCircle } from "lucide-react"
+import { Pencil, Save, X, Loader2, User, Phone, Mail, Calendar, UserCircle, ShieldCheck } from "lucide-react"
 import { useState, useEffect } from "react"
 import { useSession } from "next-auth/react"
 import { toast } from "sonner"
@@ -98,12 +99,15 @@ export default function ProfilePage() {
     <Card className="border-none shadow-sm rounded-3xl overflow-hidden animate-in fade-in slide-in-from-right-4 duration-500 bg-white">
       <CardHeader className="bg-slate-50 border-b border-slate-100 px-8 py-6 flex flex-row items-center justify-between">
         <CardTitle className="text-xl font-black text-slate-900 uppercase tracking-tight">Hồ sơ cá nhân</CardTitle>
-        {!isEditing && (
-          <Button variant="outline" size="sm" onClick={() => setIsEditing(true)} className="rounded-full px-5 border-blue-200 text-blue-600 hover:bg-blue-50">
-            <Pencil className="h-4 w-4 mr-2" />
-            Chỉnh sửa
-          </Button>
-        )}
+        <div className="flex gap-3">
+
+          {!isEditing && (
+            <Button variant="outline" size="sm" onClick={() => setIsEditing(true)} className="rounded-full px-5 border-blue-200 text-blue-600 hover:bg-blue-50">
+              <Pencil className="h-4 w-4 mr-2" />
+              Chỉnh sửa
+            </Button>
+          )}
+        </div>
       </CardHeader>
       <CardContent className="p-8">
         {isEditing ? (

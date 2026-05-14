@@ -13,6 +13,7 @@ import com.medcare.authservice.security.AuthJwtService;
 
 import com.medcare.authservice.service.AuthService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -23,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
@@ -376,12 +378,12 @@ public class AuthServiceImpl implements AuthService {
         user.setRole(UserRole.valueOf(role));
 
         userRepository.save(user);
+        
+        // Also revoke refresh tokens so the client must login again
+        refreshTokenRepository.deleteByUserId(userId);
 
         // SYNC: Update role in user-service
         syncUserProfile(userId, role, null);
-
-        // Also revoke refresh tokens so the client must login again
-        refreshTokenRepository.deleteByUserId(userId);
     }
 
     @Override
@@ -393,12 +395,12 @@ public class AuthServiceImpl implements AuthService {
 
         userRepository.save(user);
 
-        // SYNC: Update status in user-service
-        syncUserProfile(userId, null, status);
-
         if (UserStatus.BANNED.name().equals(status) || UserStatus.PENDING.name().equals(status)) {
             refreshTokenRepository.deleteByUserId(userId);
         }
+
+        // SYNC: Update status in user-service
+        syncUserProfile(userId, null, status);
     }
 
     /**
@@ -424,7 +426,8 @@ public class AuthServiceImpl implements AuthService {
                 userClient.updateProfile(userId, request);
             }
         } catch (Exception e) {
-            System.err.println("Failed to sync profile to user-service for user " + userId + ": " + e.getMessage());
+            log.error("Failed to sync profile to user-service for user {}: {}", userId, e.getMessage());
+            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Không thể đồng bộ trạng thái sang user-service: " + e.getMessage());
         }
     }
 
@@ -432,5 +435,20 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public void forceLogout(Long userId) {
         refreshTokenRepository.deleteByUserId(userId);
+    }
+
+    @Override
+    @Transactional
+    public void updateCredentials(Long userId, AuthInternalRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy người dùng"));
+
+        if (request.getEmail() != null) user.setEmail(request.getEmail());
+        if (request.getPhone() != null) user.setPhone(request.getPhone());
+        if (request.getRole() != null) user.setRole(UserRole.valueOf(request.getRole()));
+        if (request.getStatus() != null) user.setStatus(com.medcare.authservice.entity.UserStatus.valueOf(request.getStatus()));
+
+        userRepository.save(user);
+        log.info("Credentials/Role/Status updated for user ID: {} via internal sync", userId);
     }
 }

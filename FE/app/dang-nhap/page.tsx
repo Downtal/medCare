@@ -84,7 +84,14 @@ export default function LoginPage() {
         }))
       } else {
         // Đăng nhập thành công → redirect về trang được yêu cầu
-        router.push(callbackUrl)
+        const session = await (await import("next-auth/react")).getSession()
+        const userRole = session?.user?.role
+
+        if (userRole === "ADMIN" || userRole === "STAFF") {
+          router.push("/admin")
+        } else {
+          router.push(callbackUrl)
+        }
         router.refresh() // Refresh để Header cập nhật session
       }
     } catch {
@@ -318,7 +325,7 @@ export default function LoginPage() {
         <p className="mt-8 text-xs text-muted-foreground text-center">
           Bằng cách đăng nhập, bạn đồng ý với{" "}
           <Link href="/dieu-khoan-su-dung" className="underline underline-offset-2 hover:text-foreground">
-            Điều khoản sử dụng
+            Điều khoán sử dụng
           </Link>{" "}
           và{" "}
           <Link href="/chinh-sach-bao-mat" className="underline underline-offset-2 hover:text-foreground">

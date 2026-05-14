@@ -14,6 +14,7 @@ import { useSearchParams, useRouter } from "next/navigation"
 import Link from "next/link"
 import { getApiBaseUrl } from "@/lib/config"
 import { cn } from "@/lib/utils"
+import { inventoryService } from "@/services/inventoryService"
 
 const API_BASE = `${getApiBaseUrl()}/product-service/api`
 const PAGE_SIZE = 15
@@ -154,6 +155,21 @@ function StoreContent() {
       const res = await fetch(url, { cache: "no-store" })
       if (res.ok) {
         const data = await res.json()
+        
+        // Refresh real-time stock from inventory-service
+        if (data.content && data.content.length > 0) {
+          try {
+            const productIds = data.content.map((p: Product) => p.id)
+            const stockMap = await inventoryService.getStocksBulk(productIds)
+            data.content = data.content.map((p: Product) => ({
+              ...p,
+              stockQuantity: stockMap[p.id] !== undefined ? stockMap[p.id] : p.stockQuantity
+            }))
+          } catch (err) {
+            console.warn("Failed to fetch real-time stocks from inventory-service:", err)
+          }
+        }
+        
         setPageData(data)
       } else {
         // If slug-based lookup failed, try to fall back to all products

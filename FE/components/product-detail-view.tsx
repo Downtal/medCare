@@ -31,6 +31,7 @@ import { useCartAnimationStore } from "@/lib/store/useCartAnimationStore"
 import { toast } from "sonner"
 import { v4 as uuidv4 } from "uuid"
 import DOMPurify from "isomorphic-dompurify"
+import { inventoryService } from "@/services/inventoryService"
 
 const sanitizeContent = (content: string) => {
   return {
@@ -58,7 +59,21 @@ interface ProductDetailViewProps {
 export function ProductDetailView({ initialProduct, relatedProducts, reviews, productSlug }: ProductDetailViewProps) {
   const [quantity, setQuantity] = useState(1)
   const [selectedImage, setSelectedImage] = useState(getOptimizedImageUrl(initialProduct.primaryImageUrl || "/placeholder.svg"))
-  const product = initialProduct
+  const [product, setProduct] = useState<Product>(initialProduct)
+
+  useEffect(() => {
+    const refreshStock = async () => {
+      try {
+        const stock = await inventoryService.getProductStock(product.id)
+        if (stock !== undefined) {
+          setProduct(prev => ({ ...prev, stockQuantity: stock }))
+        }
+      } catch (err) {
+        console.warn("Failed to refresh product stock from inventory-service:", err)
+      }
+    }
+    refreshStock()
+  }, [product.id])
 
   const allImages = Array.from(new Set([
     product.primaryImageUrl,
@@ -79,6 +94,12 @@ export function ProductDetailView({ initialProduct, relatedProducts, reviews, pr
   const addAnimation = useCartAnimationStore((state) => state.addAnimation)
 
   const handleAddToCart = (e: React.MouseEvent) => {
+    // Prevent adding if stock is 0
+    if (typeof product.stockQuantity === 'number' && product.stockQuantity <= 0) {
+      toast.error("Sản phẩm này hiện đang hết hàng.");
+      return;
+    }
+
     // Trigger animation
     addAnimation({
       id: uuidv4(),

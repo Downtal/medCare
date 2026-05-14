@@ -1,6 +1,8 @@
 package com.medcare.common.exception;
 
 import com.medcare.common.dto.ApiResponse;
+import io.micrometer.core.instrument.MeterRegistry;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -13,7 +15,10 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @RestControllerAdvice
+@RequiredArgsConstructor
 public class GlobalExceptionHandler {
+
+    private final MeterRegistry meterRegistry;
 
     /**
      * Handle business exceptions (AppException with ErrorCode).
@@ -21,6 +26,13 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(AppException.class)
     public ResponseEntity<ApiResponse<Void>> handleAppException(AppException ex) {
         log.warn("[AppException] code={} message={}", ex.getErrorCode().getCode(), ex.getMessage());
+        
+        // Track business errors
+        meterRegistry.counter("medcare.exception.app", 
+                "code", ex.getErrorCode().name(),
+                "status", String.valueOf(ex.getErrorCode().getHttpStatus().value()))
+                .increment();
+
         ApiResponse<Void> body = ApiResponse.error(ex.getMessage(),
                 String.valueOf(ex.getErrorCode().getCode()));
         return ResponseEntity.status(ex.getErrorCode().getHttpStatus()).body(body);
@@ -63,7 +75,12 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleException(Exception ex) {
-        log.error("[UnhandledException] {}", ex.getMessage(), ex);
+        log.error("[UnhandledException] type={} message={}", ex.getClass().getSimpleName(), ex.getMessage(), ex);
+        
+        meterRegistry.counter("medcare.exception.unhandled", 
+                "type", ex.getClass().getSimpleName())
+                .increment();
+
         ApiResponse<Void> body = ApiResponse.error(
                 "An unexpected error occurred. Please try again later.",
                 String.valueOf(ErrorCode.INTERNAL_SERVER_ERROR.getCode()));

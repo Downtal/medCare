@@ -19,6 +19,7 @@ BE/**/target/
 BE/.gradle/
 BE/**/.gradle/
 BE/.gradle-home/
+.gradle-user-home/
 BE/**/venv/
 
 # compiled files

@@ -43,6 +43,7 @@ public class SecurityConfig {
                     "/api/auth/reset-password",
                     "/api/auth/verify-registration",
                     "/api/auth/resend-verification-otp",
+                    "/api/auth/internal/**",
                     "/api/eureka/**"
                 ).permitAll()
                 // Change password, Logout, etc require authentication

@@ -13,6 +13,7 @@ import com.medcare.orderservice.entity.*;
 import com.medcare.orderservice.repository.OrderRepository;
 import com.medcare.orderservice.repository.OrderStatusLogRepository;
 import com.medcare.orderservice.service.strategy.OrderStrategyFactory;
+import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -138,6 +139,13 @@ public class OrderService {
                     .orderCode(order.getOrderCode())
                     .build());
             log.info("Successfully deducted stock for order {}", order.getOrderCode());
+        } catch (FeignException feignException) {
+            log.error("Failed to deduct stock for order {} with status {}: {}",
+                    order.getOrderCode(), feignException.status(), feignException.getMessage());
+            if (isInventoryConflict(feignException)) {
+                throw new AppException(ErrorCode.INVENTORY_CONFLICT);
+            }
+            throw new AppException(ErrorCode.INSUFFICIENT_STOCK, "Đặt hàng thất bại: Sản phẩm trong giỏ hàng đã hết hoặc không đủ số lượng.");
         } catch (Exception e) {
             log.error("Failed to deduct stock for order {}: {}", order.getOrderCode(), e.getMessage());
             throw new AppException(ErrorCode.INSUFFICIENT_STOCK, "Đặt hàng thất bại: Sản phẩm trong giỏ hàng đã hết hoặc không đủ số lượng.");
@@ -422,5 +430,18 @@ public class OrderService {
         String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyMMddHHmm"));
         int random = new Random().nextInt(900) + 100;
         return "MC" + timestamp + random;
+    }
+
+    private boolean isInventoryConflict(FeignException feignException) {
+        if (feignException.status() != 409) {
+            return false;
+        }
+
+        String content = feignException.contentUTF8();
+        if (content == null || content.isBlank()) {
+            return false;
+        }
+
+        return content.contains("\"errorCode\":\"3003\"") || content.contains("\"errorCode\":3003");
     }
 }

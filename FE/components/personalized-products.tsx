@@ -9,6 +9,7 @@ import { Sparkles, Loader2, ChevronRight } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import type { Product } from "@/lib/types"
 import Link from "next/link"
+import { inventoryService } from "@/services/inventoryService"
 
 export function PersonalizedProducts() {
   const { data: session } = useSession()
@@ -29,7 +30,22 @@ export function PersonalizedProducts() {
         })
 
         if (res.ok) {
-          const data = await res.json()
+          let data = await res.json()
+          
+          // Refresh real-time stock from inventory-service
+          if (Array.isArray(data) && data.length > 0) {
+            try {
+              const productIds = data.map((p: Product) => p.id)
+              const stockMap = await inventoryService.getStocksBulk(productIds)
+              data = data.map((p: Product) => ({
+                ...p,
+                stockQuantity: stockMap[p.id] !== undefined ? stockMap[p.id] : p.stockQuantity
+              }))
+            } catch (err) {
+              console.warn("Failed to fetch real-time stocks in recommendations:", err)
+            }
+          }
+          
           setProducts(data)
         } else {
           console.error(`Recommendations failed with status: ${res.status} ${res.statusText}`)
@@ -108,6 +124,7 @@ export function PersonalizedProducts() {
                   rating={4.9}
                   image={product.primaryImageUrl || "/placeholder.svg"}
                   requiresPrescription={product.requiresPrescription}
+                  stockQuantity={product.stockQuantity}
                 />
               ))}
             </motion.div>

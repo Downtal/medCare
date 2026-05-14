@@ -27,6 +27,7 @@ public enum ErrorCode {
     // ---- Product ----
     PRODUCT_NOT_FOUND(3001, "Product not found", HttpStatus.NOT_FOUND),
     INSUFFICIENT_STOCK(3002, "Insufficient stock", HttpStatus.CONFLICT),
+    INVENTORY_CONFLICT(3003, "Inventory is being updated. Please try again.", HttpStatus.CONFLICT),
 
     // ---- Order ----
     ORDER_NOT_FOUND(4001, "Order not found", HttpStatus.NOT_FOUND),

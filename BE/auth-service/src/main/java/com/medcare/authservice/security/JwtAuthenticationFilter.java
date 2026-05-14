@@ -1,6 +1,14 @@
 package com.medcare.authservice.security;
 
 import com.medcare.authservice.repository.UserRepository;
+import com.medcare.common.security.JwtAuthErrorType;
+import com.medcare.common.security.JwtAuthErrorWriter;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.MalformedJwtException;
+import io.jsonwebtoken.UnsupportedJwtException;
+import io.jsonwebtoken.security.SignatureException;
+import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -28,6 +36,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final AuthJwtService jwtService;
     private final UserRepository userRepository;
+    private final MeterRegistry meterRegistry;
+    private final JwtAuthErrorWriter jwtAuthErrorWriter = new JwtAuthErrorWriter();
 
     @Override
     protected void doFilterInternal(
@@ -46,9 +56,30 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         final String username;
 
         try {
+            if (jwt.isBlank()) {
+                writeAuthError(request, response, JwtAuthErrorType.TOKEN_MISSING_OR_EMPTY, null);
+                return;
+            }
             username = jwtService.extractUsername(jwt);
+        } catch (ExpiredJwtException e) {
+            writeAuthError(request, response, JwtAuthErrorType.TOKEN_EXPIRED, e);
+            return;
+        } catch (MalformedJwtException | SignatureException e) {
+            writeAuthError(request, response, JwtAuthErrorType.TOKEN_INVALID, e);
+            return;
+        } catch (UnsupportedJwtException e) {
+            writeAuthError(request, response, JwtAuthErrorType.TOKEN_UNSUPPORTED, e);
+            return;
+        } catch (IllegalArgumentException e) {
+            writeAuthError(request, response, JwtAuthErrorType.TOKEN_MISSING_OR_EMPTY, e);
+            return;
+        } catch (JwtException e) {
+            writeAuthError(request, response, JwtAuthErrorType.TOKEN_INVALID, e);
+            return;
         } catch (Exception e) {
-            filterChain.doFilter(request, response);
+            log.warn("Unexpected JWT processing failure. path={} method={} remoteIp={} exceptionClass={}",
+                    request.getRequestURI(), request.getMethod(), request.getRemoteAddr(), e.getClass().getSimpleName());
+            SecurityContextHolder.clearContext();
             return;
         }
 
@@ -68,5 +99,27 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    private void writeAuthError(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            JwtAuthErrorType errorType,
+            Exception exception
+    ) throws IOException {
+        SecurityContextHolder.clearContext();
+        
+        meterRegistry.counter("medcare.auth.jwt.errors", "type", errorType.name()).increment();
+
+        if (errorType == JwtAuthErrorType.TOKEN_EXPIRED) {
+            log.debug("JWT auth failed. errorCode={} path={} method={} remoteIp={} exceptionClass={}",
+                    errorType.getCode(), request.getRequestURI(), request.getMethod(), request.getRemoteAddr(),
+                    exception == null ? "N/A" : exception.getClass().getSimpleName());
+        } else {
+            log.warn("JWT auth failed. errorCode={} path={} method={} remoteIp={} exceptionClass={}",
+                    errorType.getCode(), request.getRequestURI(), request.getMethod(), request.getRemoteAddr(),
+                    exception == null ? "N/A" : exception.getClass().getSimpleName());
+        }
+        jwtAuthErrorWriter.writeUnauthorized(response, errorType);
     }
 }

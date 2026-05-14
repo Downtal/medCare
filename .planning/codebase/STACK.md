@@ -26,7 +26,7 @@
 - **Icons:** Lucide React
 
 ## Cơ sở hạ tầng & Công cụ
-- **Quản lý môi trường:** `.env` (FE/BE), `application.yml` (Java), `.env.local` (FE)
+- **Quản lý môi trường:** `.env` (BE), `application.yml` (Java), `.env.local` (FE)
 - **Lưu trữ đa phương tiện:** Cloudinary
 - **Dịch vụ bên thứ ba:** GHN (Giao Hàng Nhanh) cho vận chuyển, VNPay cho thanh toán, Google Gemini AI.
 - **IDE:** IntelliJ IDEA / VS Code

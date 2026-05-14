@@ -26,6 +26,7 @@ public class UserServiceImpl implements UserService {
     private final AddressRepository addressRepository;
     private final com.medcare.userservice.repository.UserHealthNoteRepository userHealthNoteRepository;
     private final com.medcare.userservice.repository.UserHealthMetricRepository userHealthMetricRepository;
+    private final com.medcare.userservice.client.AuthClient authClient;
 
     // ───────────────── Profile operations ─────────────────
 
@@ -108,6 +109,23 @@ public class UserServiceImpl implements UserService {
         if (request.getStatus() != null) profile.setStatus(request.getStatus());
         if (request.getDateOfBirth() != null) profile.setDateOfBirth(request.getDateOfBirth());
         if (request.getGender() != null) profile.setGender(request.getGender());
+        
+        // SYNC back to auth-service if email, phone, role, or status changed
+        if (request.getEmail() != null || request.getPhone() != null || request.getRole() != null || request.getStatus() != null) {
+            try {
+                authClient.updateCredentials(userId, com.medcare.userservice.client.AuthClient.AuthInternalRequest.builder()
+                        .email(profile.getEmail())
+                        .phone(profile.getPhone())
+                        .role(profile.getRole())
+                        .status(profile.getStatus())
+                        .build());
+            } catch (Exception e) {
+                // We log it but don't fail the whole transaction if auth-service is down? 
+                // Actually, for data consistency, maybe we should fail? 
+                // Given the user's request for sync, I'll let it throw so the transaction rolls back.
+                throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Không thể đồng bộ thông tin sang auth-service: " + e.getMessage());
+            }
+        }
 
         UserProfile updated = userProfileRepository.save(profile);
         return mapToDto(updated);

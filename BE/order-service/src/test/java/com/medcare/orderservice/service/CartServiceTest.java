@@ -4,9 +4,9 @@ import com.medcare.orderservice.client.ProductClient;
 import com.medcare.orderservice.dto.CartDto;
 import com.medcare.orderservice.dto.CartItemDto;
 import com.medcare.orderservice.dto.CartItemRequest;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -15,6 +15,8 @@ import org.springframework.data.redis.core.RedisTemplate;
 
 import java.math.BigDecimal;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -167,5 +169,100 @@ class CartServiceTest {
         assertNotNull(result);
         assertEquals(2, result.getItems().size());
         assertEquals(BigDecimal.valueOf(150000), result.getTotalAmount());
+    }
+
+    @Test
+    void shouldRecoverLegacyItemAndRewriteWhenGettingCart() {
+        // Given
+        when(redisTemplate.opsForHash()).thenReturn(hashOperations);
+        Map<String, Object> legacy = new LinkedHashMap<>();
+        legacy.put("medicineId", 1L);
+        legacy.put("name", "Paracetamol");
+        legacy.put("quantity", 2);
+        legacy.put("unitPrice", BigDecimal.valueOf(50000));
+        legacy.put("totalPrice", BigDecimal.valueOf(100000));
+
+        Map<Object, Object> entries = new HashMap<>();
+        entries.put("1", legacy);
+        when(hashOperations.entries("cart:user:legacy")).thenReturn(entries);
+
+        ProductClient.ProductDto product = new ProductClient.ProductDto();
+        product.setId(1L);
+        product.setStockQuantity(88);
+        when(productClient.getProductById(1L)).thenReturn(product);
+
+        // When
+        CartDto result = cartService.getCart("user:legacy");
+
+        // Then
+        assertEquals(1, result.getItems().size());
+        assertEquals(1L, result.getItems().get(0).getMedicineId());
+        assertEquals(88, result.getItems().get(0).getStockQuantity());
+        verify(hashOperations).put(eq("cart:user:legacy"), eq("1"), any(CartItemDto.class));
+    }
+
+    @Test
+    void shouldSkipCorruptedEntryAndKeepValidEntries() {
+        // Given
+        when(redisTemplate.opsForHash()).thenReturn(hashOperations);
+
+        CartItemDto valid = CartItemDto.builder()
+                .medicineId(1L)
+                .quantity(1)
+                .totalPrice(BigDecimal.valueOf(10000))
+                .build();
+
+        Map<Object, Object> entries = new HashMap<>();
+        entries.put("1", valid);
+        entries.put("2", "broken-serialized-value");
+        when(hashOperations.entries("cart:user:broken")).thenReturn(entries);
+
+        // When
+        CartDto result = cartService.getCart("user:broken");
+
+        // Then
+        assertNotNull(result);
+        assertEquals(1, result.getItems().size());
+        assertEquals(BigDecimal.valueOf(10000), result.getTotalAmount());
+        verify(hashOperations, never()).put(eq("cart:user:broken"), eq("2"), any());
+    }
+
+    @Test
+    void shouldMergeQuantityFromLegacyEntryWhenAddingItem() {
+        // Given
+        when(redisTemplate.opsForHash()).thenReturn(hashOperations);
+        String cartId = "user:legacy-add";
+
+        CartItemRequest request = new CartItemRequest();
+        request.setMedicineId(1L);
+        request.setQuantity(3);
+
+        Map<String, Object> legacy = new LinkedHashMap<>();
+        legacy.put("medicineId", 1L);
+        legacy.put("name", "Paracetamol");
+        legacy.put("quantity", 2);
+        legacy.put("unitPrice", BigDecimal.valueOf(50000));
+        legacy.put("totalPrice", BigDecimal.valueOf(100000));
+        when(hashOperations.get("cart:" + cartId, "1")).thenReturn(legacy);
+
+        ProductClient.ProductDto product = new ProductClient.ProductDto();
+        product.setId(1L);
+        product.setName("Paracetamol");
+        product.setPrice(BigDecimal.valueOf(50000));
+        product.setOriginalPrice(BigDecimal.valueOf(60000));
+        product.setStockQuantity(100);
+        when(productClient.getProductById(1L)).thenReturn(product);
+
+        ArgumentCaptor<CartItemDto> captor = ArgumentCaptor.forClass(CartItemDto.class);
+
+        // When
+        cartService.addItemToCart(cartId, request);
+
+        // Then
+        verify(hashOperations, atLeast(1)).put(eq("cart:" + cartId), eq("1"), captor.capture());
+        List<CartItemDto> captured = captor.getAllValues();
+        CartItemDto latest = captured.get(captured.size() - 1);
+        assertEquals(5, latest.getQuantity());
+        assertEquals(BigDecimal.valueOf(250000), latest.getTotalPrice());
     }
 }

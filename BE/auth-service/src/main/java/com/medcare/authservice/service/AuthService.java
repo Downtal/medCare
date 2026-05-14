@@ -31,4 +31,7 @@ public interface AuthService {
     void updateUserRole(Long userId, String role);
     void updateUserStatus(Long userId, String status);
     void forceLogout(Long userId);
+
+    /** Internal sync from user-service */
+    void updateCredentials(Long userId, com.medcare.authservice.dto.AuthInternalRequest request);
 }
