@@ -106,7 +106,7 @@ export function PersonalizedProducts() {
 
         <AnimatePresence mode="wait">
           {loading ? (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-8" data-testid="homepage-recommendation-loading">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 lg:gap-8" data-testid="homepage-recommendation-loading">
               {[1, 2, 3, 4].map(i => (
                 <div key={i} className="bg-white border border-slate-100 rounded-[32px] p-6 space-y-4">
                   <div className="aspect-square bg-slate-100 rounded-2xl animate-shimmer relative overflow-hidden">
@@ -132,7 +132,7 @@ export function PersonalizedProducts() {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8 md:gap-10"
+              className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-8"
               data-testid="homepage-recommendation-ready"
             >
               {products.map((product) => (

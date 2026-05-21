@@ -28,6 +28,13 @@ import {
   DialogContent,
   DialogTitle,
 } from "@/components/ui/dialog"
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet"
 import { logoutUser } from "@/lib/logout"
 import { toast } from "sonner"
 import {
@@ -347,9 +354,139 @@ export function Header() {
         </div>
 
         {/* Main Header */}
-        <div className="container mx-auto px-4 py-4 md:py-6">
-          <div className="flex items-center justify-between gap-4 lg:gap-12">
-            <Link href="/" className="flex items-center gap-3 shrink-0 hover:opacity-90 transition-opacity">
+        <div className="container mx-auto px-4 py-3 md:py-6">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 lg:gap-12">
+            
+            {/* Mobile Header Row: Menu, Logo, Cart */}
+            <div className="flex items-center justify-between w-full md:hidden">
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button variant="ghost" size="icon" className="rounded-xl h-10 w-10 text-primary shrink-0">
+                    <Menu className="h-6 w-6" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="left" className="w-[300px] p-0 flex flex-col bg-white border-r border-slate-100">
+                  <SheetHeader className="px-6 pt-6 pb-4 border-b border-slate-100">
+                    <div className="flex items-center gap-2">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary text-white shadow-md">
+                        <Pill className="h-5 w-5" />
+                      </div>
+                      <SheetTitle className="text-lg font-black text-primary tracking-tight uppercase">MedCare</SheetTitle>
+                    </div>
+                  </SheetHeader>
+                  
+                  <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+                    <div className="space-y-1">
+                      <Link href="/" className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-slate-700 font-bold hover:bg-slate-50 transition-colors">
+                        Trang chủ
+                      </Link>
+                      <Link href="/cua-hang" className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-slate-700 font-bold hover:bg-slate-50 transition-colors">
+                        Cửa hàng
+                      </Link>
+                      <Link href="/khuyen-mai" className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-slate-700 font-bold hover:bg-slate-50 transition-colors">
+                        Khuyến mãi
+                      </Link>
+                      <Link href="/tu-van" className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-slate-700 font-bold hover:bg-slate-50 transition-colors">
+                        Tư vấn sức khỏe
+                      </Link>
+                    </div>
+                    
+                    <div className="border-t border-slate-100 my-2" />
+                    
+                    <div>
+                      <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-4 mb-2">Danh mục sản phẩm</h4>
+                      <div className="space-y-1">
+                        {loadingNav ? (
+                          <div className="space-y-2 px-4 py-2">
+                            {[1, 2, 3].map(i => (
+                              <div key={i} className="h-4 w-full bg-slate-100 animate-pulse rounded-lg" />
+                            ))}
+                          </div>
+                        ) : categories.length > 0 ? (
+                          categories.map((cat) => (
+                            <div key={cat.id} className="space-y-1">
+                              <Link
+                                href={`/cua-hang?category=${cat.slug}`}
+                                className="flex items-center justify-between px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-50 transition-colors text-sm font-semibold"
+                              >
+                                <span>{cat.name}</span>
+                              </Link>
+                              {cat.children && cat.children.length > 0 && (
+                                <div className="pl-6 border-l border-slate-100 ml-6 space-y-1">
+                                  {cat.children.map((sub: any) => (
+                                    <Link
+                                      key={sub.id}
+                                      href={`/cua-hang?category=${sub.slug}`}
+                                      className="block px-2 py-1.5 text-xs text-slate-500 hover:text-primary transition-colors"
+                                    >
+                                      {sub.name}
+                                    </Link>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          ))
+                        ) : (
+                          <p className="text-xs text-slate-400 px-4 py-2 font-medium">Không thể tải danh mục. Vui lòng kiểm tra kết nối server.</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="p-4 border-t border-slate-100 bg-slate-50/50">
+                    {displayName ? (
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-3 px-4 py-2">
+                          <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                            <User className="h-4 w-4 text-primary" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Tài khoản</p>
+                            <p className="text-sm font-bold text-slate-800 truncate">{displayName}</p>
+                          </div>
+                        </div>
+                        <Button variant="outline" className="w-full justify-start rounded-xl text-xs font-bold" asChild>
+                          <Link href="/tai-khoan/ho-so">Trang cá nhân</Link>
+                        </Button>
+                        <Button variant="ghost" className="w-full justify-start rounded-xl text-xs font-bold text-red-600 hover:bg-red-50" onClick={() => logoutUser(session?.user?.accessToken)}>
+                          <LogOut className="h-4 w-4 mr-2" /> Đăng xuất
+                        </Button>
+                      </div>
+                    ) : (
+                      <Button className="w-full rounded-xl font-bold text-sm bg-primary shadow-none" asChild>
+                        <Link href="/dang-nhap">Đăng nhập / Đăng ký</Link>
+                      </Button>
+                    )}
+                  </div>
+                </SheetContent>
+              </Sheet>
+
+              <Link href="/" className="flex items-center gap-2 hover:opacity-90 transition-opacity">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-md shadow-primary/20 shrink-0">
+                  <Pill className="h-5 w-5" />
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-[16px] font-black tracking-tight text-primary leading-none uppercase">MedCare</span>
+                  <span className="text-[8px] font-bold text-muted-foreground tracking-[0.15em] mt-0.5 uppercase">Health</span>
+                </div>
+              </Link>
+
+              <Link
+                ref={cartIconRef}
+                href="/gio-hang"
+                className="relative rounded-xl h-10 w-10 flex items-center justify-center hover:bg-primary/5 transition-all group shrink-0"
+              >
+                <ShoppingCart className="h-5 w-5 text-foreground group-hover:text-primary transition-colors" />
+                {cartCount > 0 && (
+                  <Badge className="absolute top-0.5 right-0.5 h-4 w-4 rounded-full p-0 text-[8px] bg-primary text-primary-foreground border-2 border-background flex items-center justify-center shadow-md">
+                    {cartCount}
+                  </Badge>
+                )}
+              </Link>
+            </div>
+
+            {/* Desktop Logo (hidden on mobile) */}
+            <Link href="/" className="hidden md:flex items-center gap-3 shrink-0 hover:opacity-90 transition-opacity">
               <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/30">
                 <Pill className="h-7 w-7" />
               </div>
@@ -359,11 +496,12 @@ export function Header() {
               </div>
             </Link>
 
-            <div className="flex-1 max-w-2xl relative" ref={searchContainerRef}>
+            {/* Search Input (Row 2 on mobile, flex-1 on desktop) */}
+            <div className="flex-1 w-full md:max-w-2xl relative" ref={searchContainerRef}>
               <form onSubmit={handleSearch} className="group relative flex items-center">
                 <Search className="absolute left-4 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
                 <Input type="search" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} onFocus={() => setSearchOverlayOpen(true)} placeholder="Tìm tên thuốc, triệu chứng, thương hiệu..." className="pl-12 pr-28 h-12 rounded-2xl border-2 border-muted focus-visible:border-primary transition-all bg-muted/30 font-medium text-sm lg:text-base outline-none !ring-0" />
-                <div className="absolute right-3 hidden sm:flex items-center gap-1.5">
+                <div className="absolute right-3 flex items-center gap-1.5">
                   <Button type="button" variant="ghost" size="icon" className="h-9 w-9 rounded-xl text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors" onClick={() => { setVoiceModalOpen(true); setVoiceQuery(""); voiceQueryRef.current = "" }}><Mic className="h-5 w-5" /></Button>
                   <Button type="button" variant="ghost" size="icon" className="h-9 w-9 rounded-xl text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors" onClick={() => { setImageModalOpen(true); setSelectedImage(null); setIsScanning(false) }}><Scan className="h-5 w-5" /></Button>
                 </div>
@@ -371,11 +509,12 @@ export function Header() {
               <SearchOverlay query={searchQuery} isOpen={searchOverlayOpen} onClose={() => setSearchOverlayOpen(false)} onSelectKeyword={(kw) => handleSearch(undefined, kw)} />
             </div>
 
-            <div className="flex items-center gap-1 sm:gap-4 shrink-0">
+            {/* Desktop Actions (hidden on mobile) */}
+            <div className="hidden md:flex items-center gap-1 sm:gap-4 shrink-0">
               {displayName ? (
                 <Button
                   variant="ghost"
-                  className="hidden sm:flex items-center gap-3 px-4 rounded-2xl hover:bg-primary/5 transition-all group border border-transparent hover:border-primary/10"
+                  className="flex items-center gap-3 px-4 rounded-2xl hover:bg-primary/5 transition-all group border border-transparent hover:border-primary/10"
                   asChild
                 >
                   <Link href="/tai-khoan/ho-so">
@@ -389,12 +528,10 @@ export function Header() {
                   </Link>
                 </Button>
               ) : (
-                <Button size="lg" className="hidden sm:flex rounded-2xl px-6 font-bold text-sm shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all" asChild>
+                <Button size="lg" className="flex rounded-2xl px-6 font-bold text-sm shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all" asChild>
                   <Link href="/dang-nhap">Đăng nhập</Link>
                 </Button>
               )}
-
-              {/* Notification button removed */}
 
               <Link
                 ref={cartIconRef}
@@ -409,14 +546,12 @@ export function Header() {
                   </Badge>
                 )}
               </Link>
-
-              <Button variant="ghost" size="icon" className="md:hidden rounded-xl h-10 w-10 text-primary"><Menu className="h-6 w-6" /></Button>
             </div>
           </div>
         </div>
 
         {/* Dynamic Mega Menu with Radix UI */}
-        <nav className="border-t border-border bg-white shadow-sm overflow-visible h-14">
+        <nav className="border-t border-border bg-white shadow-sm overflow-visible h-14 hidden md:block">
           <div className="container mx-auto px-4 h-full flex items-center">
             {loadingNav ? (
               <div className="flex items-center gap-6">

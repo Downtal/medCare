@@ -21,6 +21,7 @@ interface CartState {
   totalAmount: number;
   isLoading: boolean;
   error: string | null;
+  isGuestCart: boolean;
   // Actions
   initializeCart: (token?: string) => Promise<void>;
   addItem: (item: CartItem, token?: string) => Promise<void>;
@@ -52,14 +53,22 @@ export const useCartStore = create<CartState>()(
       totalAmount: 0,
       isLoading: false,
       error: null,
+      isGuestCart: true,
 
       initializeCart: async (token?: string) => {
+        if (!token) {
+          // If we had an authenticated cart cached previously, clear it on logout
+          if (!get().isGuestCart) {
+            set({ items: [], totalAmount: 0, isGuestCart: true });
+          }
+          return;
+        }
         set({ isLoading: true });
         try {
           const res = await fetchWithAuth(`${API_BASE}/me`, {}, token);
           if (res.ok) {
              const data = await res.json();
-             set({ items: data.items, totalAmount: data.totalAmount });
+             set({ items: data.items, totalAmount: data.totalAmount, isGuestCart: false });
           }
         } catch (error) {
           console.error("Failed to sync cart", error);
@@ -71,21 +80,33 @@ export const useCartStore = create<CartState>()(
       addItem: async (item: CartItem, token?: string) => {
         const { items } = get();
         
-        // Optimistic update
+        // Optimistic update (immutable)
         const existingItemIndex = items.findIndex((i: CartItem) => i.medicineId === item.medicineId);
-        let newItems = [...items];
+        let newItems;
         
         if (existingItemIndex >= 0) {
-          const existingItem = newItems[existingItemIndex];
-          existingItem.quantity += item.quantity;
-          existingItem.totalPrice = existingItem.unitPrice * existingItem.quantity;
+          newItems = items.map((i, idx) => {
+            if (idx === existingItemIndex) {
+              const newQuantity = i.quantity + item.quantity;
+              return {
+                ...i,
+                quantity: newQuantity,
+                totalPrice: i.unitPrice * newQuantity
+              };
+            }
+            return i;
+          });
         } else {
-          item.totalPrice = item.unitPrice * item.quantity;
-          newItems.push(item);
+          newItems = [...items, { ...item, totalPrice: item.unitPrice * item.quantity }];
         }
         
         const newTotal = newItems.reduce((sum: number, i: CartItem) => sum + i.totalPrice, 0);
-        set({ items: newItems, totalAmount: newTotal });
+        set({ items: newItems, totalAmount: newTotal, isGuestCart: !token });
+
+        if (!token) {
+          // If guest, do not sync to backend
+          return;
+        }
 
         // Background sync
         try {
@@ -117,7 +138,11 @@ export const useCartStore = create<CartState>()(
            return item;
         });
         const newTotal = newItems.reduce((sum: number, i: CartItem) => sum + i.totalPrice, 0);
-        set({ items: newItems, totalAmount: newTotal });
+        set({ items: newItems, totalAmount: newTotal, isGuestCart: !token });
+
+        if (!token) {
+          return;
+        }
 
         // Background sync
         try {
@@ -135,7 +160,11 @@ export const useCartStore = create<CartState>()(
         // Optimistic update
         const newItems = items.filter((item: CartItem) => item.medicineId !== medicineId);
         const newTotal = newItems.reduce((sum: number, i: CartItem) => sum + i.totalPrice, 0);
-        set({ items: newItems, totalAmount: newTotal });
+        set({ items: newItems, totalAmount: newTotal, isGuestCart: !token });
+
+        if (!token) {
+          return;
+        }
 
         // Background sync
         try {
@@ -148,7 +177,10 @@ export const useCartStore = create<CartState>()(
       },
 
       clearCart: async (token?: string) => {
-        set({ items: [], totalAmount: 0 });
+        set({ items: [], totalAmount: 0, isGuestCart: !token });
+        if (!token) {
+          return;
+        }
         try {
           await fetchWithAuth(`${API_BASE}/me/clear`, {
             method: 'DELETE'
@@ -159,12 +191,38 @@ export const useCartStore = create<CartState>()(
       },
 
       mergeCart: async (token: string) => {
+        if (!get().isGuestCart) {
+          // Already user's cart, just refresh it from server
+          await get().initializeCart(token);
+          return;
+        }
+
+        const localItems = get().items;
         try {
-          // Both ids managed server-side: guest (cookie) and user (JWT)
-          const res = await fetchWithAuth(`${API_BASE}/merge`, { method: 'POST' }, token);
-          if (res.ok) {
-            await get().initializeCart(token);
+          if (localItems.length > 0) {
+            // Upload each local item to the backend user cart
+            await Promise.all(
+              localItems.map(async (item) => {
+                try {
+                  await fetchWithAuth(`${API_BASE}/me/items`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      medicineId: item.medicineId,
+                      quantity: item.quantity
+                    }),
+                  }, token);
+                } catch (e) {
+                  console.error(`Failed to merge item ${item.medicineId}`, e);
+                }
+              })
+            );
           }
+          
+          set({ isGuestCart: false });
+          
+          // Initialize the cart from the server to get the updated list
+          await get().initializeCart(token);
         } catch (error) {
            console.error("Failed to merge carts", error);
         }
@@ -173,7 +231,11 @@ export const useCartStore = create<CartState>()(
     {
       name: 'medcare-cart-storage',
       storage: createJSONStorage(() => localStorage),
-      partialize: (state: CartState) => ({ items: state.items, totalAmount: state.totalAmount }),
+      partialize: (state: CartState) => ({ 
+        items: state.items, 
+        totalAmount: state.totalAmount,
+        isGuestCart: state.isGuestCart
+      }),
     }
   )
 )

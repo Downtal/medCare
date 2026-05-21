@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { MessageCircle, X, Minimize2, Maximize2, Send, Bot, User, Sparkles, AlertCircle, ThumbsUp, ThumbsDown, Image as ImageIcon, Loader2 } from "lucide-react";
+import { MessageCircle, X, Send, Bot, User, Sparkles, AlertCircle, ThumbsUp, ThumbsDown, Image as ImageIcon, Loader2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -26,7 +26,7 @@ import { useChatStore } from "@/lib/store/useChatStore";
 
 export function AIChatbot() {
   const pathname = usePathname();
-  const { isOpen, closeChat, openChat, isMinimized, setIsMinimized, initialMessage, clearInitialMessage } = useChatStore();
+  const { isOpen, closeChat, openChat, initialMessage, clearInitialMessage } = useChatStore();
   const [input, setInput] = useState("");
   const { messages, append, isLoading, submitFeedback } = useChat();
   const [feedbackTarget, setFeedbackTarget] = useState<{ log_id: number } | null>(null);
@@ -70,12 +70,13 @@ export function AIChatbot() {
     }
   };
 
-  // Hide on authentication and admin pages
+  // Hide on authentication, admin, and consultation pages
   const isAuthPage = pathname === "/dang-nhap" || pathname === "/dang-ky";
   const isCheckoutPage = pathname === "/thanh-toan" || pathname === "/checkout";
   const isAdminPage = pathname?.startsWith("/admin");
+  const isConsultationPage = pathname === "/tu-van";
 
-  if (isAuthPage || isCheckoutPage || isAdminPage) return null;
+  if (isAuthPage || isCheckoutPage || isAdminPage || isConsultationPage) return null;
 
   const toggleChat = () => {
     if (isOpen) closeChat();
@@ -124,7 +125,7 @@ export function AIChatbot() {
 
 
   return (
-    <div className="fixed bottom-6 right-6 z-[9999] flex flex-col items-end">
+    <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-[9999] flex flex-col items-end max-w-[calc(100vw-2rem)] sm:max-w-none">
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -133,37 +134,23 @@ export function AIChatbot() {
               opacity: 1,
               scale: 1,
               y: 0,
-              height: isMinimized ? "64px" : "600px"
+              height: "600px"
             }}
             exit={{ opacity: 0, scale: 0.8, y: 20 }}
-            className={cn(
-              "mb-4 w-[650px] overflow-hidden rounded-2xl border bg-background shadow-2xl transition-all duration-300 ease-in-out",
-              isMinimized && "border-primary/50 bg-primary/5"
-            )}
+            className="mb-4 w-[calc(100vw-2rem)] sm:w-[450px] md:w-[650px] overflow-hidden rounded-2xl border bg-background shadow-2xl transition-all duration-300 ease-in-out"
           >
             {/* Header */}
-            <div className="flex items-center justify-between bg-primary p-4 text-primary-foreground cursor-pointer" onClick={() => isMinimized && setIsMinimized(false)}>
+            <div className="flex items-center justify-between bg-primary p-4 text-primary-foreground">
               <div className="flex items-center gap-2">
                 <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20">
                   <Bot size={20} />
                 </div>
                 <div>
                   <h3 className="font-semibold leading-none">Dược sĩ số MedCare</h3>
-                  {!isMinimized && <span className="text-[10px] opacity-80">Sẵn sàng tư vấn 24/7</span>}
+                  <span className="text-[10px] opacity-80">Sẵn sàng tư vấn 24/7</span>
                 </div>
               </div>
               <div className="flex items-center gap-1">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 text-white hover:bg-white/20"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setIsMinimized(!isMinimized);
-                  }}
-                >
-                  {isMinimized ? <Maximize2 size={16} /> : <Minimize2 size={16} />}
-                </Button>
                 <Button
                   variant="ghost"
                   size="icon"
@@ -177,9 +164,6 @@ export function AIChatbot() {
                 </Button>
               </div>
             </div>
-
-            {!isMinimized && (
-              <>
                 {/* Chat content */}
                 <div className="flex h-[450px] flex-col bg-slate-50/50 p-4 overflow-y-auto scrollbar-hide" ref={scrollRef}>
                   <div className="flex flex-col gap-4">
@@ -187,7 +171,7 @@ export function AIChatbot() {
                       <div
                         key={msg.id}
                         className={cn(
-                          "flex max-w-[90%] flex-col gap-1 group",
+                          "flex max-w-[85%] md:max-w-[70%] flex-col gap-1 group",
                           msg.role === "user" ? "self-end items-end" : "self-start items-start"
                         )}
                       >
@@ -334,8 +318,7 @@ export function AIChatbot() {
                     <p>Thông tin từ AI chỉ mang tính chất tham khảo, không thay thế chỉ định của bác sĩ.</p>
                   </div>
                 </div>
-              </>
-            )}
+
 
             {/* Negative Feedback Reason Overlay */}
             {feedbackTarget && (

@@ -14,7 +14,7 @@ import { Separator } from "@/components/ui/separator"
 import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { MapPin, CreditCard, Truck, FileText, AlertCircle, Ticket, X, CheckCircle2, Loader2, Info, ChevronRight, ChevronLeft, Plus, ShoppingCart, Tag, Wallet, Pencil, Trash2, ShieldCheck } from "lucide-react"
+import { MapPin, CreditCard, Truck, FileText, AlertCircle, Ticket, X, CheckCircle2, Loader2, Info, ChevronRight, ChevronLeft, Plus, ShoppingCart, Tag, Wallet, Pencil, Trash2, ShieldCheck, ArrowLeft } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
 import { useCartStore, CartItem } from "@/lib/store/useCartStore"
@@ -111,12 +111,22 @@ export default function CheckoutPage() {
   const subtotal = cartItems.reduce((sum, item) => sum + (item.unitPrice * item.quantity), 0)
 
   useEffect(() => {
+    // Redirect unauthenticated guests to login page
+    if (status === "unauthenticated") {
+      toast.error("Vui lòng đăng nhập để tiến hành thanh toán");
+      const idsParam = selectedIds.length > 0 ? `?ids=${selectedIds.join(",")}` : "";
+      const prescriptionParam = selectedPrescriptionId ? `&prescriptionId=${selectedPrescriptionId}` : "";
+      router.push(`/dang-nhap?callbackUrl=/thanh-toan${idsParam}${prescriptionParam}`);
+    }
+  }, [status, router, selectedIds, selectedPrescriptionId])
+
+  useEffect(() => {
     // If no items are selected or in cart, redirect back
-    if (allCartItems.length > 0 && cartItems.length === 0 && selectedIds.length > 0) {
+    if (status === "authenticated" && allCartItems.length > 0 && cartItems.length === 0 && selectedIds.length > 0) {
       toast.error("Vui lòng chọn sản phẩm để thanh toán")
       router.push("/gio-hang")
     }
-  }, [allCartItems, cartItems, selectedIds, router])
+  }, [status, allCartItems, cartItems, selectedIds, router])
 
   // Fetch data from APIs
   useEffect(() => {
@@ -646,15 +656,17 @@ export default function CheckoutPage() {
                       </div>
 
                       {form.name ? (
-                        <div className="relative flex items-center gap-4 flex-1">
-                          <div className="h-10 w-10 bg-blue-50 rounded-full flex items-center justify-center text-blue-600 shrink-0">
-                            <MapPin size={20} />
+                        <div className="relative flex flex-col sm:flex-row sm:items-center gap-4 flex-1 w-full">
+                          <div className="flex items-start gap-4 flex-1 min-w-0">
+                            <div className="h-10 w-10 bg-blue-50 rounded-full flex items-center justify-center text-blue-600 shrink-0">
+                              <MapPin size={20} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h4 className="text-[15px] font-bold text-slate-800 leading-tight">{form.name} | {form.phone}</h4>
+                              <p className="text-[13px] text-slate-500 mt-0.5 break-words">{form.address}, {form.ward}, {form.district}, {form.province}</p>
+                            </div>
                           </div>
-                          <div className="flex-1">
-                            <h4 className="text-[15px] font-bold text-slate-800 leading-tight">{form.name} | {form.phone}</h4>
-                            <p className="text-[13px] text-slate-500 mt-0.5">{form.address}, {form.ward}, {form.district}, {form.province}</p>
-                          </div>
-                          <Button variant="outline" size="sm" className="rounded-full border-blue-600 text-blue-600 font-bold px-6 hover:bg-blue-50 transition-colors shrink-0">Sửa địa chỉ</Button>
+                          <Button variant="outline" size="sm" className="rounded-full border-blue-600 text-blue-600 font-bold px-6 hover:bg-blue-50 transition-colors self-start sm:self-auto ml-14 sm:ml-0 shrink-0">Sửa địa chỉ</Button>
                         </div>
                       ) : (
                         <div className="relative flex items-center justify-between w-full pr-2">
@@ -903,13 +915,15 @@ export default function CheckoutPage() {
       }}>
         <DialogContent className="sm:max-w-lg rounded-3xl p-0 overflow-hidden border-none shadow-2xl">
           <DialogHeader className="bg-blue-600 px-6 py-6 text-white">
-            <DialogTitle className="text-xl font-black flex items-center justify-between">
-              {addressView === 'list' ? "Địa chỉ đã lưu" : (editingAddressId ? "Chỉnh sửa địa chỉ" : "Thêm địa chỉ mới")}
+            <DialogTitle className="text-xl font-black flex items-center gap-3">
               {addressView === 'form' && (
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-white hover:bg-white/20" onClick={() => setAddressView('list')}>
-                  <X size={18} />
+                <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-white hover:bg-white/20 rounded-full shrink-0" onClick={() => setAddressView('list')}>
+                  <ArrowLeft size={18} />
                 </Button>
               )}
+              <span>
+                {addressView === 'list' ? "Địa chỉ đã lưu" : (editingAddressId ? "Chỉnh sửa địa chỉ" : "Thêm địa chỉ mới")}
+              </span>
             </DialogTitle>
           </DialogHeader>
 

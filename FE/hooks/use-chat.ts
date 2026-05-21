@@ -20,6 +20,7 @@ export function useChat() {
   const [isLoading, setIsLoading] = useState(false);
   const [sessionId, setSessionId] = useState<string>('');
 
+  // 1. Initial Load from SessionStorage
   useEffect(() => {
     // Initialize or retrieve session ID
     let sId = sessionStorage.getItem('medcare_chat_session');
@@ -29,15 +30,62 @@ export function useChat() {
     }
     setSessionId(sId);
 
-    // Initial message
-    setMessages([
-      {
-        id: '1',
-        role: 'assistant',
-        content: 'Xin chào! Tôi là **Dược sĩ số MedCare**. Tôi có thể giúp gì cho sức khỏe của bạn hôm nay?'
+    // Load saved messages or set default
+    const savedMessages = sessionStorage.getItem('medcare_chat_messages');
+    if (savedMessages) {
+      try {
+        setMessages(JSON.parse(savedMessages));
+      } catch (e) {
+        console.error("Failed to parse saved messages", e);
       }
-    ]);
+    } else {
+      const defaultMessages: Message[] = [
+        {
+          id: '1',
+          role: 'assistant',
+          content: 'Xin chào! Tôi là **Dược sĩ số MedCare**. Tôi có thể giúp gì cho sức khỏe của bạn hôm nay?'
+        }
+      ];
+      setMessages(defaultMessages);
+      sessionStorage.setItem('medcare_chat_messages', JSON.stringify(defaultMessages));
+    }
   }, []);
+
+  // 2. Save Messages to SessionStorage on Change
+  useEffect(() => {
+    if (messages.length > 0) {
+      sessionStorage.setItem('medcare_chat_messages', JSON.stringify(messages));
+    }
+  }, [messages]);
+
+  // 3. Clear Chat History on Logout or User Change
+  useEffect(() => {
+    const currentUserId = session?.user?.id || null;
+    const storedUser = sessionStorage.getItem('medcare_chat_user_id');
+    
+    if (storedUser !== null && storedUser !== currentUserId) {
+      // User logged out or switched accounts -> reset chat
+      const defaultMessages: Message[] = [
+        {
+          id: '1',
+          role: 'assistant',
+          content: 'Xin chào! Tôi là **Dược sĩ số MedCare**. Tôi có thể giúp gì cho sức khỏe của bạn hôm nay?'
+        }
+      ];
+      setMessages(defaultMessages);
+      sessionStorage.setItem('medcare_chat_messages', JSON.stringify(defaultMessages));
+      
+      const newSessionId = uuidv4();
+      setSessionId(newSessionId);
+      sessionStorage.setItem('medcare_chat_session', newSessionId);
+    }
+    
+    if (currentUserId) {
+      sessionStorage.setItem('medcare_chat_user_id', currentUserId);
+    } else {
+      sessionStorage.removeItem('medcare_chat_user_id');
+    }
+  }, [session]);
 
   const submitFeedback = useCallback(async (logId: number, rating: boolean, reason?: string) => {
     try {

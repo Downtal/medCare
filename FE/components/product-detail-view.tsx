@@ -216,7 +216,7 @@ export function ProductDetailView({ initialProduct, reviews, productSlug }: Prod
             <CardContent className="p-0">
               <div className="flex flex-col lg:flex-row">
                 {/* Left Column: Image Gallery */}
-                <div className="w-full lg:w-[45%] p-6 md:p-10 border-r border-gray-50 flex flex-col gap-6">
+                <div className="w-full lg:w-[45%] p-6 md:p-10 lg:border-r border-b lg:border-b-0 border-gray-100 flex flex-col gap-6">
                   <div className="relative aspect-square w-full rounded-2xl overflow-hidden bg-white/50 border border-gray-50 group">
                     <Image
                       src={getOptimizedImageUrl(selectedImage)}

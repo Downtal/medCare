@@ -333,43 +333,56 @@ export default function CartPage() {
                   const hasDiscount = item.originalPrice && item.originalPrice > item.unitPrice
 
                   return (
-                    <div key={item.medicineId} className="p-8 flex items-start gap-6 group hover:bg-slate-50/50 transition-colors">
-                      <Checkbox
-                        className="mt-8 h-6 w-6 border-slate-300 rounded-lg"
-                        checked={selectedIds.includes(item.medicineId)}
-                        disabled={typeof item.stockQuantity === 'number' && item.stockQuantity <= 0}
-                        onCheckedChange={() => toggleItem(item.medicineId)}
-                      />
+                    <div key={item.medicineId} className="p-4 sm:p-6 md:p-8 flex flex-col md:flex-row items-start gap-4 md:gap-6 group hover:bg-slate-50/50 transition-colors">
+                      {/* Top Row for Mobile (Checkbox + Image + Name/Tags + Delete) */}
+                      <div className="flex items-start gap-3 w-full">
+                        <Checkbox
+                          className="mt-6 md:mt-8 h-5 w-5 md:h-6 md:w-6 border-slate-300 rounded-lg shrink-0"
+                          checked={selectedIds.includes(item.medicineId)}
+                          disabled={typeof item.stockQuantity === 'number' && item.stockQuantity <= 0}
+                          onCheckedChange={() => toggleItem(item.medicineId)}
+                        />
 
-                      <Link
-                        href={`/san-pham/${item.slug}`}
-                        className="relative h-32 w-32 rounded-3xl overflow-hidden border border-slate-100 bg-white shadow-sm shrink-0 flex items-center justify-center p-4"
-                      >
-                        <Image src={item.imageUrl || "/placeholder.svg"} alt={item.name} fill className="object-contain p-2" />
-                      </Link>
-
-                      <div className="flex-1 min-w-0">
-                        <Link href={`/san-pham/${item.slug}`}>
-                          <h4 className="font-bold text-xl text-slate-800 mb-2 line-clamp-2 leading-tight hover:text-blue-600 transition-colors">
-                            {item.name}
-                          </h4>
+                        <Link
+                          href={`/san-pham/${item.slug}`}
+                          className="relative h-20 w-20 md:h-32 md:w-32 rounded-2xl md:rounded-3xl overflow-hidden border border-slate-100 bg-white shadow-sm shrink-0 flex items-center justify-center p-2"
+                        >
+                          <Image src={item.imageUrl || "/placeholder.svg"} alt={item.name} fill className="object-contain p-1" />
                         </Link>
-                        <div className="flex flex-wrap items-center gap-2 mb-2">
-                          {item.requiresPrescription && (
-                            <div className="flex items-center gap-1 bg-rose-50 text-rose-600 border border-rose-100 px-2.5 py-1 rounded-full text-xs font-black">
-                              <Pill className="w-3 h-3" />
-                              Thuốc kê đơn
-                            </div>
-                          )}
-                          {typeof item.stockQuantity === 'number' && item.stockQuantity <= 0 && (
-                            <div className="bg-red-50 text-red-600 px-3 py-1 rounded-lg text-xs font-black">
-                              SẢN PHẨM HIỆN ĐANG HẾT HÀNG
-                            </div>
-                          )}
-                        </div>
 
-                        <div className="flex flex-wrap items-center justify-between gap-6">
-                          <div className="flex flex-col">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex justify-between items-start gap-2">
+                            <Link href={`/san-pham/${item.slug}`} className="flex-1 min-w-0">
+                              <h4 className="font-bold text-sm sm:text-base md:text-xl text-slate-800 line-clamp-2 leading-tight hover:text-blue-600 transition-colors">
+                                {item.name}
+                              </h4>
+                            </Link>
+                            {/* Delete Button on Mobile (top right next to title) */}
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="md:hidden h-8 w-8 rounded-xl hover:bg-red-50 text-slate-400 hover:text-red-500 shrink-0"
+                              onClick={() => removeItem(item.medicineId, token)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-1.5 mt-1">
+                            {item.requiresPrescription && (
+                              <div className="flex items-center gap-1 bg-rose-50 text-rose-600 border border-rose-100 px-2 py-0.5 rounded-full text-[10px] font-black">
+                                <Pill className="w-2.5 h-2.5" />
+                                Thuốc kê đơn
+                              </div>
+                            )}
+                            {typeof item.stockQuantity === 'number' && item.stockQuantity <= 0 && (
+                              <div className="bg-red-50 text-red-600 px-2 py-0.5 rounded-lg text-[10px] font-black">
+                                HẾT HÀNG
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Desktop Price info (hidden on mobile, handled below) */}
+                          <div className="hidden md:flex flex-col mt-2">
                             <span className="font-black text-blue-600 text-2xl">{item.unitPrice?.toLocaleString("vi-VN")}đ</span>
                             {hasDiscount && (
                               <span className="text-sm text-slate-400 font-bold line-through">
@@ -377,55 +390,68 @@ export default function CartPage() {
                               </span>
                             )}
                           </div>
+                        </div>
+                      </div>
 
-                          <div className="flex items-center gap-4">
-                            {/* Unit Selection */}
-                            <div className="flex flex-col gap-1.5 transition-opacity duration-300">
-                              <span className="text-[11px] font-black text-slate-400 uppercase tracking-wider ml-1">Đơn vị</span>
-                              <Select defaultValue={item.unit.toLowerCase()} disabled={itemOptions.length <= 1}>
-                                <SelectTrigger className="w-32 h-12 border-slate-200 rounded-2xl font-bold text-slate-700 focus:ring-blue-100 shadow-none bg-slate-50/50 border-none disabled:opacity-50">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent className="rounded-2xl border-slate-100 shadow-xl">
-                                  {itemOptions.map(u => (
-                                    <SelectItem key={u} value={u.toLowerCase()} className="font-bold">{u}</SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </div>
+                      {/* Bottom Row / Details Controls (Visible on mobile stack, layout horizontal/vertical at breakpoints) */}
+                      <div className="w-full md:w-auto flex flex-row items-center justify-between md:justify-end gap-4 mt-2 md:mt-0 pl-8 md:pl-0 border-t border-dashed border-slate-100 md:border-none pt-3 md:pt-0">
+                        {/* Mobile Price Display */}
+                        <div className="md:hidden flex flex-col">
+                          <span className="font-black text-blue-600 text-lg sm:text-xl">{item.unitPrice?.toLocaleString("vi-VN")}đ</span>
+                          {hasDiscount && (
+                            <span className="text-xs text-slate-400 font-bold line-through">
+                              {item.originalPrice?.toLocaleString("vi-VN")}đ
+                            </span>
+                          )}
+                        </div>
 
-                            {/* Quantity Selection */}
-                            <div className="flex flex-col gap-1.5">
-                              <span className="text-[11px] font-black text-slate-400 uppercase tracking-wider ml-1 text-center">Số lượng</span>
-                              <div className="flex items-center border border-slate-100 bg-slate-50/50 rounded-2xl h-12 overflow-hidden px-1">
-                                <Button
-                                  variant="ghost"
-                                  className="h-10 w-10 hover:bg-white text-slate-400 hover:text-blue-600 rounded-xl"
-                                  onClick={() => updateQuantity(item.medicineId, Math.max(1, item.quantity - 1), token)}
-                                >
-                                  <Minus className="h-4 w-4" />
-                                </Button>
-                                <div className="w-12 text-center font-black text-slate-800 text-lg tabular-nums">{item.quantity}</div>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-10 w-10 hover:bg-white text-slate-400 hover:text-blue-600 rounded-xl"
-                                  onClick={() => updateQuantity(item.medicineId, item.quantity + 1, token)}
-                                >
-                                  <Plus className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </div>
-
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-12 w-12 rounded-2xl hover:bg-red-50 text-slate-300 hover:text-red-500 mt-5 shadow-sm bg-white border border-slate-50 transition-all border-none"
-                              onClick={() => removeItem(item.medicineId, token)}
-                            >
-                              <Trash2 className="h-6 w-6" />
-                            </Button>
+                        <div className="flex items-center gap-3 sm:gap-4 ml-auto md:ml-0">
+                          {/* Unit Selection */}
+                          <div className="flex flex-col gap-1">
+                            <span className="text-[9px] md:text-[11px] font-black text-slate-400 uppercase tracking-wider ml-1">Đơn vị</span>
+                            <Select defaultValue={item.unit.toLowerCase()} disabled={itemOptions.length <= 1}>
+                              <SelectTrigger className="w-20 sm:w-28 h-9 sm:h-12 border-slate-200 rounded-xl md:rounded-2xl font-bold text-xs sm:text-sm text-slate-700 focus:ring-blue-100 shadow-none bg-slate-50/50 border-none disabled:opacity-50">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent className="rounded-xl md:rounded-2xl border-slate-100 shadow-xl">
+                                {itemOptions.map(u => (
+                                  <SelectItem key={u} value={u.toLowerCase()} className="font-bold text-xs sm:text-sm">{u}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                           </div>
+
+                          {/* Quantity Selection */}
+                          <div className="flex flex-col gap-1">
+                            <span className="text-[9px] md:text-[11px] font-black text-slate-400 uppercase tracking-wider ml-1 text-center">Số lượng</span>
+                            <div className="flex items-center border border-slate-100 bg-slate-50/50 rounded-xl md:rounded-2xl h-9 sm:h-12 overflow-hidden px-0.5 sm:px-1">
+                              <Button
+                                variant="ghost"
+                                className="h-8 w-8 sm:h-10 sm:w-10 hover:bg-white text-slate-400 hover:text-blue-600 rounded-lg sm:rounded-xl"
+                                onClick={() => updateQuantity(item.medicineId, Math.max(1, item.quantity - 1), token)}
+                              >
+                                <Minus className="h-3 w-3 sm:h-4 sm:w-4" />
+                              </Button>
+                              <div className="w-8 sm:w-12 text-center font-black text-slate-800 text-sm sm:text-lg tabular-nums">{item.quantity}</div>
+                              <Button
+                                variant="ghost"
+                                className="h-8 w-8 sm:h-10 sm:w-10 hover:bg-white text-slate-400 hover:text-blue-600 rounded-lg sm:rounded-xl"
+                                onClick={() => updateQuantity(item.medicineId, item.quantity + 1, token)}
+                              >
+                                <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
+                              </Button>
+                            </div>
+                          </div>
+
+                          {/* Delete Button on Desktop */}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="hidden md:inline-flex h-12 w-12 rounded-2xl hover:bg-red-50 text-slate-300 hover:text-red-500 mt-5 border-none"
+                            onClick={() => removeItem(item.medicineId, token)}
+                          >
+                            <Trash2 className="h-6 w-6" />
+                          </Button>
                         </div>
                       </div>
                     </div>

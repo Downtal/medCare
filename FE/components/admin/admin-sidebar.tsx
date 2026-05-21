@@ -34,7 +34,7 @@ const sidebarItems = [
   { name: "Báo cáo", href: "/admin/bao-cao", icon: LineChart },
 ]
 
-export function AdminSidebar() {
+export function AdminSidebar({ className }: { className?: string }) {
   const pathname = usePathname()
   const { data: session } = useSession()
   const role = session?.user?.role
@@ -47,7 +47,7 @@ export function AdminSidebar() {
   })
 
   return (
-    <div className="flex h-screen w-64 flex-col gap-y-5 bg-white border-r border-slate-200 px-6 py-8 shadow-sm">
+    <div className={cn("flex h-screen w-64 flex-col gap-y-5 bg-white border-r border-slate-200 px-6 py-8 shadow-sm", className)}>
       <div className="flex items-center justify-center mb-6">
         <Link href="/" className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 text-white shadow-md shadow-blue-200 shrink-0">

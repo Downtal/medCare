@@ -7,7 +7,14 @@ import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
-import { SearchX, ChevronLeft, ChevronRight, Loader2, ChevronDown, ChevronUp, X } from "lucide-react"
+import { SearchX, ChevronLeft, ChevronRight, Loader2, ChevronDown, ChevronUp, X, SlidersHorizontal } from "lucide-react"
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet"
 import type { Product } from "@/lib/types"
 import { useState, useEffect, useCallback, Suspense } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
@@ -279,6 +286,106 @@ function StoreContent() {
     (pageData?.content || []).map(p => p.indications).filter((i): i is string => !!i && i.trim() !== "")
   )].slice(0, 10)
 
+  const renderFilterContent = () => (
+    <div className="space-y-4">
+      {/* Price Range - Button style */}
+      <FilterSection title="Giá bán" defaultOpen={true}>
+        <div className="space-y-2">
+          {PRICE_RANGES.map((range, idx) => (
+            <button
+              key={idx}
+              onClick={() => setSelectedPriceRange(selectedPriceRange === idx ? null : idx)}
+              className={`w-full text-center text-sm py-2.5 px-3 rounded-lg border transition-all ${selectedPriceRange === idx
+                ? "border-primary bg-primary/5 text-primary font-semibold"
+                : "border-border text-foreground hover:border-primary/50 hover:bg-muted/30"
+                }`}
+            >
+              {range.label}
+            </button>
+          ))}
+        </div>
+      </FilterSection>
+
+      {/* Categories - Checkbox multi-select */}
+      <FilterSection title="Danh mục" defaultOpen={true}>
+        <div className="space-y-1 max-h-[300px] overflow-y-auto pr-1">
+          {Array.isArray(categories) && categories.map((cat) => (
+            <div key={cat.id}>
+              <div className="flex items-center gap-2 py-1">
+                <Checkbox
+                  id={`cat-${cat.id}`}
+                  checked={categorySlug === cat.slug}
+                  onCheckedChange={() => toggleCategoryFilter(cat.slug)}
+                />
+                <Label htmlFor={`cat-${cat.id}`} className="text-sm font-medium cursor-pointer">
+                  {cat.name}
+                </Label>
+              </div>
+              {/* Sub categories */}
+              {cat.children && cat.children.length > 0 && (
+                <div className="ml-6 space-y-0.5">
+                  {cat.children.map((sub: CategoryNode) => (
+                    <div key={sub.id} className="flex items-center gap-2 py-1">
+                      <Checkbox
+                        id={`cat-${sub.id}`}
+                        checked={categorySlug === sub.slug}
+                        onCheckedChange={() => toggleCategoryFilter(sub.slug)}
+                      />
+                      <Label htmlFor={`cat-${sub.id}`} className="text-sm font-normal cursor-pointer text-muted-foreground">
+                        {sub.name}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </FilterSection>
+
+      {/* Thương hiệu - Brand */}
+      <FilterSection title="Thương hiệu">
+        <div className="space-y-1 max-h-[200px] overflow-y-auto pr-1">
+          {(availableBrands.length > 0 ? availableBrands : brands.slice(0, 15)).map((brand) => (
+            <div key={brand} className="flex items-center gap-2 py-1">
+              <Checkbox
+                id={`brand-${brand}`}
+                checked={selectedBrands.includes(brand)}
+                onCheckedChange={() => toggleBrand(brand)}
+              />
+              <Label htmlFor={`brand-${brand}`} className="text-sm font-normal cursor-pointer">
+                {brand}
+              </Label>
+            </div>
+          ))}
+          {availableBrands.length === 0 && brands.length === 0 && (
+            <p className="text-xs text-muted-foreground italic">Chưa có dữ liệu</p>
+          )}
+        </div>
+      </FilterSection>
+
+      {/* Xuất xứ thương hiệu - Country of Origin */}
+      <FilterSection title="Xuất xứ thương hiệu">
+        <div className="space-y-1 max-h-[200px] overflow-y-auto pr-1">
+          {availableOrigins.length > 0 ? availableOrigins.map((origin) => (
+            <div key={origin} className="flex items-center gap-2 py-1">
+              <Checkbox
+                id={`origin-${origin}`}
+                checked={selectedOrigins.includes(origin)}
+                onCheckedChange={() => toggleOrigin(origin)}
+              />
+              <Label htmlFor={`origin-${origin}`} className="text-sm font-normal cursor-pointer">
+                {origin}
+              </Label>
+            </div>
+          )) : (
+            <p className="text-xs text-muted-foreground italic">Chưa có dữ liệu</p>
+          )}
+        </div>
+      </FilterSection>
+    </div>
+  )
+
   // Title
   let pageTitle = "Tất cả sản phẩm"
   if (query) pageTitle = `Kết quả tìm kiếm cho "${query}"`
@@ -323,102 +430,8 @@ function StoreContent() {
           <div className="flex flex-col lg:flex-row gap-8">
             {/* Sidebar */}
             <aside className="hidden lg:block w-64 shrink-0">
-              <div className="sticky top-24 space-y-4">
-                {/* Price Range - Button style */}
-                <FilterSection title="Giá bán" defaultOpen={true}>
-                  <div className="space-y-2">
-                    {PRICE_RANGES.map((range, idx) => (
-                      <button
-                        key={idx}
-                        onClick={() => setSelectedPriceRange(selectedPriceRange === idx ? null : idx)}
-                        className={`w-full text-center text-sm py-2.5 px-3 rounded-lg border transition-all ${selectedPriceRange === idx
-                          ? "border-primary bg-primary/5 text-primary font-semibold"
-                          : "border-border text-foreground hover:border-primary/50 hover:bg-muted/30"
-                          }`}
-                      >
-                        {range.label}
-                      </button>
-                    ))}
-                  </div>
-                </FilterSection>
-
-                {/* Categories - Checkbox multi-select */}
-                <FilterSection title="Danh mục" defaultOpen={true}>
-                  <div className="space-y-1 max-h-[300px] overflow-y-auto pr-1">
-                    {Array.isArray(categories) && categories.map((cat) => (
-                      <div key={cat.id}>
-                        <div className="flex items-center gap-2 py-1">
-                          <Checkbox
-                            id={`cat-${cat.id}`}
-                            checked={categorySlug === cat.slug}
-                            onCheckedChange={() => toggleCategoryFilter(cat.slug)}
-                          />
-                          <Label htmlFor={`cat-${cat.id}`} className="text-sm font-medium cursor-pointer">
-                            {cat.name}
-                          </Label>
-                        </div>
-                        {/* Sub categories */}
-                        {cat.children && cat.children.length > 0 && (
-                          <div className="ml-6 space-y-0.5">
-                            {cat.children.map((sub: CategoryNode) => (
-                              <div key={sub.id} className="flex items-center gap-2 py-1">
-                                <Checkbox
-                                  id={`cat-${sub.id}`}
-                                  checked={categorySlug === sub.slug}
-                                  onCheckedChange={() => toggleCategoryFilter(sub.slug)}
-                                />
-                                <Label htmlFor={`cat-${sub.id}`} className="text-sm font-normal cursor-pointer text-muted-foreground">
-                                  {sub.name}
-                                </Label>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </FilterSection>
-
-                {/* Thương hiệu - Brand */}
-                <FilterSection title="Thương hiệu">
-                  <div className="space-y-1 max-h-[200px] overflow-y-auto pr-1">
-                    {(availableBrands.length > 0 ? availableBrands : brands.slice(0, 15)).map((brand) => (
-                      <div key={brand} className="flex items-center gap-2 py-1">
-                        <Checkbox
-                          id={`brand-${brand}`}
-                          checked={selectedBrands.includes(brand)}
-                          onCheckedChange={() => toggleBrand(brand)}
-                        />
-                        <Label htmlFor={`brand-${brand}`} className="text-sm font-normal cursor-pointer">
-                          {brand}
-                        </Label>
-                      </div>
-                    ))}
-                    {availableBrands.length === 0 && brands.length === 0 && (
-                      <p className="text-xs text-muted-foreground italic">Chưa có dữ liệu</p>
-                    )}
-                  </div>
-                </FilterSection>
-
-                {/* Xuất xứ thương hiệu - Country of Origin */}
-                <FilterSection title="Xuất xứ thương hiệu">
-                  <div className="space-y-1 max-h-[200px] overflow-y-auto pr-1">
-                    {availableOrigins.length > 0 ? availableOrigins.map((origin) => (
-                      <div key={origin} className="flex items-center gap-2 py-1">
-                        <Checkbox
-                          id={`origin-${origin}`}
-                          checked={selectedOrigins.includes(origin)}
-                          onCheckedChange={() => toggleOrigin(origin)}
-                        />
-                        <Label htmlFor={`origin-${origin}`} className="text-sm font-normal cursor-pointer">
-                          {origin}
-                        </Label>
-                      </div>
-                    )) : (
-                      <p className="text-xs text-muted-foreground italic">Chưa có dữ liệu</p>
-                    )}
-                  </div>
-                </FilterSection>
+              <div className="sticky top-24">
+                {renderFilterContent()}
               </div>
             </aside>
 
@@ -433,17 +446,38 @@ function StoreContent() {
                   </p>
                 </div>
 
-                <Select value={sortBy} onValueChange={setSortBy}>
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="Sắp xếp" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="popular">Phổ biến nhất</SelectItem>
-                    <SelectItem value="newest">Mới nhất</SelectItem>
-                    <SelectItem value="price-asc">Giá tăng dần</SelectItem>
-                    <SelectItem value="price-desc">Giá giảm dần</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="flex items-center gap-3 w-full sm:w-auto">
+                  <div className="lg:hidden flex-1">
+                    <Sheet>
+                      <SheetTrigger asChild>
+                        <Button variant="outline" className="w-full font-bold flex items-center justify-center gap-2 rounded-2xl h-10 px-4">
+                          <SlidersHorizontal className="h-4 w-4" />
+                          Bộ lọc
+                        </Button>
+                      </SheetTrigger>
+                      <SheetContent side="left" className="w-[300px] overflow-y-auto p-6 bg-white border-r">
+                        <SheetHeader className="px-0 pb-4 border-b border-slate-100">
+                          <SheetTitle className="text-lg font-black text-slate-800">Bộ lọc sản phẩm</SheetTitle>
+                        </SheetHeader>
+                        <div className="pt-4">
+                          {renderFilterContent()}
+                        </div>
+                      </SheetContent>
+                    </Sheet>
+                  </div>
+
+                  <Select value={sortBy} onValueChange={setSortBy}>
+                    <SelectTrigger className="w-full sm:w-[180px] rounded-2xl h-10">
+                      <SelectValue placeholder="Sắp xếp" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="popular">Phổ biến nhất</SelectItem>
+                      <SelectItem value="newest">Mới nhất</SelectItem>
+                      <SelectItem value="price-asc">Giá tăng dần</SelectItem>
+                      <SelectItem value="price-desc">Giá giảm dần</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
               {/* Active filters (Lọc theo) */}

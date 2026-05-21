@@ -37,23 +37,35 @@ import { Progress } from "@/components/ui/progress"
 import type { Voucher } from "@/services/voucherService"
 
 export default function VouchersPage() {
-  const { data: session } = useSession()
+  const { data: session, status } = useSession()
   const [vouchers, setVouchers] = useState<Voucher[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedVoucher, setSelectedVoucher] = useState<Voucher | null>(null)
   const [isDetailOpen, setIsDetailOpen] = useState(false)
 
-  useEffect(() => {
-    if (session?.user?.accessToken) {
-      fetchVouchers()
-    }
-  }, [session])
+  const accessToken = session?.user?.accessToken
+  const userId = session?.user?.userId
 
-  const fetchVouchers = async () => {
+  useEffect(() => {
+    if (status === 'loading') {
+      return
+    }
+
+    if (status === 'unauthenticated') {
+      setLoading(false)
+      return
+    }
+
+    if (status === 'authenticated' && accessToken && userId) {
+      fetchVouchers(userId, accessToken)
+    }
+  }, [status, accessToken, userId])
+
+  const fetchVouchers = async (uId: string, token: string) => {
     try {
       setLoading(true)
-      const res = await fetch(`${getApiBaseUrl()}/promotion-service/api/vouchers/user/${session?.user?.userId}`, {
-        headers: { Authorization: `Bearer ${session?.user?.accessToken}` }
+      const res = await fetch(`${getApiBaseUrl()}/promotion-service/api/vouchers/user/${uId}`, {
+        headers: { Authorization: `Bearer ${token}` }
       })
       if (res.ok) {
         const data = await res.json()

@@ -235,15 +235,15 @@ export function ProductCard({
         ) : (
           <>
             <Button
-              className="flex-1"
+              className="w-full sm:flex-1 text-[13px] sm:text-sm font-bold rounded-2xl"
               size="sm"
               onClick={addToCart}
               disabled={typeof stockQuantity === 'number' && stockQuantity <= 0}
             >
-              <ShoppingCart className="h-4 w-4 mr-2" />
+              <ShoppingCart className="h-4 w-4 mr-1.5 sm:mr-2" />
               {typeof stockQuantity === 'number' && stockQuantity <= 0 ? "Hết hàng" : "Thêm vào giỏ"}
             </Button>
-            <Button variant="outline" size="sm" asChild>
+            <Button variant="outline" size="sm" className="hidden sm:inline-flex rounded-2xl" asChild>
               <Link href={productPath}>Chi tiết</Link>
             </Button>
           </>

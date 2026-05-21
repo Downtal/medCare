@@ -202,15 +202,15 @@ export default function HomePage() {
         {/* Features Row */}
         <section className="bg-white border-y border-slate-100">
           <div className="container mx-auto px-4">
-            <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-slate-50">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 divide-y sm:divide-y-0 md:divide-x divide-slate-100">
               {[
                 { icon: Truck, title: "Giao hàng nhanh", desc: "Miễn phí từ 300k" },
                 { icon: Clock, title: "Hỗ trợ 24/7", desc: "Dược sĩ trực tuyến" },
                 { icon: ShieldCheck, title: "An toàn tuyệt đối", desc: "Chuẩn GPP quốc tế" },
                 { icon: Heart, title: "Khách hàng thân thiết", desc: "Đặt trọn niềm tin" }
               ].map((feature, i) => (
-                <div key={i} className="p-8 flex items-center gap-4 group cursor-default">
-                  <feature.icon className="w-10 h-10 text-primary transition-transform group-hover:scale-110" />
+                <div key={i} className="p-5 sm:p-6 md:p-8 flex items-center gap-4 group cursor-default">
+                  <feature.icon className="w-10 h-10 text-primary transition-transform group-hover:scale-110 shrink-0" />
                   <div>
                     <h3 className="font-bold text-slate-900 leading-none mb-1">{feature.title}</h3>
                     <p className="text-sm text-slate-500 font-medium">{feature.desc}</p>
