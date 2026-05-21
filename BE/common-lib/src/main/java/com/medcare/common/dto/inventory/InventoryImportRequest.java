@@ -1,4 +1,4 @@
-package com.medcare.productservice.dto;
+package com.medcare.common.dto.inventory;
 
 import lombok.*;
 import java.time.LocalDate;

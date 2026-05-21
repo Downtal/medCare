@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import { Plus, Search, Filter, MoreVertical, Edit, Trash, ExternalLink, RotateCcw, XCircle, Trash2, ListFilter } from "lucide-react"
+import { Plus, Search, Filter, MoreVertical, Edit, Trash, ExternalLink, RotateCcw, XCircle, Trash2, ListFilter, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
@@ -34,6 +34,23 @@ export default function AdminProductsPage() {
   // Search within filters
   const [brandSearch, setBrandSearch] = useState("")
   const [originSearch, setOriginSearch] = useState("")
+
+  const resetFilters = () => {
+    setSearchQuery("")
+    setSelectedCategory("all")
+    setSelectedBrand("all")
+    setSelectedOrigin("all")
+    setSelectedPrescription("all")
+    setSortBy("newest")
+    setCurrentPage(1)
+  }
+
+  const isFiltered = searchQuery !== "" ||
+    selectedCategory !== "all" ||
+    selectedBrand !== "all" ||
+    selectedOrigin !== "all" ||
+    selectedPrescription !== "all" ||
+    sortBy !== "newest"
 
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 10
@@ -258,7 +275,7 @@ export default function AdminProductsPage() {
               {activeTab === "active" ? "Quản lý Sản phẩm" : "Thùng rác Sản phẩm"}
             </h1>
             <p className="text-slate-500 font-medium">
-              {activeTab === "active" ? "Lưu trữ thông tin chuyên sâu của Dược phẩm & Knowledge Base." : "Xem lại hoặc xóa vĩnh viễn các thuốc đã xóa tạm."}
+              {activeTab === "active" ? "Lưu trữ thông tin chuyên sâu của Dược phẩm." : "Xem lại hoặc xóa vĩnh viễn các thuốc đã xóa tạm."}
             </p>
           </div>
         </div>
@@ -270,14 +287,26 @@ export default function AdminProductsPage() {
       </div>
 
       <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 space-y-4">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
-          <Input
-            placeholder="Tìm kiếm theo Tên thuốc, hoạt chất..."
-            className="pl-11 h-12 bg-slate-50 border-none rounded-2xl font-bold focus-visible:ring-blue-100"
-            value={searchQuery}
-            onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
-          />
+        <div className="flex items-center gap-4">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+            <Input
+              placeholder="Tìm kiếm theo Tên thuốc, hoạt chất..."
+              className="pl-11 h-12 bg-slate-50 border-none rounded-2xl font-bold focus-visible:ring-blue-100"
+              value={searchQuery}
+              onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+            />
+          </div>
+          {isFiltered && (
+            <Button 
+              variant="ghost" 
+              onClick={resetFilters}
+              className="h-12 px-6 rounded-2xl font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 transition-all flex items-center gap-2 shrink-0 border-none"
+            >
+              <X className="h-4 w-4" />
+              Xóa tất cả lọc
+            </Button>
+          )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">

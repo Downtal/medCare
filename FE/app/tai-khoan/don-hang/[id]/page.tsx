@@ -85,6 +85,11 @@ export default function OrderDetailPage() {
          case "DELIVERED": return "Đã giao"
          case "CANCELLED": return "Đã hủy"
          case "RETURNED": return "Đã trả hàng"
+         case "PAID": return "Đã thanh toán"
+         case "PENDING_PRESCRIPTION": return "Chờ duyệt đơn thuốc"
+         case "APPROVED_PRESCRIPTION": return "Đơn thuốc hợp lệ"
+         case "REJECTED_PRESCRIPTION": return "Đơn thuốc bị từ chối"
+         case "WAITING_FOR_PAYMENT": return "Chờ thanh toán"
          default: return status
       }
    }
@@ -195,24 +200,27 @@ export default function OrderDetailPage() {
                                  <div>
                                     <p className={cn(
                                        "text-sm font-bold mb-1",
-                                       order.status === 'DELIVERED' ? "text-emerald-600" : 
+                                       order.status === 'DELIVERED' || order.status === 'PAID' ? "text-emerald-600" : 
                                        order.status === 'CANCELLED' ? "text-rose-600" :
                                        order.status === 'SHIPPING' ? "text-blue-600" :
                                        "text-amber-600"
                                     )}>
                                        {order.status === 'DELIVERED' ? 'Giao hàng thành công' : 
+                                        order.status === 'PAID' ? 'Thanh toán thành công' :
                                         order.status === 'CANCELLED' ? 'Đơn hàng đã hủy' :
                                         order.status === 'SHIPPING' ? 'Đang trên đường giao' :
                                         order.status === 'CONFIRMED' ? 'Đã xác nhận & Chuẩn bị hàng' : 'Chờ xác nhận'}
                                     </p>
                                     <h2 className="text-xl font-black text-slate-900 mb-2">
                                        {order.status === 'DELIVERED' ? 'Kiện hàng đã được giao' : 
+                                        order.status === 'PAID' ? 'Hệ thống đang chuẩn bị hàng' :
                                         order.status === 'CANCELLED' ? 'Đơn hàng đã bị hủy bỏ' :
                                         order.status === 'SHIPPING' ? 'Shipper đang giao hàng' :
                                         order.status === 'CONFIRMED' ? 'Đang chuẩn bị sản phẩm' : 'Đang xử lý đơn hàng'}
                                     </h2>
                                     <p className="text-sm text-slate-500 font-medium">
                                        {order.status === 'DELIVERED' ? 'Cảm ơn bạn đã tin tưởng và mua sắm tại MedCare.' : 
+                                        order.status === 'PAID' ? 'Đơn hàng đã được thanh toán thành công. Chúng tôi sẽ sớm giao hàng cho bạn.' :
                                         order.status === 'CANCELLED' ? 'Đơn hàng đã được hủy theo yêu cầu hoặc do vấn đề thanh toán.' :
                                         order.status === 'SHIPPING' ? 'Kiện hàng đang được chuyển tới bạn. Vui lòng để ý điện thoại nhé!' :
                                         order.status === 'CONFIRMED' ? 'Dược sĩ đang kiểm tra và đóng gói sản phẩm cho bạn.' : 

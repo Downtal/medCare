@@ -56,6 +56,20 @@ export default function OrderConfirmationPage() {
             const callbackUrl = `${getApiBaseUrl()}${API_ENDPOINTS.PAYMENT}/payment/vnpay-callback${window.location.search}`
             await fetch(callbackUrl)
             console.log("Payment callback verification triggered")
+            
+            // Clear cart items if success
+            if (vnpResponseCode === "00") {
+              const { useCartStore } = require("@/lib/store/useCartStore")
+              const removeItem = useCartStore.getState().removeItem
+              // We need order details to know what to remove
+              const orderRes = await fetch(`${getApiBaseUrl()}${API_ENDPOINTS.ORDER}/orders/${orderCode}`)
+              if (orderRes.ok) {
+                const orderData = await orderRes.json()
+                orderData.items.forEach((item: any) => {
+                  removeItem(item.medicineId, session?.user?.accessToken)
+                })
+              }
+            }
           } catch (e) {
             console.error("Failed to trigger payment callback verification", e)
           }
@@ -85,10 +99,15 @@ export default function OrderConfirmationPage() {
         setOrder(data)
 
         if (!isNotified) {
-          if (vnpResponseCode === "00" || !vnpResponseCode) {
-            const { toast } = await import("sonner")
+          const { toast } = await import("sonner")
+          if (vnpResponseCode === "00") {
             toast.success("Thanh toán thành công!", {
-              description: "Đơn hàng của bạn đang được xử lý."
+              description: "Đơn hàng của bạn đã được thanh toán và đang xử lý."
+            })
+            setIsNotified(true)
+          } else if (!vnpResponseCode) {
+            toast.success("Đặt hàng thành công!", {
+              description: "Vui lòng chuẩn bị tiền mặt khi nhận hàng."
             })
             setIsNotified(true)
           }
@@ -149,8 +168,29 @@ export default function OrderConfirmationPage() {
               Giao dịch của bạn đã bị hủy hoặc gặp lỗi từ phía ngân hàng. Đừng lo lắng, giỏ hàng của bạn vẫn được giữ nguyên.
             </p>
             <div className="grid gap-3">
-              <Button className="h-14 rounded-2xl bg-slate-900 hover:bg-slate-800 font-bold" asChild>
-                <Link href="/thanh-toan">Thử thanh toán lại</Link>
+              <Button 
+                className="h-14 rounded-2xl bg-slate-900 hover:bg-slate-800 font-bold" 
+                onClick={() => {
+                  if (order?.items) {
+                    const { useCartStore } = require("@/lib/store/useCartStore")
+                    const addItem = useCartStore.getState().addItem
+                    order.items.forEach((item: any) => {
+                      addItem({
+                        medicineId: item.medicineId,
+                        name: item.medicineName,
+                        price: item.unitPrice,
+                        unitPrice: item.unitPrice,
+                        quantity: item.quantity,
+                        imageUrl: item.imageUrl,
+                        unit: item.unit || 'Hộp'
+                      }, session?.user?.accessToken)
+                    })
+                    const router = require("next/navigation").useRouter
+                    window.location.href = "/gio-hang"
+                  }
+                }}
+              >
+                Thử thanh toán lại
               </Button>
               <Button variant="outline" className="h-14 rounded-2xl border-2 font-bold" asChild>
                 <Link href="/">Quay về trang chủ</Link>
@@ -209,9 +249,13 @@ export default function OrderConfirmationPage() {
               <div className="inline-flex p-3 bg-green-100 rounded-3xl mb-6">
                 <CheckCircle2 className="w-10 h-10 text-green-600" />
               </div>
-              <h1 className="text-4xl md:text-5xl font-black text-slate-900 mb-4 tracking-tight">Cảm ơn bạn đã tin dùng!</h1>
+              <h1 className="text-4xl md:text-5xl font-black text-slate-900 mb-4 tracking-tight">
+                {order.status === 'PAID' ? 'Thanh toán thành công!' : 'Đặt hàng thành công!'}
+              </h1>
               <p className="text-slate-500 font-medium text-lg max-w-lg mx-auto leading-relaxed">
-                Đơn hàng <span className="text-blue-600 font-black">#{order.orderCode}</span> của bạn đã được tiếp nhận và đang trong quá trình chuẩn bị.
+                {order.status === 'PAID' 
+                  ? `Đơn hàng #${order.orderCode} của bạn đã được thanh toán và đang trong quá trình chuẩn bị.`
+                  : `Đơn hàng #${order.orderCode} của bạn đã được tiếp nhận. Chúng tôi sẽ sớm liên hệ để giao hàng.`}
               </p>
             </motion.div>
 

@@ -61,6 +61,25 @@ public class PrescriptionController {
             @RequestHeader(value = "X-User-Id", required = false) Long requesterId,
             @RequestHeader(value = "X-User-Role", required = false) String role,
             @PathVariable Long id) {
+        
+        // Fallback if headers are missing (e.g. direct Feign call with Authorization only)
+        if (requesterId == null || role == null) {
+            org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+            if (auth != null) {
+                if (requesterId == null && auth.getPrincipal() instanceof String) {
+                    try { requesterId = Long.valueOf((String) auth.getPrincipal()); } catch (Exception ignored) {}
+                }
+                if (role == null && auth.getAuthorities() != null) {
+                    role = auth.getAuthorities().stream()
+                            .map(org.springframework.security.core.GrantedAuthority::getAuthority)
+                            .filter(a -> a.startsWith("ROLE_") || a.equals("ADMIN") || a.equals("PHARMACIST") || a.equals("USER"))
+                            .map(a -> a.replace("ROLE_", ""))
+                            .findFirst()
+                            .orElse(null);
+                }
+            }
+        }
+        
         return ResponseEntity.ok(prescriptionService.getPrescriptionById(id, requesterId, role));
     }
 
@@ -70,6 +89,19 @@ public class PrescriptionController {
             @PathVariable Long id,
             @RequestParam PrescriptionStatus status,
             @RequestParam(required = false) String note) {
+        
+        // Fallback check
+        if (role == null || role.isBlank()) {
+            org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+            if (auth != null && auth.getAuthorities() != null) {
+                boolean isAdminOrPharmacist = auth.getAuthorities().stream()
+                        .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_PHARMACIST"));
+                if (isAdminOrPharmacist) {
+                    return ResponseEntity.ok(prescriptionService.updateStatus(id, status, note));
+                }
+            }
+        }
+
         if (!"PHARMACIST".equals(role) && !"ADMIN".equals(role)) {
             return ResponseEntity.status(403).build();
         }
@@ -106,12 +138,108 @@ public class PrescriptionController {
         return ResponseEntity.noContent().build();
     }
 
-    @GetMapping("/all")
-    public ResponseEntity<List<PrescriptionResponse>> getAll(
-            @RequestHeader(value = "X-User-Role", required = false) String role) {
+    @PostMapping("/{id}/update-extracted-data")
+    public ResponseEntity<PrescriptionResponse> updateExtractedData(
+            @RequestHeader(value = "X-User-Role", required = false) String role,
+            @PathVariable Long id,
+            @RequestBody String extractedData) {
+        
+        // Fallback check
+        if (role == null || role.isBlank()) {
+            org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+            if (auth != null && auth.getAuthorities() != null) {
+                boolean isAdminOrPharmacist = auth.getAuthorities().stream()
+                        .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_PHARMACIST"));
+                if (isAdminOrPharmacist) {
+                    return ResponseEntity.ok(prescriptionService.updateExtractedData(id, extractedData));
+                }
+            }
+        }
+
         if (!"PHARMACIST".equals(role) && !"ADMIN".equals(role)) {
             return ResponseEntity.status(403).build();
         }
-        return ResponseEntity.ok(prescriptionService.getUserPrescriptions(null)); // null userId means all for now if service supports it
+        return ResponseEntity.ok(prescriptionService.updateExtractedData(id, extractedData));
+    }
+
+    /**
+     * Called by Order Service after successful payment.
+     * Marks specific products as purchased so they cannot be re-bought.
+     */
+    @PostMapping("/{id}/fulfill")
+    public ResponseEntity<PrescriptionResponse> fulfillMedicines(
+            @PathVariable Long id,
+            @RequestBody java.util.List<Long> purchasedProductIds) {
+        return ResponseEntity.ok(prescriptionService.fulfillMedicine(id, purchasedProductIds));
+    }
+
+    @PostMapping("/{id}/unfulfill")
+    public ResponseEntity<PrescriptionResponse> unfulfillMedicines(
+            @PathVariable Long id,
+            @RequestBody java.util.List<Long> cancelledProductIds) {
+        return ResponseEntity.ok(prescriptionService.unfulfillMedicine(id, cancelledProductIds));
+    }
+
+    /**
+     * Called by Frontend before adding a prescription item to cart.
+     * Returns 200 with null body if valid, or 200 with error message if blocked.
+     */
+    @GetMapping("/{id}/validate")
+    public ResponseEntity<String> validateMedicineForCart(
+            @PathVariable Long id,
+            @RequestParam Long productId) {
+        String error = prescriptionService.validateMedicineForCart(id, productId);
+        if (error != null) {
+            return ResponseEntity.badRequest().body(error);
+        }
+        return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/all")
+    public ResponseEntity<List<PrescriptionResponse>> getAll(
+            @RequestHeader(value = "X-User-Role", required = false) String role) {
+        
+        // Fallback to SecurityContext if header is missing
+        if (role == null || role.isBlank()) {
+            org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+            if (auth != null && auth.getAuthorities() != null) {
+                boolean isAdminOrPharmacist = auth.getAuthorities().stream()
+                        .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_PHARMACIST"));
+                if (isAdminOrPharmacist) {
+                    return ResponseEntity.ok(prescriptionService.getAllPrescriptions());
+                }
+            }
+        }
+
+        if (!"PHARMACIST".equals(role) && !"ADMIN".equals(role)) {
+            return ResponseEntity.status(403).build();
+        }
+        return ResponseEntity.ok(prescriptionService.getAllPrescriptions());
+    }
+
+    @PutMapping("/{id}/info")
+    public ResponseEntity<PrescriptionResponse> updateInfo(
+            @RequestHeader(value = "X-User-Role", required = false) String role,
+            @PathVariable Long id,
+            @RequestParam(required = false) String hospitalName,
+            @RequestParam(required = false) String doctorName,
+            @RequestParam(required = false) String expiryDate) {
+        
+        // Fallback check
+        if (role == null || role.isBlank()) {
+            org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+            if (auth != null && auth.getAuthorities() != null) {
+                boolean isAdminOrPharmacist = auth.getAuthorities().stream()
+                        .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_PHARMACIST"));
+                if (isAdminOrPharmacist) {
+                    return ResponseEntity.ok(prescriptionService.updatePrescriptionInfo(id, hospitalName, doctorName, expiryDate));
+                }
+            }
+        }
+
+        if (!"PHARMACIST".equals(role) && !"ADMIN".equals(role)) {
+            return ResponseEntity.status(403).build();
+        }
+        return ResponseEntity.ok(prescriptionService.updatePrescriptionInfo(id, hospitalName, doctorName, expiryDate));
     }
 }

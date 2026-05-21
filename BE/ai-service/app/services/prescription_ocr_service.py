@@ -3,6 +3,7 @@ import asyncio
 import logging
 import httpx
 import base64
+import os
 from io import BytesIO
 from typing import List, Dict, Any
 from langchain_google_genai import ChatGoogleGenerativeAI
@@ -14,95 +15,130 @@ from sqlalchemy import or_
 
 logger = logging.getLogger(__name__)
 
-PRESCRIPTION_OCR_PROMPT = """
-Bạn là một chuyên gia dược sĩ và bác sĩ có khả năng đọc các đơn thuốc viết tay phức tạp nhất tại Việt Nam.
-Hãy phân tích hình ảnh đơn thuốc này và trích xuất thông tin một cách chính xác nhất dưới định dạng JSON.
+PRESCRIPTION_ANALYSIS_PROMPT = """
+Bạn là một dược sĩ chuyên nghiệp. Phân tích văn bản OCR từ đơn thuốc và trích xuất JSON:
+{
+  "hospital_name": "...",
+  "doctor_name": "...",
+  "expiry_date": "YYYY-MM-DD",
+  "medicines": [
+    {
+      "name": "Tên thuốc",
+      "active_ingredient": "Hoạt chất chính (nếu biết)",
+      "dosage": "...",
+      "quantity": "...",
+      "unit": "..."
+    }
+  ],
+  "medical_diagnosis": "..."
+}
+VĂN BẢN OCR:
+{ocr_text}
+"""
 
-QUY TẮC TRÍCH XUẤT:
-1. hospital_name: Tên bệnh viện hoặc phòng khám.
-2. clinic_name: Tên khoa hoặc phòng mạch riêng (nếu có).
-3. doctor_name: Tên bác sĩ kê đơn.
-4. expiry_date: Ngày đơn thuốc hết hạn (Nếu không ghi, hãy lấy ngày kê đơn + 30 ngày). Định dạng YYYY-MM-DD.
-5. medicines: Danh sách các loại thuốc, mỗi mục gồm:
-   - name: Tên thuốc (trích xuất nguyên văn).
-   - dosage: Liều dùng (VD: 1 viên x 2 lần/ngày).
-   - quantity: Số lượng (VD: 10).
-   - unit: Đơn vị (VD: Viên, Gói, Chai).
-6. medical_diagnosis: Chẩn đoán bệnh của bác sĩ (nếu có).
-
-LƯU Ý: 
-- Nếu chữ viết quá mờ, hãy cố gắng suy luận dựa trên ngữ cảnh các loại thuốc đi kèm.
-- Nếu không tìm thấy thông tin cụ thể nào, hãy để giá trị là null.
-- Chỉ trả về duy nhất khối JSON, không kèm văn bản giải thích.
+DRUG_PACKAGE_ANALYSIS_PROMPT = """
+Xác định thông tin thuốc từ văn bản OCR bao bì:
+{
+  "brand_name": "...",
+  "active_ingredient": "...",
+  "dosage": "...",
+  "search_query": "Tên thuốc tốt nhất để tìm kiếm"
+}
+VĂN BẢN OCR:
+{ocr_text}
 """
 
 class PrescriptionOCRService:
     def __init__(self):
-        # Prioritize Key 2 to bypass exhausted quota on Key 1
         api_key = settings.GEMINI_API_KEY_2 if settings.GEMINI_API_KEY_2 else settings.GEMINI_API_KEY
         self.llm = ChatGoogleGenerativeAI(
             model="gemini-2.5-flash-lite",
             google_api_key=api_key,
-            temperature=0.3,
+            temperature=0.2,
             convert_system_message_to_human=True
         )
 
-    async def analyze_prescription(self, image_url: str) -> Dict[str, Any]:
-        from PIL import Image
+    def _clean_json(self, content: str) -> Dict:
         try:
-            # 1. Download image
+            if "```json" in content:
+                content = content.split("```json")[1].split("```")[0].strip()
+            elif "```" in content:
+                content = content.split("```")[1].strip()
+            return json.loads(content)
+        except:
+            return {}
+
+    async def analyze_prescription(self, image_url: str) -> Dict[str, Any]:
+        """Analyze prescription image directly using Gemini Multimodal."""
+        try:
             async with httpx.AsyncClient() as client:
                 response = await client.get(image_url)
-                if response.status_code != 200:
-                    raise Exception(f"Could not download image from {image_url}")
+                if response.status_code != 200: raise Exception("Download failed")
                 image_data = response.content
 
-            # 2. Convert to Base64 for Gemini
-            image_b64 = base64.b64encode(image_data).decode("utf-8")
-            
-            # 3. Call Gemini Multimodal
-            message = HumanMessage(
-                content=[
-                    {"type": "text", "text": PRESCRIPTION_OCR_PROMPT},
-                    {
-                        "type": "image_url",
-                        "image_url": {"url": f"data:image/jpeg;base64,{image_b64}"},
-                    },
-                ]
-            )
-            
-            response = await self.llm.ainvoke([message])
-            raw_content = response.content
-            
-            # Clean JSON response
-            if "```json" in raw_content:
-                raw_content = raw_content.split("```json")[1].split("```")[0].strip()
-            elif "```" in raw_content:
-                raw_content = raw_content.split("```")[1].strip()
-            
-            ocr_result = json.loads(raw_content)
-            
-            # 4. Perform Medicine Mapping
-            mapped_medicines = await self._map_medicines(ocr_result.get("medicines", []))
-            ocr_result["mapped_medicines"] = mapped_medicines
-            
-            return ocr_result
-
+            return await self._analyze_multimodal(image_data)
         except Exception as e:
-            logger.error(f"Error analyzing prescription: {e}")
+            logger.error(f"Prescription analysis failed: {e}")
             raise e
+
+    async def analyze_drug_package(self, image_url: str) -> Dict[str, Any]:
+        """Analyze drug package image directly using Gemini Multimodal."""
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.get(image_url)
+                if response.status_code != 200: raise Exception("Download failed")
+                image_data = response.content
+
+            return await self._analyze_multimodal_package(image_data)
+        except Exception as e:
+            logger.error(f"Drug package analysis failed: {e}")
+            raise e
+
+    async def _analyze_multimodal(self, image_data: bytes) -> Dict[str, Any]:
+        image_b64 = base64.b64encode(image_data).decode("utf-8")
+        message = HumanMessage(content=[
+            {"type": "text", "text": "Phân tích đơn thuốc này và trích xuất JSON (hospital_name, doctor_name, medicines, expiry_date)."},
+            {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{image_b64}"}}
+        ])
+        resp = await self.llm.ainvoke([message])
+        data = self._clean_json(resp.content)
+        data["mapped_medicines"] = await self._map_medicines(data.get("medicines", []))
+        return data
+
+    async def _analyze_multimodal_package(self, image_data: bytes) -> Dict[str, Any]:
+        image_b64 = base64.b64encode(image_data).decode("utf-8")
+        message = HumanMessage(content=[
+            {"type": "text", "text": "Xác định tên thuốc từ ảnh bao bì này. Trả về JSON (brand_name, active_ingredient, dosage, search_query)."},
+            {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{image_b64}"}}
+        ])
+        resp = await self.llm.ainvoke([message])
+        data = self._clean_json(resp.content)
+        query = data.get("search_query") or data.get("brand_name")
+        if query:
+            data["suggested_products"] = await self._find_top_matches(query, limit=5)
+        return data
+
 
     async def _map_medicines(self, medicines: List[Dict]) -> List[Dict]:
         results = []
         for med in medicines:
             name = med.get("name")
+            ingredient = med.get("active_ingredient")
             if not name: continue
             
-            # Semantic search in local DB
+            # 1. Try exact/semantic match with Brand Name
             match = await self._find_best_match(name)
+            
+            # 2. Fallback: Try match with Active Ingredient if brand not found
+            if not match and ingredient:
+                logger.info(f"Brand '{name}' not found, trying ingredient search for '{ingredient}'")
+                match = await self._find_best_match(ingredient)
+                if match:
+                    match["is_equivalent"] = True # Mark as equivalent suggestion
             
             results.append({
                 "original_name": name,
+                "active_ingredient": ingredient,
                 "dosage": med.get("dosage"),
                 "quantity": med.get("quantity"),
                 "unit": med.get("unit"),

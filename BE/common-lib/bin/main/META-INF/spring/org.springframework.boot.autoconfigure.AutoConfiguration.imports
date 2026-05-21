@@ -1,2 +1,0 @@
-com.medcare.common.config.SharedRedisConfig
-com.medcare.common.security.JwtService

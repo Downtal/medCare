@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import Image from "next/image"
 import DOMPurify from "isomorphic-dompurify"
+import { cn } from "@/lib/utils"
 
 const sanitizeContent = (content: string) => {
   return {
@@ -61,9 +62,10 @@ interface ProductReviewsProps {
   productName: string
   productImage: string
   initialReviews: Review[]
+  hideTitle?: boolean
 }
 
-export function ProductReviews({ productId, productSlug, productName, productImage, initialReviews }: ProductReviewsProps) {
+export function ProductReviews({ productId, productSlug, productName, productImage, initialReviews, hideTitle = false }: ProductReviewsProps) {
   const { data: session } = useSession()
   const userRole = (session?.user as any)?.role as string | undefined
 
@@ -225,10 +227,12 @@ export function ProductReviews({ productId, productSlug, productName, productIma
 
   return (
     <div className="mt-12 space-y-8">
-      <div className="bg-white rounded-3xl p-6 md:p-8 border border-gray-100 shadow-sm">
-        <h2 className="text-xl md:text-2xl font-black text-slate-800 mb-6 flex items-center gap-2">
-          Đánh giá sản phẩm <span className="text-gray-400 font-medium text-lg">({reviews.length} đánh giá)</span>
-        </h2>
+      <div className={cn("bg-white rounded-3xl border border-gray-100 shadow-sm", hideTitle ? "p-0 border-none shadow-none" : "p-6 md:p-8")}>
+        {!hideTitle && (
+          <h2 className="text-xl md:text-2xl font-black text-slate-800 mb-6 flex items-center gap-2">
+            Đánh giá sản phẩm <span className="text-gray-400 font-medium text-lg">({reviews.length} đánh giá)</span>
+          </h2>
+        )}
 
         <div className="flex flex-col md:flex-row gap-8 items-start md:items-center">
           {/* Average Box */}

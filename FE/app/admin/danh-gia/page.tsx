@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import { MessageSquare, Star, Trash, Reply, ExternalLink, Search, RotateCcw, XCircle, Trash2, MoreVertical, LayoutGrid, AlertCircle, CheckCircle2, ChevronLeft, ChevronRight, Pencil } from "lucide-react"
+import { MessageSquare, Star, Trash, Reply, ExternalLink, Search, RotateCcw, XCircle, Trash2, MoreVertical, LayoutGrid, AlertCircle, CheckCircle2, ChevronLeft, ChevronRight, Pencil, X, ArrowUpDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -37,6 +37,22 @@ export default function AdminReviewsPage() {
   const [isHardDeleteDialogOpen, setIsHardDeleteDialogOpen] = useState(false)
   const [reviewSelectedId, setReviewSelectedId] = useState<number | null>(null)
 
+  const [searchQuery, setSearchQuery] = useState("")
+  const [filterRating, setFilterRating] = useState("ALL")
+  const [filterProductId, setFilterProductId] = useState<number | null>(null)
+  const [sortBy, setSortBy] = useState("rating-high") // Changed default to valid summary option
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false)
+
+  const resetFilters = () => {
+    setSearchQuery("")
+    setFilterRating("ALL")
+    setFilterProductId(null)
+    setSortBy("newest")
+    setCurrentPage(1)
+  }
+
+  const isFiltered = searchQuery !== "" || filterRating !== "ALL" || filterProductId !== null || sortBy !== "newest"
+
   const { data: productsData } = useQuery({
     queryKey: ["admin_products_all"],
     queryFn: () => productService.getProducts()
@@ -57,11 +73,11 @@ export default function AdminReviewsPage() {
 
     return {
       ...item,
-      brand: item.brand || p.brand,
-      registrationNumber: item.registrationNumber || p.registrationNumber,
+      brand: item.brand || p.brand || "MedCare Brand",
+      registrationNumber: item.registrationNumber || p.registrationNumber || "Đang cập nhật",
       countryOfOrigin: item.countryOfOrigin || p.countryOfOrigin,
-      productImage: item.productImage || p.primaryImageUrl,
-      productName: item.productName || p.name
+      productImage: item.productImage || p.primaryImageUrl || "/placeholder.svg",
+      productName: item.productName || p.name || "Sản phẩm không tên"
     };
   };
 
@@ -148,11 +164,6 @@ export default function AdminReviewsPage() {
     onError: () => toast.error("Lỗi khi xóa vĩnh viễn")
   })
 
-  const [searchQuery, setSearchQuery] = useState("")
-  const [filterProductId, setFilterProductId] = useState<number | null>(null)
-  const [filterRating, setFilterRating] = useState<string>("ALL")
-  const [sortBy, setSortBy] = useState<string>("newest")
-  const [isDetailsOpen, setIsDetailsOpen] = useState(false)
 
   const getFilteredReviews = () => {
     let list = [...(activeTab === "trash" ? trashedReviews :
@@ -301,6 +312,7 @@ export default function AdminReviewsPage() {
     },
     {
       id: "actions",
+      header: "Thao tác",
       cell: ({ row }) => {
         const r = row.original
         return (
@@ -424,7 +436,7 @@ export default function AdminReviewsPage() {
     },
     {
       id: "actions",
-      header: "",
+      header: "Thao tác",
       cell: ({ row }) => (
         <Button
           variant="outline"
@@ -446,7 +458,13 @@ export default function AdminReviewsPage() {
       {/* Top Header Card */}
       <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6 bg-white p-8 rounded-3xl shadow-sm border border-slate-200">
         <div className="space-y-4">
-          <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); setFilterProductId(null); setCurrentPage(1); }} className="w-fit">
+          <Tabs value={activeTab} onValueChange={(v) => {
+            setActiveTab(v);
+            setFilterProductId(null);
+            setCurrentPage(1);
+            // Set valid default sort for the tab
+            setSortBy(v === "summaries" ? "rating-high" : "newest");
+          }} className="w-fit">
             <TabsList className="bg-slate-100 p-1 rounded-2xl h-12">
               <TabsTrigger value="summaries" className="rounded-xl font-bold px-6 data-[state=active]:bg-white data-[state=active]:shadow-sm flex gap-2 items-center">
                 <LayoutGrid size={16} /> Theo Sản phẩm
@@ -484,15 +502,26 @@ export default function AdminReviewsPage() {
       {/* Filter Card */}
       <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 space-y-5">
         <div className="flex flex-col gap-5">
-          {/* Row 1: Search */}
-          <div className="relative group">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
-            <Input
-              placeholder={activeTab === "summaries" ? "Tìm theo tên thuốc..." : "Tìm theo tên khách hàng, nội dung hoặc thuốc..."}
-              className="pl-12 h-14 rounded-2xl bg-slate-50 border-none focus-visible:ring-2 focus-visible:ring-blue-100 font-bold w-full transition-all text-sm"
-              value={searchQuery}
-              onChange={e => { setSearchQuery(e.target.value); setCurrentPage(1); }}
-            />
+          <div className="flex items-center gap-4">
+            <div className="relative flex-1 group">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
+              <Input
+                placeholder={activeTab === "summaries" ? "Tìm theo tên thuốc..." : "Tìm theo tên khách hàng, nội dung hoặc thuốc..."}
+                className="pl-12 h-14 rounded-2xl bg-slate-50 border-none focus-visible:ring-2 focus-visible:ring-blue-100 font-bold w-full transition-all text-sm"
+                value={searchQuery}
+                onChange={e => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+              />
+            </div>
+            {isFiltered && (
+              <Button
+                variant="ghost"
+                onClick={resetFilters}
+                className="h-14 px-6 rounded-2xl font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 transition-all flex items-center gap-2 shrink-0 border-none"
+              >
+                <X className="h-4 w-4" />
+                Xóa tất cả lọc
+              </Button>
+            )}
           </div>
 
           {/* Row 2: Secondary Filters */}
@@ -515,10 +544,10 @@ export default function AdminReviewsPage() {
             </Select>
 
             <Select value={sortBy} onValueChange={(v) => { setSortBy(v); setCurrentPage(1); }}>
-              <SelectTrigger className="h-12 rounded-2xl bg-slate-50 border-none font-bold min-w-[180px] px-6 shadow-sm hover:bg-slate-100 transition-all text-xs">
+              <SelectTrigger className="h-12 rounded-2xl bg-slate-50 border-none font-bold min-w-[200px] px-6 shadow-sm hover:bg-slate-100 transition-all text-xs">
                 <div className="flex items-center gap-3">
-                  <RotateCcw className="w-4 h-4 text-blue-500" />
-                  <SelectValue placeholder="Sắp xếp" />
+                  <ArrowUpDown className="w-4 h-4 text-blue-500" />
+                  <SelectValue placeholder="Sắp xếp theo..." />
                 </div>
               </SelectTrigger>
               <SelectContent className="rounded-2xl border-none shadow-2xl">
@@ -538,16 +567,6 @@ export default function AdminReviewsPage() {
                 )}
               </SelectContent>
             </Select>
-
-            {filterProductId && (
-              <Button
-                variant="ghost"
-                onClick={() => setFilterProductId(null)}
-                className="h-12 rounded-2xl text-rose-500 font-bold bg-rose-50 hover:bg-rose-100 gap-2 border border-rose-100 px-6 text-xs"
-              >
-                <XCircle size={14} /> Hủy lọc sản phẩm
-              </Button>
-            )}
           </div>
         </div>
       </div>
@@ -858,7 +877,7 @@ export default function AdminReviewsPage() {
                 "px-4 py-2 rounded-2xl font-black text-sm",
                 selectedReview.replies?.length > 0 ? "bg-emerald-50 text-emerald-600" : "bg-orange-50 text-orange-600"
               )}>
-                {selectedReview.replies?.length > 0 ? "● ĐÃ PHẢN HỒI" : "○ CHƯA PHẢN HỒI"}
+                {selectedReview.replies?.length > 0 ? "ĐÃ PHẢN HỒI" : "CHƯA PHẢN HỒI"}
               </div>
             )}
           </DialogHeader>
@@ -880,7 +899,7 @@ export default function AdminReviewsPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <h3 className="font-bold text-lg text-slate-800 leading-tight uppercase line-clamp-3 mb-1">
-                        {productInfo.productName || "Sản phẩm MedCare"}
+                        {productInfo.productName}
                       </h3>
                       <p className="text-xs font-black text-blue-600 uppercase tracking-widest">{productInfo.brand}</p>
 

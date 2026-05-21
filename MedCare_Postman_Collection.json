@@ -1,0 +1,621 @@
+{
+	"info": {
+		"_postman_id": "4b7b3e8e-8e8e-4b7b-8e8e-4b7b3e8e8e8e",
+		"name": "MedCare API Collection",
+		"description": "API Collection for MedCare Microservices ecosystem.\n\nServices included:\n- Auth Service\n- User Service\n- Product Service\n- Order Service\n- Inventory Service\n- AI Service\n- Payment Service\n- Promotion Service\n- Review Service\n- Shipping Service",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Auth Service",
+			"item": [
+				{
+					"name": "Register",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"testuser\",\n    \"password\": \"password123\",\n    \"email\": \"testuser@example.com\",\n    \"phone\": \"0123456789\",\n    \"fullName\": \"Test User\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth-service/api/auth/register",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth-service",
+								"api",
+								"auth",
+								"register"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"if (jsonData.accessToken) {",
+									"    pm.environment.set(\"accessToken\", jsonData.accessToken);",
+									"}",
+									"if (jsonData.refreshToken) {",
+									"    pm.environment.set(\"refreshToken\", jsonData.refreshToken);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"testuser\",\n    \"password\": \"password123\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth-service/api/auth/login",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth-service",
+								"api",
+								"auth",
+								"login"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Refresh Token",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"refreshToken\": \"{{refreshToken}}\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth-service/api/auth/refresh",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth-service",
+								"api",
+								"auth",
+								"refresh"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Product Service",
+			"item": [
+				{
+					"name": "Get All Products",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/product-service/api/products?page=0&size=15",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"product-service",
+								"api",
+								"products"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "0"
+								},
+								{
+									"key": "size",
+									"value": "15"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Search Products",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/product-service/api/products/search?q=panadol",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"product-service",
+								"api",
+								"products",
+								"search"
+							],
+							"query": [
+								{
+									"key": "q",
+									"value": "panadol"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Product By Slug",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/product-service/api/products/slug/panadol-extra",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"product-service",
+								"api",
+								"products",
+								"slug",
+								"panadol-extra"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "User Service",
+			"item": [
+				{
+					"name": "Get My Profile",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/user-service/api/users/profiles/me",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"user-service",
+								"api",
+								"users",
+								"profiles",
+								"me"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get My Addresses",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/user-service/api/users/profiles/me/addresses",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"user-service",
+								"api",
+								"users",
+								"profiles",
+								"me",
+								"addresses"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Order Service",
+			"item": [
+				{
+					"name": "Get My Cart",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/order-service/api/cart/me",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"order-service",
+								"api",
+								"cart",
+								"me"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Add Item to Cart",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"medicineId\": 1,\n    \"quantity\": 2\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/order-service/api/cart/me/items",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"order-service",
+								"api",
+								"cart",
+								"me",
+								"items"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Checkout",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"addressId\": 1,\n    \"paymentMethod\": \"COD\",\n    \"shippingMethod\": \"STANDARD\",\n    \"voucherCode\": \"WELCOME2026\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/order-service/api/orders/checkout",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"order-service",
+								"api",
+								"orders",
+								"checkout"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Inventory Service",
+			"item": [
+				{
+					"name": "Get Product Stock",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/inventory-service/api/inventory/product/1/stock",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"inventory-service",
+								"api",
+								"inventory",
+								"product",
+								"1",
+								"stock"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "AI Service",
+			"item": [
+				{
+					"name": "Chat with AI",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"message\": \"Tôi bị đau đầu, nên dùng thuốc gì?\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/ai-service/api/ai/chat",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"ai-service",
+								"api",
+								"ai",
+								"chat"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Recommendations",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/ai-service/recommendations?limit=5",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"ai-service",
+								"recommendations"
+							],
+							"query": [
+								{
+									"key": "limit",
+									"value": "5"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Payment Service",
+			"item": [
+				{
+					"name": "Create VNPay Payment",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"orderCode\": \"ORD123456\",\n    \"amount\": 150000,\n    \"orderInfo\": \"Thanh toan don hang ORD123456\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/payment-service/api/payment/create",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"payment-service",
+								"api",
+								"payment",
+								"create"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Promotion Service",
+			"item": [
+				{
+					"name": "Get Active Vouchers",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/promotion-service/api/vouchers/active",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"promotion-service",
+								"api",
+								"vouchers",
+								"active"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Review Service",
+			"item": [
+				{
+					"name": "Get Product Reviews",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/review-service/api/reviews/product/1",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"review-service",
+								"api",
+								"reviews",
+								"product",
+								"1"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Shipping Service",
+			"item": [
+				{
+					"name": "Get Provinces",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/shipping-service/api/shipping/provinces",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"shipping-service",
+								"api",
+								"shipping",
+								"provinces"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Calculate Fee",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"to_district_id\": 1454,\n    \"to_ward_code\": \"21012\",\n    \"weight\": 200\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/shipping-service/api/shipping/fee",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"shipping-service",
+								"api",
+								"shipping",
+								"fee"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:8080",
+			"type": "string"
+		},
+		{
+			"key": "accessToken",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "refreshToken",
+			"value": "",
+			"type": "string"
+		}
+	]
+}

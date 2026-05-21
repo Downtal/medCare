@@ -34,13 +34,6 @@ async function getProduct(slugPath: string) {
   return res.json()
 }
 
-async function getRelatedProducts(categoryId: number, productId: number) {
-  const res = await fetch(`${getApiBaseUrl()}/product-service/api/products/category/${categoryId}?size=5`, { cache: "no-store" })
-  if (!res.ok) return []
-  const data = await res.json()
-  return (data.content || []).filter((p: Product) => p.id !== productId).slice(0, 4)
-}
-
 async function getReviews(productId: number) {
   try {
     const res = await fetch(`${getApiBaseUrl()}/review-service/api/reviews/product/${productId}`, { cache: "no-store" })
@@ -60,15 +53,11 @@ export default async function Page({ params }: { params: Promise<{ slug: string[
     notFound()
   }
 
-  const [relatedProducts, reviews] = await Promise.all([
-    getRelatedProducts(product.categoryId, product.id),
-    getReviews(product.id)
-  ])
+  const reviews = await getReviews(product.id)
 
   return (
     <ProductDetailView
       initialProduct={product}
-      relatedProducts={relatedProducts}
       reviews={reviews}
       productSlug={slugPath}
     />

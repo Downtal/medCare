@@ -289,7 +289,7 @@ export default function PrescriptionsPage() {
                       asChild={item.status === 'APPROVED'}
                     >
                       {item.status === 'APPROVED' ? (
-                        <Link href="/gio-hang">
+                        <Link href={`/toa-thuoc/${item.id}`}>
                           <ShoppingCart className="w-4 h-4 mr-2" />
                           Dùng đơn này
                         </Link>

@@ -17,6 +17,8 @@ export interface Voucher {
   limitPerUser?: number
   usedCount?: number
   excludePrescriptionDrugs?: boolean
+  applicableProductId?: number
+  applicableCategoryId?: number
   startAt?: string
   endAt?: string
   isActive?: boolean

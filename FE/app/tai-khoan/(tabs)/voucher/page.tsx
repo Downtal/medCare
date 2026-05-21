@@ -144,7 +144,7 @@ export default function VouchersPage() {
                       }}
                       asChild
                     >
-                      <Link href="/san-pham">Dùng ngay</Link>
+                      <Link href="/cua-hang">Dùng ngay</Link>
                     </Button>
                   </div>
                 </div>

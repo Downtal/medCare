@@ -1,5 +1,7 @@
 package com.medcare.inventoryservice.service;
 
+import com.medcare.common.dto.inventory.*;
+
 import com.medcare.common.exception.AppException;
 import com.medcare.common.exception.ErrorCode;
 import com.medcare.inventoryservice.dto.*;
@@ -130,7 +132,7 @@ public class InventoryService {
                 .collect(Collectors.toList());
     }
 
-    public void deductStock(StockDeductRequest request) {
+    public void deductStock(InventoryDeductRequest request) {
         log.info("Deducting stock for {} items", request.getItems().size());
         for (int attempt = 1; attempt <= MAX_LOCK_RETRY_ATTEMPTS; attempt++) {
             try {
@@ -206,8 +208,8 @@ public class InventoryService {
         return inventoryLogRepository.findAllByOrderByCreatedAtDesc();
     }
 
-    private void deductStockInSingleTransaction(StockDeductRequest request) {
-        for (StockDeductRequest.DeductItem item : request.getItems()) {
+    private void deductStockInSingleTransaction(InventoryDeductRequest request) {
+        for (InventoryDeductRequest.DeductItem item : request.getItems()) {
             int remainingToDeduct = item.getQuantity();
 
             List<InventoryBatch> activeBatches = inventoryBatchRepository.findActiveBatchesForDeductWithLock(item.getProductId());
@@ -374,5 +376,12 @@ public class InventoryService {
                 .quantity(quantity)
                 .notes("Tự động khởi tạo tồn kho khi tạo sản phẩm")
                 .build());
+    }
+
+    @Transactional
+    public void deleteProductStock(Long medicineId) {
+        log.info("Deleting all inventory data for product ID: {}", medicineId);
+        inventoryLogRepository.deleteByMedicineId(medicineId);
+        inventoryBatchRepository.deleteByMedicineId(medicineId);
     }
 }

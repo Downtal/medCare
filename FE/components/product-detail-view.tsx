@@ -15,6 +15,7 @@ import {
   ChevronRight,
   ChevronLeft,
   X,
+  AlertTriangle,
 } from "lucide-react"
 import {
   Accordion,
@@ -24,7 +25,7 @@ import {
 } from "@/components/ui/accordion"
 import { useState, useEffect } from "react"
 import { useSession } from "next-auth/react"
-import type { Product } from "@/lib/types"
+import type { Product, RecommendationResponse } from "@/lib/types"
 import { cn, getOptimizedImageUrl } from "@/lib/utils"
 import { useCartStore } from "@/lib/store/useCartStore"
 import { useCartAnimationStore } from "@/lib/store/useCartAnimationStore"
@@ -32,6 +33,7 @@ import { toast } from "sonner"
 import { v4 as uuidv4 } from "uuid"
 import DOMPurify from "isomorphic-dompurify"
 import { inventoryService } from "@/services/inventoryService"
+import { getApiBaseUrl } from "@/lib/config"
 
 const sanitizeContent = (content: string) => {
   return {
@@ -51,15 +53,19 @@ import { ProductReviews } from "@/components/product-reviews"
 
 interface ProductDetailViewProps {
   initialProduct: Product
-  relatedProducts: Product[]
   reviews: any[]
   productSlug?: string
 }
 
-export function ProductDetailView({ initialProduct, relatedProducts, reviews, productSlug }: ProductDetailViewProps) {
+export function ProductDetailView({ initialProduct, reviews, productSlug }: ProductDetailViewProps) {
   const [quantity, setQuantity] = useState(1)
   const [selectedImage, setSelectedImage] = useState(getOptimizedImageUrl(initialProduct.primaryImageUrl || "/placeholder.svg"))
   const [product, setProduct] = useState<Product>(initialProduct)
+  const [relatedProducts, setRelatedProducts] = useState<Product[]>([])
+  const [relatedLoading, setRelatedLoading] = useState(true)
+  const [relatedError, setRelatedError] = useState(false)
+  const [relatedDegraded, setRelatedDegraded] = useState(false)
+  const [isReviewsVisible, setIsReviewsVisible] = useState(false)
 
   useEffect(() => {
     const refreshStock = async () => {
@@ -73,6 +79,42 @@ export function ProductDetailView({ initialProduct, relatedProducts, reviews, pr
       }
     }
     refreshStock()
+  }, [product.id])
+
+  useEffect(() => {
+    const fetchRelatedProducts = async () => {
+      try {
+        setRelatedLoading(true)
+        setRelatedError(false)
+        const response = await fetch(
+          `${getApiBaseUrl()}/ai-service/api/recommendations/related?productId=${product.id}&limit=5`,
+          { cache: "no-store" }
+        )
+
+        if (!response.ok) {
+          setRelatedProducts([])
+          setRelatedError(true)
+          setRelatedDegraded(false)
+          return
+        }
+
+        const payload = await response.json() as RecommendationResponse
+        // Filter out prescription drugs immediately
+        const filteredItems = (Array.isArray(payload?.items) ? payload.items : [])
+          .filter((p: Product) => p.requiresPrescription !== true)
+        setRelatedProducts(filteredItems)
+        setRelatedDegraded(Boolean(payload?.metadata?.degraded))
+      } catch (error) {
+        console.error("Failed to fetch related recommendations:", error)
+        setRelatedProducts([])
+        setRelatedError(true)
+        setRelatedDegraded(false)
+      } finally {
+        setRelatedLoading(false)
+      }
+    }
+
+    fetchRelatedProducts()
   }, [product.id])
 
   const allImages = Array.from(new Set([
@@ -449,37 +491,81 @@ export function ProductDetailView({ initialProduct, relatedProducts, reviews, pr
                 <p className="text-[12px] text-blue-600/80">Thực phẩm bảo vệ sức khoẻ, không phải là thuốc, không có tác dụng thay thế thuốc chữa bệnh.</p>
               </div>
 
-              {/* Reviews Section */}
-              <ProductReviews
-                productId={product.id.toString()}
-                productSlug={productSlug || ""}
-                productName={product.name}
-                productImage={product.primaryImageUrl || "/placeholder.svg"}
-                initialReviews={reviews}
-              />
+              {/* Reviews Section Toggleable */}
+              <div className="mt-10">
+                <button 
+                  onClick={() => setIsReviewsVisible(!isReviewsVisible)}
+                  className="flex items-center justify-between w-full p-6 bg-white border border-gray-100 rounded-2xl shadow-sm hover:bg-gray-50 transition-colors group"
+                >
+                  <div className="flex items-center gap-3">
+                    <h2 className="text-xl md:text-2xl font-black text-slate-800">Đánh giá sản phẩm</h2>
+                    <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100 border-none font-bold">
+                      {reviews.length}
+                    </Badge>
+                  </div>
+                  <div className={cn("text-slate-400 transition-transform duration-300", isReviewsVisible ? "rotate-180" : "")}>
+                    <Plus size={24} className={isReviewsVisible ? "hidden" : "block"} />
+                    <Minus size={24} className={isReviewsVisible ? "block" : "hidden"} />
+                  </div>
+                </button>
+
+                {isReviewsVisible && (
+                  <div className="mt-4 animate-in fade-in slide-in-from-top-4 duration-500">
+                    <ProductReviews
+                      productId={product.id.toString()}
+                      productSlug={productSlug || ""}
+                      productName={product.name}
+                      productImage={product.primaryImageUrl || "/placeholder.svg"}
+                      initialReviews={reviews}
+                      hideTitle={true}
+                    />
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
           {/* Related Products */}
-          <div className="mt-16">
+          <div className="mt-16" data-testid="related-recommendation-widget">
             <div className="flex items-center justify-between mb-8">
               <h2 className="text-2xl font-black text-slate-800 underline decoration-blue-600/30 decoration-4 underline-offset-8">Sản phẩm liên quan</h2>
               <Button variant="ghost" className="text-blue-600 font-bold hover:bg-blue-50">Xem tất cả</Button>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
-              {relatedProducts.map(p => (
-                <ProductCard
-                  key={p.id}
-                  id={p.id.toString()}
-                  name={p.name}
-                  price={p.price}
-                  rating={5}
-                  image={p.primaryImageUrl || "/placeholder.svg"}
-                  slug={p.slug}
-                  ingredient={p.activeIngredients || ""}
-                />
-              ))}
-            </div>
+            {/* Removed technical alert for clean UI */}
+            {relatedLoading ? (
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4" data-testid="related-recommendation-loading">
+                {[1, 2, 3, 4, 5].map((item) => (
+                  <div key={item} className="rounded-2xl border border-slate-100 bg-white p-4">
+                    <div className="aspect-square rounded-xl bg-slate-100 animate-pulse" />
+                    <div className="mt-3 h-4 w-3/4 rounded bg-slate-100 animate-pulse" />
+                    <div className="mt-2 h-4 w-1/2 rounded bg-slate-100 animate-pulse" />
+                  </div>
+                ))}
+              </div>
+            ) : relatedError ? (
+              <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-600" data-testid="related-recommendation-error">
+                Khong the tai san pham lien quan luc nay.
+              </div>
+            ) : relatedProducts.length === 0 ? (
+              <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-600" data-testid="related-recommendation-empty">
+                Chua co san pham lien quan phu hop.
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4" data-testid="related-recommendation-ready">
+                {relatedProducts.map(p => (
+                  <ProductCard
+                    key={p.id}
+                    id={p.id.toString()}
+                    name={p.name}
+                    price={p.price}
+                    rating={5}
+                    image={p.primaryImageUrl || "/placeholder.svg"}
+                    slug={p.slug}
+                    ingredient={p.activeIngredients || ""}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </main>

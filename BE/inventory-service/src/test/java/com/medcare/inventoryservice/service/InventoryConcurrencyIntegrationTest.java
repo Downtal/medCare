@@ -1,6 +1,6 @@
 package com.medcare.inventoryservice.service;
 
-import com.medcare.inventoryservice.dto.StockDeductRequest;
+import com.medcare.common.dto.inventory.InventoryDeductRequest;
 import com.medcare.inventoryservice.entity.InventoryBatch;
 import com.medcare.inventoryservice.entity.Warehouse;
 import com.medcare.inventoryservice.repository.InventoryBatchRepository;
@@ -89,9 +89,9 @@ class InventoryConcurrencyIntegrationTest {
             final int index = i;
             executorService.submit(() -> {
                 try {
-                    StockDeductRequest request = StockDeductRequest.builder()
+                    InventoryDeductRequest request = InventoryDeductRequest.builder()
                             .orderCode("ORD-CONC-" + index)
-                            .items(List.of(StockDeductRequest.DeductItem.builder()
+                            .items(List.of(InventoryDeductRequest.DeductItem.builder()
                                     .productId(medicineId)
                                     .quantity(quantityPerRequest)
                                     .build()))
@@ -144,9 +144,9 @@ class InventoryConcurrencyIntegrationTest {
             final int index = i;
             executorService.submit(() -> {
                 try {
-                    StockDeductRequest request = StockDeductRequest.builder()
+                    InventoryDeductRequest request = InventoryDeductRequest.builder()
                             .orderCode("ORD-OVER-" + index)
-                            .items(List.of(StockDeductRequest.DeductItem.builder()
+                            .items(List.of(InventoryDeductRequest.DeductItem.builder()
                                     .productId(medicineId + 1)
                                     .quantity(quantityPerRequest)
                                     .build()))

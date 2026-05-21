@@ -20,7 +20,7 @@ public interface InventoryClient {
     Map<Long, Integer> getStocksBulk(@RequestBody List<Long> productIds);
 
     @PostMapping("/api/inventory/internal/deduct")
-    void deductStock(@RequestBody com.medcare.orderservice.dto.StockDeductRequest request);
+    void deductStock(@RequestBody com.medcare.common.dto.inventory.InventoryDeductRequest request);
 
     @PostMapping("/api/inventory/internal/restore")
     void restoreStock(@RequestParam("orderCode") String orderCode);

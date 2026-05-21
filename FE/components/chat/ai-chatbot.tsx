@@ -29,7 +29,7 @@ export function AIChatbot() {
   const { isOpen, closeChat, openChat, isMinimized, setIsMinimized, initialMessage, clearInitialMessage } = useChatStore();
   const [input, setInput] = useState("");
   const { messages, append, isLoading, submitFeedback } = useChat();
-  const [feedbackTarget, setFeedbackTarget] = useState<{log_id: number} | null>(null);
+  const [feedbackTarget, setFeedbackTarget] = useState<{ log_id: number } | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [ocrProgress, setOcrProgress] = useState(0);
   const [isScanning, setIsScanning] = useState(false);
@@ -117,8 +117,9 @@ export function AIChatbot() {
   const handleSend = async (text: string = input) => {
     const messageToSend = typeof text === 'string' ? text : input;
     if (!messageToSend.trim() || isLoading) return;
-    await append(messageToSend);
     setInput("");
+    await append(messageToSend);
+
   };
 
 
@@ -128,9 +129,9 @@ export function AIChatbot() {
         {isOpen && (
           <motion.div
             initial={{ opacity: 0, scale: 0.8, y: 20 }}
-            animate={{ 
-              opacity: 1, 
-              scale: 1, 
+            animate={{
+              opacity: 1,
+              scale: 1,
               y: 0,
               height: isMinimized ? "64px" : "600px"
             }}
@@ -152,9 +153,9 @@ export function AIChatbot() {
                 </div>
               </div>
               <div className="flex items-center gap-1">
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
+                <Button
+                  variant="ghost"
+                  size="icon"
                   className="h-8 w-8 text-white hover:bg-white/20"
                   onClick={(e) => {
                     e.stopPropagation();
@@ -163,9 +164,9 @@ export function AIChatbot() {
                 >
                   {isMinimized ? <Maximize2 size={16} /> : <Minimize2 size={16} />}
                 </Button>
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
+                <Button
+                  variant="ghost"
+                  size="icon"
                   className="h-8 w-8 text-white hover:bg-white/20"
                   onClick={(e) => {
                     e.stopPropagation();
@@ -193,8 +194,8 @@ export function AIChatbot() {
                         <div
                           className={cn(
                             "rounded-2xl px-4 py-2 text-sm shadow-sm",
-                            msg.role === "user" 
-                              ? "bg-primary text-primary-foreground rounded-tr-none" 
+                            msg.role === "user"
+                              ? "bg-primary text-primary-foreground rounded-tr-none"
                               : "bg-white border rounded-tl-none"
                           )}
                         >
@@ -204,7 +205,7 @@ export function AIChatbot() {
                             </ReactMarkdown>
                           </div>
                         </div>
-                        
+
                         {/* Render Carousel if products suggested */}
                         {msg.list_product_ids && msg.list_product_ids.length > 0 && (
                           <ProductCarousel ids={msg.list_product_ids} />
@@ -216,19 +217,19 @@ export function AIChatbot() {
                             "flex gap-2 mt-1 transition-opacity",
                             msg.rating !== undefined ? "opacity-100" : "opacity-0 group-hover:opacity-100"
                           )}>
-                            <button 
+                            <button
                               onClick={() => handleFeedback(msg.log_id!, true)}
                               className={cn(
-                                "p-1 rounded hover:bg-slate-200 transition-colors", 
+                                "p-1 rounded hover:bg-slate-200 transition-colors",
                                 msg.rating === true ? "text-green-600 bg-green-50" : "text-slate-400"
                               )}
                             >
                               <ThumbsUp size={12} />
                             </button>
-                            <button 
+                            <button
                               onClick={() => handleFeedback(msg.log_id!, false)}
                               className={cn(
-                                "p-1 rounded hover:bg-slate-200 transition-colors", 
+                                "p-1 rounded hover:bg-slate-200 transition-colors",
                                 msg.rating === false ? "text-red-600 bg-red-50" : "text-slate-400"
                               )}
                             >
@@ -238,14 +239,14 @@ export function AIChatbot() {
                         )}
                       </div>
                     ))}
-                    {isLoading && messages[messages.length-1].role === 'user' && (
+                    {isLoading && messages[messages.length - 1].role === 'user' && (
                       <div className="flex self-start items-start gap-2">
-                         <div className="h-8 w-8 rounded-full bg-slate-200 animate-pulse flex items-center justify-center">
-                            <Sparkles size={14} className="text-primary animate-spin" />
-                         </div>
-                         <div className="bg-white border rounded-2xl rounded-tl-none px-4 py-2 text-sm text-slate-400">
-                            Dược sĩ đang phân tích...
-                         </div>
+                        <div className="h-8 w-8 rounded-full bg-slate-200 animate-pulse flex items-center justify-center">
+                          <Sparkles size={14} className="text-primary animate-spin" />
+                        </div>
+                        <div className="bg-white border rounded-2xl rounded-tl-none px-4 py-2 text-sm text-slate-400">
+                          Dược sĩ đang phân tích...
+                        </div>
                       </div>
                     )}
                   </div>
@@ -255,10 +256,10 @@ export function AIChatbot() {
                     <ScrollArea className="w-full mt-4">
                       <div className="flex gap-2 pb-2 animate-in fade-in slide-in-from-bottom-2 duration-500">
                         {(messages[messages.length - 1]?.quick_actions || (messages.length === 1 ? QUICK_ACTIONS : [])).map(action => (
-                          <Button 
-                            key={action} 
-                            variant="outline" 
-                            size="sm" 
+                          <Button
+                            key={action}
+                            variant="outline"
+                            size="sm"
                             className="rounded-full whitespace-nowrap bg-white text-[12px] font-bold border-primary/20 text-primary hover:bg-primary hover:text-white transition-all shadow-sm"
                             onClick={() => handleSend(action)}
                           >
@@ -274,32 +275,32 @@ export function AIChatbot() {
                 <div className="border-t bg-background p-4 relative">
                   {isScanning && (
                     <div className="absolute top-0 left-0 w-full h-1 bg-slate-100 overflow-hidden">
-                      <motion.div 
-                        className="h-full bg-primary" 
+                      <motion.div
+                        className="h-full bg-primary"
                         initial={{ width: 0 }}
                         animate={{ width: `${ocrProgress}%` }}
                       />
                     </div>
                   )}
-                  
-                  <form 
+
+                  <form
                     className="flex items-center gap-2"
                     onSubmit={(e) => {
                       e.preventDefault();
                       handleSend();
                     }}
                   >
-                    <input 
-                      type="file" 
-                      ref={fileInputRef} 
-                      className="hidden" 
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      className="hidden"
                       accept="image/*"
                       onChange={handleImageUpload}
                     />
-                    <Button 
+                    <Button
                       type="button"
-                      variant="ghost" 
-                      size="icon" 
+                      variant="ghost"
+                      size="icon"
                       className={cn(
                         "rounded-full h-10 w-10 shrink-0 text-slate-400 hover:text-primary hover:bg-primary/5",
                         isScanning && "text-primary animate-pulse"
@@ -310,23 +311,23 @@ export function AIChatbot() {
                       {isScanning ? <Loader2 size={20} className="animate-spin" /> : <ImageIcon size={20} />}
                     </Button>
 
-                    <Input 
+                    <Input
                       placeholder={isScanning ? `Đang quét: ${ocrProgress}%...` : "Nhập triệu chứng hoặc câu hỏi..."}
                       value={input}
                       onChange={(e) => setInput(e.target.value)}
                       className="rounded-full border-slate-200"
                       disabled={isScanning}
                     />
-                    <Button 
-                      type="submit" 
-                      size="icon" 
+                    <Button
+                      type="submit"
+                      size="icon"
                       className="rounded-full h-10 w-10 shrink-0"
                       disabled={!input.trim() || isLoading || isScanning}
                     >
                       <Send size={18} />
                     </Button>
                   </form>
-                  
+
                   {/* Disclaimer */}
                   <div className="mt-2 flex items-start gap-1 text-[10px] text-slate-400 leading-tight">
                     <AlertCircle size={10} className="shrink-0 mt-0.5" />
@@ -343,19 +344,19 @@ export function AIChatbot() {
                   <h4 className="text-sm font-semibold mb-3">Tại sao bạn không hài lòng?</h4>
                   <div className="flex flex-col gap-2">
                     {["Sai thông tin", "Tư vấn nguy hiểm", "Khó hiểu", "Lý do khác"].map(reason => (
-                      <Button 
-                        key={reason} 
-                        variant="outline" 
-                        size="sm" 
+                      <Button
+                        key={reason}
+                        variant="outline"
+                        size="sm"
                         className="justify-start text-xs h-8 hover:bg-primary/5 hover:text-primary"
                         onClick={() => submitNegativeFeedback(reason)}
                       >
                         {reason}
                       </Button>
                     ))}
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       className="mt-2 text-xs h-8 text-slate-400"
                       onClick={() => setFeedbackTarget(null)}
                     >

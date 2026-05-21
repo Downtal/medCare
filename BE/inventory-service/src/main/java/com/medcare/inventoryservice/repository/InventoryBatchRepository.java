@@ -15,6 +15,7 @@ import java.util.List;
 public interface InventoryBatchRepository extends JpaRepository<InventoryBatch, Long> {
     List<InventoryBatch> findByMedicineId(Long medicineId);
     boolean existsByMedicineIdAndBatchNumber(Long medicineId, String batchNumber);
+    void deleteByMedicineId(Long medicineId);
     
     @Query("SELECT SUM(ib.quantityAvailable - ib.quantityReserved) FROM InventoryBatch ib WHERE ib.medicineId = :medicineId")
     Integer getTotalAvailableQuantity(Long medicineId);

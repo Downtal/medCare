@@ -11,4 +11,5 @@ public interface InventoryLogRepository extends JpaRepository<InventoryLog, Long
     List<InventoryLog> findAllByOrderByCreatedAtDesc();
     List<InventoryLog> findByReferenceIdAndChangeType(String referenceId, com.medcare.inventoryservice.entity.InventoryChangeType changeType);
     boolean existsByIdempotencyKey(String idempotencyKey);
+    void deleteByMedicineId(Long medicineId);
 }

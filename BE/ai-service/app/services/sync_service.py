@@ -47,21 +47,33 @@ class SyncService:
                     batch = products[i : i + self.batch_size]
                     
                     for p in batch:
-                        # Prepare content for AI context
+                        # Prepare content for AI context (Structured for LLM)
                         content = f"ID: {p.get('id')}\n"
                         content += f"Tên thuốc: {p.get('name')}\n"
-                        content += f"Thành phần: {p.get('activeIngredients', '')}\n"
-                        content += f"Công dụng: {p.get('indications', '')}\n"
+                        content += f"Thương hiệu: {p.get('brand', 'N/A')}\n"
+                        content += f"Nhà sản xuất: {p.get('manufacturer', 'N/A')}\n"
+                        content += f"Nước sản xuất: {p.get('countryOfOrigin', 'N/A')}\n"
+                        content += f"Dạng bào chế: {p.get('dosageForm', 'N/A')}\n"
+                        content += f"Hạn sử dụng: {p.get('expiryDate', 'N/A')}\n"
+                        content += f"Quy cách: {p.get('packingUnit', 'N/A')}\n"
+                        content += f"Cần kê đơn: {'Có' if p.get('requiresPrescription') else 'Không'}\n"
+                        
+                        content += f"Thành phần: {p.get('activeIngredients', 'N/A')}\n"
+                        content += f"Công dụng: {p.get('indications', 'N/A')}\n"
                         
                         # Symptoms list to string
-                        symptoms_list = p.get('symptoms', [])
-                        symptoms_str = ", ".join(symptoms_list) if symptoms_list else ""
+                        symptoms_list = p.get('symptoms') or []
+                        symptoms_str = ", ".join([s.strip() for s in symptoms_list if s and s.strip()]) if symptoms_list else ""
+                        
                         if symptoms_str:
                             content += f"Triệu chứng phù hợp: {symptoms_str}\n"
 
-                        content += f"Cách dùng: {p.get('usageInstruction', '')}\n"
-                        content += f"Chống chỉ định: {p.get('contraindications', '')}\n"
-                        content += f"Mô tả: {p.get('description', '')}"
+                        content += f"Cách dùng: {p.get('usageInstruction', 'N/A')}\n"
+                        content += f"Chống chỉ định: {p.get('contraindications', 'N/A')}\n"
+                        content += f"Tác dụng phụ: {p.get('sideEffects', 'N/A')}\n"
+                        content += f"Lưu ý/Thận trọng: {p.get('precautions', 'N/A')}\n"
+                        content += f"Bảo quản: {p.get('storageConditions', 'N/A')}\n"
+                        content += f"Mô tả: {p.get('description', 'N/A')}"
 
                         # Upsert logic
                         existing = db.query(ProductSymptom).filter(ProductSymptom.id == p.get('id')).first()
@@ -90,6 +102,66 @@ class SyncService:
 
         except Exception as e:
             logger.error(f"Sync failed: {e}")
+            return {"success": False, "error": str(e)}
+
+    async def sync_single_product(self, product_id: int):
+        try:
+            logger.info(f"Fetching product {product_id} from: {self.product_service_url}/api/products/{product_id}")
+            p = await self._fetch_with_retry(f"{self.product_service_url}/api/products/{product_id}")
+            
+            if not p or not isinstance(p, dict):
+                return {"success": False, "error": f"Product {product_id} not found or invalid format"}
+
+            db = SessionLocal()
+            try:
+                # Prepare content (Structured for LLM)
+                content = f"ID: {p.get('id')}\n"
+                content += f"Tên thuốc: {p.get('name')}\n"
+                content += f"Thương hiệu: {p.get('brand', 'N/A')}\n"
+                content += f"Nhà sản xuất: {p.get('manufacturer', 'N/A')}\n"
+                content += f"Nước sản xuất: {p.get('countryOfOrigin', 'N/A')}\n"
+                content += f"Dạng bào chế: {p.get('dosageForm', 'N/A')}\n"
+                content += f"Hạn sử dụng: {p.get('expiryDate', 'N/A')}\n"
+                content += f"Quy cách: {p.get('packingUnit', 'N/A')}\n"
+                content += f"Cần kê đơn: {'Có' if p.get('requiresPrescription') else 'Không'}\n"
+                
+                content += f"Thành phần: {p.get('activeIngredients', 'N/A')}\n"
+                content += f"Công dụng: {p.get('indications', 'N/A')}\n"
+                
+                # Symptoms list to string
+                symptoms_list = p.get('symptoms') or []
+                symptoms_str = ", ".join([s.strip() for s in symptoms_list if s and s.strip()]) if symptoms_list else ""
+                
+                if symptoms_str:
+                    content += f"Triệu chứng phù hợp: {symptoms_str}\n"
+
+                content += f"Cách dùng: {p.get('usageInstruction', 'N/A')}\n"
+                content += f"Chống chỉ định: {p.get('contraindications', 'N/A')}\n"
+                content += f"Tác dụng phụ: {p.get('sideEffects', 'N/A')}\n"
+                content += f"Lưu ý/Thận trọng: {p.get('precautions', 'N/A')}\n"
+                content += f"Bảo quản: {p.get('storageConditions', 'N/A')}\n"
+                content += f"Mô tả: {p.get('description', 'N/A')}"
+
+                existing = db.query(ProductSymptom).filter(ProductSymptom.id == p.get('id')).first()
+                if existing:
+                    existing.name = p.get('name')
+                    existing.symptoms = symptoms_str
+                    existing.content = content
+                else:
+                    new_ps = ProductSymptom(
+                        id=p.get('id'),
+                        name=p.get('name'),
+                        symptoms=symptoms_str,
+                        content=content
+                    )
+                    db.add(new_ps)
+                
+                db.commit()
+                return {"success": True}
+            finally:
+                db.close()
+        except Exception as e:
+            logger.error(f"Single product sync failed: {e}")
             return {"success": False, "error": str(e)}
 
 

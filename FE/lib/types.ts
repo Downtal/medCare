@@ -59,6 +59,24 @@ export interface Product {
   createdAt?: string;
 }
 
+export interface RecommendationMetadata {
+  degraded: boolean;
+  degradedReasons: string[];
+  source: string;
+  fallback?: boolean;
+  limit: number;
+  cacheTtlSeconds: number;
+  cacheHit: boolean;
+  generatedAt: string;
+  identityType?: string;
+  seedProductId?: number;
+}
+
+export interface RecommendationResponse {
+  items: Product[];
+  metadata: RecommendationMetadata;
+}
+
 export interface UserProfileDto {
   userId: number;
   fullName: string;
@@ -96,4 +114,23 @@ export interface PrescriptionResponse {
   extractedData?: string; // JSON string
   createdAt: string;
   updatedAt: string;
+}
+
+export interface PrescriptionMatchedProduct {
+  id: number;
+  name: string;
+  slug?: string;
+  price?: number;
+  primaryImageUrl?: string;
+}
+
+export interface PrescriptionMappedMedicine {
+  original_name: string;
+  quantity?: string | number;
+  purchased?: boolean;
+  matched_product?: PrescriptionMatchedProduct | null;
+}
+
+export interface PrescriptionExtractedData {
+  mapped_medicines?: PrescriptionMappedMedicine[];
 }

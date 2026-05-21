@@ -59,6 +59,9 @@ public class Voucher {
     private LocalDateTime startAt;
     private LocalDateTime endAt;
 
+    private Long applicableProductId;
+    private Long applicableCategoryId;
+
     @Builder.Default
     @JsonProperty("isActive")
     private boolean isActive = true;

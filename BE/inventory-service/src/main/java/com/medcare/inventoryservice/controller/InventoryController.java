@@ -1,5 +1,7 @@
 package com.medcare.inventoryservice.controller;
 
+import com.medcare.common.dto.inventory.*;
+
 import com.medcare.inventoryservice.dto.*;
 import com.medcare.inventoryservice.service.InventoryService;
 import lombok.RequiredArgsConstructor;
@@ -30,7 +32,7 @@ public class InventoryController {
     }
 
     @PostMapping("/internal/deduct")
-    public ResponseEntity<Void> deductStock(@RequestBody StockDeductRequest request) {
+    public ResponseEntity<Void> deductStock(@RequestBody InventoryDeductRequest request) {
         inventoryService.deductStock(request);
         return ResponseEntity.ok().build();
     }
@@ -115,5 +117,12 @@ public class InventoryController {
     public ResponseEntity<?> deleteWarehouseHard(@PathVariable Long id) {
         inventoryService.deleteWarehouseHard(id);
         return ResponseEntity.ok(java.util.Map.of("message", "Warehouse deleted permanently"));
+    }
+
+    @DeleteMapping("/product/{productId}/hard")
+    @org.springframework.security.access.prepost.PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Void> deleteProductStock(@PathVariable Long productId) {
+        inventoryService.deleteProductStock(productId);
+        return ResponseEntity.noContent().build();
     }
 }

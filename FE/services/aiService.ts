@@ -23,19 +23,31 @@ export interface ChatLog {
 
 export const aiService = {
   async getIndexedProducts(token?: string): Promise<IndexedProduct[]> {
+    console.log("Fetching indexed products from:", `${getApiBaseUrl()}${API_ENDPOINTS.AI}/admin/products`);
     const response = await fetch(`${getApiBaseUrl()}${API_ENDPOINTS.AI}/admin/products`, {
       headers: token ? { "Authorization": `Bearer ${token}` } : {}
     })
-    if (!response.ok) throw new Error("Failed to fetch indexed products")
-    return response.json()
+    if (!response.ok) {
+      console.error("Failed to fetch products. Status:", response.status);
+      throw new Error("Failed to fetch indexed products")
+    }
+    const data = await response.json();
+    console.log("Indexed products received:", data.length);
+    return data;
   },
 
   async getChatLogs(token?: string): Promise<ChatLog[]> {
+    console.log("Fetching chat logs from:", `${getApiBaseUrl()}${API_ENDPOINTS.AI}/admin/logs`);
     const response = await fetch(`${getApiBaseUrl()}${API_ENDPOINTS.AI}/admin/logs`, {
       headers: token ? { "Authorization": `Bearer ${token}` } : {}
     })
-    if (!response.ok) throw new Error("Failed to fetch chat logs")
-    return response.json()
+    if (!response.ok) {
+      console.error("Failed to fetch logs. Status:", response.status);
+      throw new Error("Failed to fetch chat logs")
+    }
+    const data = await response.json();
+    console.log("Chat logs received:", data.length);
+    return data;
   },
 
   async syncProducts(token?: string): Promise<{ success: boolean; count: number; error?: string }> {

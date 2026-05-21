@@ -104,6 +104,7 @@ CREATE TABLE prescriptions (
     doctor_name VARCHAR(150),
     expiry_date DATE,
     is_used BOOLEAN DEFAULT FALSE,
+    approved_at TIMESTAMP NULL COMMENT 'Thời điểm được duyệt — dùng để kiểm tra hiệu lực 90 ngày',
     pharmacist_note TEXT,
     extracted_data JSON COMMENT 'Lưu kết quả phân tích AI: {medicines: [...], dosage: ...}',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -526,6 +527,8 @@ CREATE TABLE chatbot_logs (
     bot_response TEXT NOT NULL,
     detected_symptoms JSON COMMENT 'Các triệu chứng AI bắt được',
     suggested_medicines JSON COMMENT 'Danh sách thuốc đã gợi ý',
+    rating BOOLEAN DEFAULT NULL COMMENT 'Đánh giá: True (Thích), False (Không thích)',
+    feedback_reason VARCHAR(255) DEFAULT NULL COMMENT 'Lý do phản hồi',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

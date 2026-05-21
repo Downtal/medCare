@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { useSession } from "next-auth/react";
 import { useNotificationStore } from "@/lib/store/useNotificationStore";
 
-const SOCKET_URL = "http://localhost:8081/ws";
+const SOCKET_URL = "http://localhost:8080/auth-service/ws";
 
 export const usePrescriptionSocket = () => {
   const { data: session } = useSession();

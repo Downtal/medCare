@@ -468,9 +468,9 @@ export default function CheckoutPage() {
       return
     }
 
-    if (hasPrescriptionItems && !prescriptionImageUrl) {
-      toast.error("Vui lòng tải lên ảnh đơn thuốc!")
-      return
+    if (hasPrescriptionItems && !prescriptionImageUrl && !selectedPrescriptionId) {
+      toast.error("Vui lòng tải lên ảnh đơn thuốc!");
+      return;
     }
 
     setIsSubmitting(true)

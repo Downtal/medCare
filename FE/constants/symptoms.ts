@@ -1,0 +1,17 @@
+export const SYMPTOM_OPTIONS = [
+  { label: "Sốt (Fever)", value: "Sốt" },
+  { label: "Ho (Cough)", value: "Ho" },
+  { label: "Đau đầu (Headache)", value: "Đau đầu" },
+  { label: "Sổ mũi (Runny Nose)", value: "Sổ mũi" },
+  { label: "Đau bụng (Stomachache)", value: "Đau bụng" },
+  { label: "Dị ứng (Allergy)", value: "Dị ứng" },
+  { label: "Đau nhức xương khớp (Joint Pain)", value: "Đau nhức xương khớp" },
+  { label: "Mất ngủ (Insomnia)", value: "Mất ngủ" },
+  { label: "Viêm họng (Sore Throat)", value: "Viêm họng" },
+  { label: "Cảm cúm (Flu)", value: "Cảm cúm" },
+  { label: "Chóng mặt (Dizziness)", value: "Chóng mặt" },
+  { label: "Buồn nôn (Nausea)", value: "Buồn nôn" },
+  { label: "Tiêu chảy (Diarrhea)", value: "Tiêu chảy" },
+  { label: "Mệt mỏi (Fatigue)", value: "Mệt mỏi" },
+  { label: "Phát ban (Rash)", value: "Phát ban" },
+]

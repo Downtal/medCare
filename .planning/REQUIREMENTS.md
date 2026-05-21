@@ -1,65 +1,45 @@
-# Milestone 6 Requirements: Stability & Data Consistency Hardening
+# Requirements: MedCare
 
-**Defined:** 2026-05-14
-**Core Value:** Cung cấp trải nghiệm mua dược phẩm an toàn, tin cậy với dữ liệu nhất quán và phản hồi xác thực chuẩn.
+**Defined:** 2026-05-15
+**Core Value:** Nâng cao chất lượng mã nguồn thông qua tái cấu trúc DTO và cải thiện trải nghiệm người dùng cho các tác vụ AI.
 
 ## v1 Requirements
 
-### Cart Reliability
+### Technical Debt (Refactoring)
 
-- [ ] **CART-01**: User có thể đọc/ghi giỏ hàng mà không phát sinh `ClassCastException` khi dữ liệu lưu trên Redis hash.
-- [ ] **CART-02**: User vẫn truy cập được giỏ hàng đã tồn tại sau khi chuẩn hóa sang `GenericJackson2JsonRedisSerializer` (không mất dữ liệu hợp lệ).
+- [ ] **REFACTOR-01**: Di chuyển các DTO trùng lặp (OrderRequest, ProductDTO, PaymentInfo, InventoryLookup...) từ các microservice riêng lẻ vào module `common-lib`.
+- [ ] **REFACTOR-02**: Cập nhật các service phụ thuộc (`order`, `payment`, `product`, `inventory`) để sử dụng DTO tập trung từ `common-lib`.
+- [ ] **REFACTOR-03**: Loại bỏ các class DTO trùng lặp và không còn sử dụng sau khi đã migrate sang `common-lib`.
 
-### Authentication Robustness
+### UX Improvements (AI Feedback)
 
-- [ ] **AUTH-01**: User nhận `401 Unauthorized` (không phải `500`) khi access token hết hạn.
-- [ ] **AUTH-02**: User nhận `401 Unauthorized` (không phải `500`) khi access token sai định dạng hoặc chữ ký không hợp lệ.
-- [ ] **AUTH-03**: FE nhận payload lỗi xác thực ổn định để kích hoạt luồng refresh token tự động.
-
-### Inventory Consistency
-
-- [ ] **INV-01**: User checkout đồng thời không gây trừ tồn kho trùng cho cùng lô hàng/sản phẩm.
-- [ ] **INV-02**: User luôn thấy số lượng tồn kho phản ánh đúng ngay sau giao dịch checkout thành công.
-
-### Quality Guardrails
-
-- [ ] **QUAL-01**: Dev có test bao phủ các nhánh lỗi serialization cart, JWT expired/malformed, và stock deduction cạnh tranh.
-- [ ] **QUAL-02**: Dev có log/chỉ báo đủ để truy vết lỗi xác thực hoặc lệch tồn kho khi vận hành.
-
-## v2 Requirements
-
-### Future Hardening
-
-- **LOCK-01**: Mở rộng sang Redis distributed lock đa node nếu tải tăng vượt khả năng pessimistic lock.
-- **QUAL-03**: Bổ sung stress test tự động với tải cao cho luồng checkout song song.
+- [ ] **UX-01**: Nâng cấp giao diện phân tích đơn thuốc (OCR) với trạng thái loading đa giai đoạn (Stage-based loading messages).
+- [ ] **UX-02**: Tích hợp các thông báo trạng thái cụ thể (ví dụ: "Đang tải ảnh...", "Gemini đang phân tích...", "Đang đối chiếu sản phẩm...") vào component loading.
+- [ ] **UX-03**: Đảm bảo hiệu ứng chuyển đổi mượt mà sử dụng Framer Motion cho các dòng thông báo.
 
 ## Out of Scope
 
 | Feature | Reason |
 |---------|--------|
-| Refactor toàn bộ kiến trúc Redis các service khác ngoài cart | Không cần thiết cho phạm vi bug-fix milestone này |
-| Thiết kế lại cơ chế auth end-to-end (OAuth flow, session model) | Chỉ cần chuẩn hóa handling lỗi JWT hiện có |
-| Tối ưu hiệu năng toàn hệ thống ở mức hạ tầng | Milestone tập trung độ đúng và độ ổn định nghiệp vụ |
+| Thay đổi cấu trúc Database | Rủi ro cao, không thuộc phạm vi dọn dẹp DTO |
+| Dockerization | Dời sang Milestone tiếp theo |
 
 ## Traceability
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| CART-01 | Phase 23 | Pending |
-| CART-02 | Phase 23 | Pending |
-| AUTH-01 | Phase 24 | Pending |
-| AUTH-02 | Phase 24 | Pending |
-| AUTH-03 | Phase 24 | Pending |
-| INV-01 | Phase 25 | Pending |
-| INV-02 | Phase 25 | Pending |
-| QUAL-01 | Phase 26 | Pending |
-| QUAL-02 | Phase 26 | Pending |
+| REFACTOR-01 | Phase 31 | Pending |
+| REFACTOR-02 | Phase 31 | Pending |
+| REFACTOR-03 | Phase 31 | Pending |
+| UX-01 | Phase 32 | Pending |
+| UX-02 | Phase 32 | Pending |
+| UX-03 | Phase 32 | Pending |
 
 **Coverage:**
-- v1 requirements: 9 total
-- Mapped to phases: 9
+- v1 requirements: 6 total
+- Mapped to phases: 6
 - Unmapped: 0
 
 ---
-*Requirements defined: 2026-05-14*
-*Last updated: 2026-05-14 after milestone v1.6 definition*
+*Requirements defined: 2026-05-15*
+*Last updated: 2026-05-15 after milestone v1.8 definition (Refined)*

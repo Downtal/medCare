@@ -47,6 +47,17 @@ public class Prescription {
     @Builder.Default
     private Boolean isUsed = false;
 
+    @Column(name = "max_usage")
+    @Builder.Default
+    private Integer maxUsage = 1;
+
+    @Column(name = "current_usage")
+    @Builder.Default
+    private Integer currentUsage = 0;
+
+    @Column(name = "approved_at")
+    private LocalDateTime approvedAt;
+
     @Column(name = "pharmacist_note", columnDefinition = "TEXT")
     private String pharmacistNote;
 

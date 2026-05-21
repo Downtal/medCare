@@ -194,22 +194,30 @@ public class PaymentService {
         String vnp_ResponseCode = params.get("vnp_ResponseCode");
         boolean isSuccess = signValue.equalsIgnoreCase(vnp_SecureHash) && "00".equals(vnp_ResponseCode);
         
-        // Active update if success (in case IPN is slow)
-        if (isSuccess) {
-            String vnp_TxnRef = params.get("vnp_TxnRef");
-            paymentRepository.findByTransactionId(vnp_TxnRef).ifPresent(payment -> {
-                if (payment.getStatus() == Payment.PaymentStatus.PENDING) {
+        // Active update (in case IPN is slow)
+        String vnp_TxnRef = params.get("vnp_TxnRef");
+        paymentRepository.findByTransactionId(vnp_TxnRef).ifPresent(payment -> {
+            if (payment.getStatus() == Payment.PaymentStatus.PENDING) {
+                if (isSuccess) {
                     payment.setStatus(Payment.PaymentStatus.SUCCESS);
                     payment.setPaidAt(LocalDateTime.now());
-                    paymentRepository.save(payment);
                     try {
                         orderClient.updatePaymentStatus(payment.getOrderCode(), "PAID");
                     } catch (Exception e) {
-                        log.error("Failed to update order status in callback: {}", e.getMessage());
+                        log.error("Failed to update order status to PAID in callback: {}", e.getMessage());
+                    }
+                } else {
+                    payment.setStatus(Payment.PaymentStatus.FAILED);
+                    try {
+                        orderClient.updatePaymentStatus(payment.getOrderCode(), "FAILED");
+                    } catch (Exception e) {
+                        log.error("Failed to update order status to FAILED in callback: {}", e.getMessage());
                     }
                 }
-            });
-        }
+                paymentRepository.save(payment);
+            }
+        });
+
         
         return PaymentResult.builder()
                 .orderId(params.get("vnp_TxnRef"))

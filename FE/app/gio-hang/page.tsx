@@ -8,7 +8,7 @@ import { Separator } from "@/components/ui/separator"
 import { 
   Minus, Plus, Trash2, ShoppingCart, HelpCircle, Tag, ArrowLeft, Ticket, X, 
   ChevronRight, Loader2, CheckCircle2, AlertCircle, FileText, CheckCircle,
-  User, Clock, Truck
+  User, Clock, Truck, Pill
 } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
@@ -90,7 +90,11 @@ export default function CartPage() {
 
   useEffect(() => {
     const fetchPrescriptions = async () => {
-      if (!token || !hasRXItems) return
+      if (!token || !hasRXItems) {
+        setApprovedPrescriptions([])
+        return
+      }
+
       try {
         const res = await fetch(`${getApiBaseUrl()}/user-service/api/users/prescriptions/me`, {
           headers: { 'Authorization': `Bearer ${token}` }
@@ -98,17 +102,42 @@ export default function CartPage() {
         if (res.ok) {
           const data = await res.json()
           const approved = data.filter((p: PrescriptionResponse) => p.status === 'APPROVED' && !p.isUsed)
-          setApprovedPrescriptions(approved)
+          
+          // Filter prescriptions that contain ALL selected RX items
+          const rxMedicineIds = selectedItems
+            .filter(item => (item as any).requiresPrescription)
+            .map(item => item.medicineId)
+
+          const validPrescriptions = approved.filter((p: PrescriptionResponse) => {
+            if (!p.extractedData) return false
+            try {
+              const extracted = JSON.parse(p.extractedData)
+              const mappedMeds = extracted.mapped_medicines || []
+              const medicinceIdsInPrescription = mappedMeds
+                .filter((m: any) => m.matched_product?.id)
+                .map((m: any) => m.matched_product.id)
+              
+              // Must contain ALL selected Rx items
+              return rxMedicineIds.every(id => medicinceIdsInPrescription.includes(id))
+            } catch (e) {
+              return false
+            }
+          })
+
+          setApprovedPrescriptions(validPrescriptions)
+          
+          // Reset selected prescription if it's no longer valid
+          if (selectedPrescription && !validPrescriptions.find(p => p.id === selectedPrescription.id)) {
+            setSelectedPrescription(null)
+          }
         }
       } catch (err) {
         console.error("Failed to fetch prescriptions")
       }
     }
 
-    if (hasRXItems) {
-      fetchPrescriptions()
-    }
-  }, [token, hasRXItems])
+    fetchPrescriptions()
+  }, [token, hasRXItems, selectedIds])
 
   // Subtotal is based on unitPrice (final price)
   const subtotal = selectedItems.reduce((sum, item) => sum + (item.unitPrice * item.quantity), 0)
@@ -325,11 +354,19 @@ export default function CartPage() {
                             {item.name}
                           </h4>
                         </Link>
-                        {typeof item.stockQuantity === 'number' && item.stockQuantity <= 0 && (
-                          <div className="bg-red-50 text-red-600 px-3 py-1 rounded-lg text-xs font-black w-fit mb-4">
-                            SẢN PHẨM HIỆN ĐANG HẾT HÀNG
-                          </div>
-                        )}
+                        <div className="flex flex-wrap items-center gap-2 mb-2">
+                          {item.requiresPrescription && (
+                            <div className="flex items-center gap-1 bg-rose-50 text-rose-600 border border-rose-100 px-2.5 py-1 rounded-full text-xs font-black">
+                              <Pill className="w-3 h-3" />
+                              Thuốc kê đơn
+                            </div>
+                          )}
+                          {typeof item.stockQuantity === 'number' && item.stockQuantity <= 0 && (
+                            <div className="bg-red-50 text-red-600 px-3 py-1 rounded-lg text-xs font-black">
+                              SẢN PHẨM HIỆN ĐANG HẾT HÀNG
+                            </div>
+                          )}
+                        </div>
 
                         <div className="flex flex-wrap items-center justify-between gap-6">
                           <div className="flex flex-col">

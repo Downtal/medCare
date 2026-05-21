@@ -11,6 +11,7 @@ import com.medcare.productservice.repository.MedicineRepository;
 import com.medcare.productservice.repository.MedicineSymptomRepository;
 import com.medcare.productservice.repository.SymptomRepository;
 import com.medcare.productservice.client.InventoryClient;
+import com.medcare.productservice.client.AiClient;
 import com.medcare.productservice.service.ProductService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -21,6 +22,8 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.LocalDateTime;
 import java.util.Collections;
@@ -36,6 +39,7 @@ public class ProductServiceImpl implements ProductService {
         private final SymptomRepository symptomRepository;
         private final MedicineSymptomRepository medicineSymptomRepository;
         private final InventoryClient inventoryClient;
+        private final AiClient aiClient;
         private final CloudinaryService cloudinaryService;
 
         @Override
@@ -154,7 +158,7 @@ public class ProductServiceImpl implements ProductService {
                                                         ? request.getInitialExpiryDate()
                                                         : java.time.LocalDate.now().plusYears(1).toString();
 
-                        com.medcare.productservice.dto.ProductCreatedEvent event = com.medcare.productservice.dto.ProductCreatedEvent
+                        com.medcare.common.dto.inventory.ProductCreatedEvent event = com.medcare.common.dto.inventory.ProductCreatedEvent
                                         .builder()
                                         .medicineId(saved.getId())
                                         .name(saved.getName())
@@ -176,6 +180,8 @@ public class ProductServiceImpl implements ProductService {
                                         + e.getMessage());
                 }
 
+                syncWithAiService(saved.getId());
+
                 return mapToResponse(saved);
         }
 
@@ -188,7 +194,7 @@ public class ProductServiceImpl implements ProductService {
         })
         public ProductResponse updateProduct(Long id, ProductRequest request) {
                 Medicine medicine = medicineRepository.findById(id)
-                                .orElseThrow(() -> new RuntimeException("KhÃƒÂ´ng tÃƒÂ¬m thÃ¡ÂºÂ¥y sÃ¡ÂºÂ£n phÃ¡ÂºÂ©m id: " + id));
+                                .orElseThrow(() -> new RuntimeException("Không tìm thấy sản phẩm id: " + id));
 
                 medicine.setSourceSku(safeTrim(request.getSourceSku(), 50));
                 medicine.setName(request.getName() != null ? request.getName().trim() : "");
@@ -318,7 +324,7 @@ public class ProductServiceImpl implements ProductService {
                                         expiry = java.time.LocalDate.now().plusYears(1);
                                 }
 
-                                com.medcare.productservice.dto.InventoryImportRequest importRequest = com.medcare.productservice.dto.InventoryImportRequest
+                                com.medcare.common.dto.inventory.InventoryImportRequest importRequest = com.medcare.common.dto.inventory.InventoryImportRequest
                                                 .builder()
                                                 .medicineId(saved.getId())
                                                 .medicineName(saved.getName())
@@ -342,6 +348,8 @@ public class ProductServiceImpl implements ProductService {
                         }
                 }
 
+                syncWithAiService(saved.getId());
+
                 return mapToResponse(saved);
         }
 
@@ -354,7 +362,8 @@ public class ProductServiceImpl implements ProductService {
         })
         public void deleteProduct(Long id) {
                 Medicine medicine = medicineRepository.findById(id)
-                                .orElseThrow(() -> new RuntimeException("KhÃƒÂ´ng tÃƒÂ¬m thÃ¡ÂºÂ¥y sÃ¡ÂºÂ£n phÃ¡ÂºÂ©m id: " + id));
+                                .orElseThrow(() -> new RuntimeException(
+                                                "KhÃƒÂ´ng tÃƒÂ¬m thÃ¡ÂºÂ¥y sÃ¡ÂºÂ£n phÃ¡ÂºÂ©m id: " + id));
                 medicine.setStatus(false);
                 medicine.setDeletedAt(LocalDateTime.now());
                 medicineRepository.save(medicine);
@@ -363,7 +372,8 @@ public class ProductServiceImpl implements ProductService {
         @Override
         public ProductResponse getProductById(Long id) {
                 Medicine medicine = medicineRepository.findByIdAndStatusTrue(id)
-                                .orElseThrow(() -> new RuntimeException("KhÃƒÂ´ng tÃƒÂ¬m thÃ¡ÂºÂ¥y sÃ¡ÂºÂ£n phÃ¡ÂºÂ©m id: " + id));
+                                .orElseThrow(() -> new RuntimeException(
+                                                "KhÃƒÂ´ng tÃƒÂ¬m thÃ¡ÂºÂ¥y sÃ¡ÂºÂ£n phÃ¡ÂºÂ©m id: " + id));
                 ProductResponse response = mapToResponse(medicine);
                 try {
                         Integer freshStock = inventoryClient.getTotalStock(id);
@@ -379,7 +389,8 @@ public class ProductServiceImpl implements ProductService {
         @Override
         public ProductResponse getProductBySlug(String slug) {
                 Medicine medicine = medicineRepository.findBySlugAndStatusTrue(slug)
-                                .orElseThrow(() -> new RuntimeException("KhÃƒÂ´ng tÃƒÂ¬m thÃ¡ÂºÂ¥y sÃ¡ÂºÂ£n phÃ¡ÂºÂ©m slug: " + slug));
+                                .orElseThrow(() -> new RuntimeException(
+                                                "KhÃƒÂ´ng tÃƒÂ¬m thÃ¡ÂºÂ¥y sÃ¡ÂºÂ£n phÃ¡ÂºÂ©m slug: " + slug));
                 ProductResponse response = mapToResponse(medicine);
                 try {
                         Integer freshStock = inventoryClient.getTotalStock(medicine.getId());
@@ -472,27 +483,30 @@ public class ProductServiceImpl implements ProductService {
         @Override
         public PageResponse<ProductResponse> searchProductsPaginated(String name, int pageNo, int pageSize) {
                 Pageable pageable = PageRequest.of(pageNo, pageSize);
-                
+
                 // 1. Try standard containing search first
-                Page<Medicine> medicines = medicineRepository.findByNameContainingIgnoreCaseAndStatusTrue(name, pageable);
-                
+                Page<Medicine> medicines = medicineRepository.findByNameContainingIgnoreCaseAndStatusTrue(name,
+                                pageable);
+
                 // 2. If no results and name has multiple words, try a more flexible approach
                 if (medicines.isEmpty() && name.trim().contains(" ")) {
                         String[] keywords = name.trim().split("\\s+");
                         // Filter out very short words or common Vietnamese noise words if needed
                         List<String> importantKeywords = java.util.Arrays.stream(keywords)
-                                .filter(k -> k.length() > 2)
-                                .collect(Collectors.toList());
-                        
+                                        .filter(k -> k.length() > 2)
+                                        .collect(Collectors.toList());
+
                         if (!importantKeywords.isEmpty()) {
-                                // For now, let's just search for the longest keyword as it's likely the brand/main name
+                                // For now, let's just search for the longest keyword as it's likely the
+                                // brand/main name
                                 String bestKeyword = importantKeywords.stream()
-                                        .max(java.util.Comparator.comparingInt(String::length))
-                                        .orElse(importantKeywords.get(0));
-                                medicines = medicineRepository.findByNameContainingIgnoreCaseAndStatusTrue(bestKeyword, pageable);
+                                                .max(java.util.Comparator.comparingInt(String::length))
+                                                .orElse(importantKeywords.get(0));
+                                medicines = medicineRepository.findByNameContainingIgnoreCaseAndStatusTrue(bestKeyword,
+                                                pageable);
                         }
                 }
-                
+
                 return mapToPageResponse(medicines);
         }
 
@@ -512,7 +526,8 @@ public class ProductServiceImpl implements ProductService {
                         return com.medcare.productservice.dto.SearchSuggestionResponse.builder()
                                         .products(Collections.emptyList())
                                         .categories(Collections.emptyList())
-                                        .trendingKeywords(List.of("Panadol", "Paracetamol", "Vitamin C", "KhÃ¡ÂºÂ©u trang",
+                                        .trendingKeywords(List.of("Panadol", "Paracetamol", "Vitamin C",
+                                                        "KhÃ¡ÂºÂ©u trang",
                                                         "Tiffy"))
                                         .build();
                 }
@@ -726,7 +741,8 @@ public class ProductServiceImpl implements ProductService {
         })
         public void restoreProduct(Long id) {
                 Medicine medicine = medicineRepository.findById(id)
-                                .orElseThrow(() -> new RuntimeException("KhÃƒÂ´ng tÃƒÂ¬m thÃ¡ÂºÂ¥y sÃ¡ÂºÂ£n phÃ¡ÂºÂ©m id: " + id));
+                                .orElseThrow(() -> new RuntimeException(
+                                                "KhÃƒÂ´ng tÃƒÂ¬m thÃ¡ÂºÂ¥y sÃ¡ÂºÂ£n phÃ¡ÂºÂ©m id: " + id));
                 medicine.setStatus(true);
                 medicine.setDeletedAt(null);
                 medicineRepository.save(medicine);
@@ -740,9 +756,11 @@ public class ProductServiceImpl implements ProductService {
         })
         public void hardDeleteProduct(Long id) {
                 Medicine medicine = medicineRepository.findById(id)
-                                .orElseThrow(() -> new RuntimeException("KhÃƒÂ´ng tÃƒÂ¬m thÃ¡ÂºÂ¥y sÃ¡ÂºÂ£n phÃ¡ÂºÂ©m id: " + id));
+                                .orElseThrow(() -> new RuntimeException(
+                                                "KhÃƒÂ´ng tÃƒÂ¬m thÃ¡ÂºÂ¥y sÃ¡ÂºÂ£n phÃ¡ÂºÂ©m id: " + id));
 
-                // XÃƒÂ³a Ã¡ÂºÂ£nh trÃƒÂªn Cloudinary trÃ†Â°Ã¡Â»â€ºc khi xÃƒÂ³a dÃ¡Â»Â¯ liÃ¡Â»â€¡u trong DB
+                // XÃƒÂ³a Ã¡ÂºÂ£nh trÃƒÂªn Cloudinary trÃ†Â°Ã¡Â»â€ºc khi xÃƒÂ³a dÃ¡Â»Â¯
+                // liÃ¡Â»â€¡u trong DB
                 if (medicine.getImages() != null && !medicine.getImages().isEmpty()) {
                         for (MedicineImage image : medicine.getImages()) {
                                 if (image.getImageUrl() != null && image.getImageUrl().contains("cloudinary.com")) {
@@ -752,6 +770,21 @@ public class ProductServiceImpl implements ProductService {
                 }
 
                 medicineRepository.deleteById(id);
+
+                // Xóa dữ liệu trong kho
+                try {
+                        inventoryClient.deleteProductStock(id);
+                } catch (Exception e) {
+                        System.err.println("Failed to delete inventory data for product: " + id + ". Error: " + e.getMessage());
+                }
+
+                // Sync with AI Service - Delete Mapping
+                try {
+                        aiClient.deleteProductMapping(id, "ADMIN");
+                } catch (Exception e) {
+                        System.err.println("Failed to delete AI mapping for product: " + id + ". Error: "
+                                        + e.getMessage());
+                }
         }
 
         private String generateSlug(String name) {
@@ -781,7 +814,25 @@ public class ProductServiceImpl implements ProductService {
                         return trimmed.substring(0, maxLength);
                 return trimmed;
         }
+
+        private void syncWithAiService(Long productId) {
+                if (TransactionSynchronizationManager.isActualTransactionActive()) {
+                        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                                @Override
+                                public void afterCommit() {
+                                        try {
+                                                aiClient.syncProduct(productId, "ADMIN");
+                                        } catch (Exception e) {
+                                                System.err.println("Failed to sync product " + productId + " with AI service: " + e.getMessage());
+                                        }
+                                }
+                        });
+                } else {
+                        try {
+                                aiClient.syncProduct(productId, "ADMIN");
+                        } catch (Exception e) {
+                                System.err.println("Failed to sync product " + productId + " with AI service: " + e.getMessage());
+                        }
+                }
+        }
 }
-
-
-

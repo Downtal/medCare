@@ -20,7 +20,8 @@ import {
   Filter,
   ChevronLeft,
   ChevronRight,
-  LogOut
+  LogOut,
+  X
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -88,6 +89,15 @@ export default function AdminUsersPage() {
   // Filter States
   const [roleFilter, setRoleFilter] = useState<string>("ALL")
   const [statusFilter, setStatusFilter] = useState<string>("ALL")
+
+  const resetFilters = () => {
+    setSearchQuery("")
+    setRoleFilter("ALL")
+    setStatusFilter("ALL")
+    setCurrentPage(1)
+  }
+
+  const isFiltered = searchQuery !== "" || roleFilter !== "ALL" || statusFilter !== "ALL"
 
   const { data: users = [], isLoading: isLoadingAll } = useQuery({
     queryKey: ["admin_users"],
@@ -387,6 +397,17 @@ export default function AdminUsersPage() {
               onChange={e => { setSearchQuery(e.target.value); setCurrentPage(1); }}
             />
           </div>
+
+          {isFiltered && (
+            <Button
+              variant="ghost"
+              onClick={resetFilters}
+              className="h-14 px-6 rounded-2xl font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 transition-all flex items-center gap-2 shrink-0 border-none"
+            >
+              <X className="h-4 w-4" />
+              Xóa lọc
+            </Button>
+          )}
         </div>
       </div>
 

@@ -23,6 +23,18 @@ application:
     jwt:
       secret-key: ${JWT_SECRET}
 
+management:
+  health:
+    redis:
+      enabled: false
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus,info
+  metrics:
+    tags:
+      application: ${spring.application.name}
+
 # VNPay Configuration
 vnpay:
   tmn-code: ${VNP_TMN_CODE:ZWS62IWD}

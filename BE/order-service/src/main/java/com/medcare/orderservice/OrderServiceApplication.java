@@ -9,6 +9,7 @@ import org.springframework.cloud.openfeign.EnableFeignClients;
 @SpringBootApplication(scanBasePackages = "com.medcare")
 @EnableDiscoveryClient
 @EnableFeignClients
+@org.springframework.scheduling.annotation.EnableScheduling
 public class OrderServiceApplication {
 
     public static void main(String[] args) {

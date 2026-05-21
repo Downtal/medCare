@@ -1,6 +1,6 @@
 package com.medcare.inventoryservice.controller;
 
-import com.medcare.inventoryservice.dto.ProductCreatedEvent;
+import com.medcare.common.dto.inventory.ProductCreatedEvent;
 import com.medcare.inventoryservice.service.InventoryService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

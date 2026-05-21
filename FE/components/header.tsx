@@ -394,7 +394,7 @@ export function Header() {
                 </Button>
               )}
 
-              <NotificationBell />
+              {/* Notification button removed */}
 
               <Link
                 ref={cartIconRef}

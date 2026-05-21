@@ -12,3 +12,5 @@ pymysql
 httpx
 pydantic-settings
 Pillow
+prometheus-client
+PyJWT

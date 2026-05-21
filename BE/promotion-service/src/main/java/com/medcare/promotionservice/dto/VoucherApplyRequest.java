@@ -23,6 +23,7 @@ public class VoucherApplyRequest {
     @AllArgsConstructor
     public static class OrderItemDto {
         private Long productId;
+        private Long categoryId;
         private BigDecimal price;
         private int quantity;
         private boolean isPrescription;

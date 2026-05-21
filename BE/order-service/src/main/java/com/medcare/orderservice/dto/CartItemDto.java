@@ -20,4 +20,5 @@ public class CartItemDto {
     private BigDecimal originalPrice;
     private BigDecimal totalPrice;
     private Integer stockQuantity;
+    private Boolean requiresPrescription;
 }

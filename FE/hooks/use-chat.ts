@@ -46,8 +46,8 @@ export function useChat() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ log_id: logId, rating, reason }),
       });
-      
-      setMessages(prev => prev.map(m => 
+
+      setMessages(prev => prev.map(m =>
         m.log_id === logId ? { ...m, rating } : m
       ));
     } catch (e) {
@@ -100,39 +100,39 @@ export function useChat() {
           for (const line of lines) {
             if (line.startsWith('data: ')) {
               const data = line.slice(6).trim();
-              
+
               if (data.includes('|||')) {
                 // Final metadata chunk
                 const [textPart, jsonPart] = data.split('|||');
                 fullContent += textPart;
-                
+
                 try {
-                    // Sanitize for control characters that break JSON.parse
-                    const sanitizedJson = jsonPart.replace(/[\x00-\x1F\x7F-\x9F]/g, (match) => {
-                      if (match === '\n') return '\\n';
-                      if (match === '\r') return '\\r';
-                      if (match === '\t') return '\\t';
-                      return '';
-                    });
-                    const metadata = JSON.parse(sanitizedJson);
-                    setMessages(prev => prev.map(m => 
-                      m.id === botMsgId 
-                        ? { 
-                            ...m, 
-                            content: fullContent, 
-                            list_product_ids: metadata.list_product_ids, 
-                            detected_symptoms: metadata.detected_symptoms,
-                            quick_actions: metadata.quick_actions,
-                            log_id: metadata.log_id
-                          } 
-                        : m
-                    ));
+                  // Sanitize for control characters that break JSON.parse
+                  const sanitizedJson = jsonPart.replace(/[\x00-\x1F\x7F-\x9F]/g, (match) => {
+                    if (match === '\n') return '\\n';
+                    if (match === '\r') return '\\r';
+                    if (match === '\t') return '\\t';
+                    return '';
+                  });
+                  const metadata = JSON.parse(sanitizedJson);
+                  setMessages(prev => prev.map(m =>
+                    m.id === botMsgId
+                      ? {
+                        ...m,
+                        content: fullContent,
+                        list_product_ids: metadata.list_product_ids,
+                        detected_symptoms: metadata.detected_symptoms,
+                        quick_actions: metadata.quick_actions,
+                        log_id: metadata.log_id
+                      }
+                      : m
+                  ));
                 } catch (e) {
-                    console.error("Failed to parse metadata", e);
+                  console.error("Failed to parse metadata", e);
                 }
               } else {
                 fullContent += data;
-                setMessages(prev => prev.map(m => 
+                setMessages(prev => prev.map(m =>
                   m.id === botMsgId ? { ...m, content: fullContent } : m
                 ));
               }
@@ -142,7 +142,7 @@ export function useChat() {
       }
     } catch (error) {
       console.error('Chat error:', error);
-      setMessages(prev => prev.map(m => 
+      setMessages(prev => prev.map(m =>
         m.id === botMsgId ? { ...m, content: 'Xin lỗi, tôi đang gặp trục trặc kỹ thuật. Vui lòng thử lại sau.' } : m
       ));
     } finally {

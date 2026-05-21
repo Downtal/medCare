@@ -12,6 +12,7 @@ import java.time.LocalDateTime;
 public class PrescriptionResponse {
     private Long id;
     private Long userId;
+    private String userEmail;
     private String imageUrl;
     private PrescriptionStatus status;
     private String hospitalName;
@@ -19,8 +20,11 @@ public class PrescriptionResponse {
     private String doctorName;
     private LocalDate expiryDate;
     private Boolean isUsed;
+    private Integer maxUsage;
+    private Integer currentUsage;
     private String pharmacistNote;
     private String extractedData;
+    private LocalDateTime approvedAt;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

@@ -1,6 +1,6 @@
 # BÁO CÁO TIẾN ĐỘ THỰC HIỆN TIỂU LUẬN/ĐỒ ÁN TỐT NGHIỆP: DỰ ÁN MEDCARE
 
-**Ngày cập nhật:** 02/05/2026
+**Ngày cập nhật:** 15/05/2026
 **Tên dự án:** MedCare - Nền tảng Y tế và Chăm sóc Sức khỏe Toàn diện
 
 ---
@@ -55,6 +55,12 @@ Hệ thống đã trải qua 5 giai đoạn chính và hoàn thành xuất sắc
   - Xây dựng tính năng cho phép người dùng chụp/tải ảnh đơn thuốc.
   - Ứng dụng Gemini AI phân tích hình ảnh, đọc tên thuốc, liều lượng và tự động tìm kiếm thuốc trong cơ sở dữ liệu để đề xuất giỏ hàng.
   - Cung cấp giao diện riêng biệt cho Dược sĩ để kiểm duyệt đơn thuốc thông qua luồng quản lý Backend.
+
+- **Milestone 6: Gợi Ý Sản Phẩm Thông Minh (Recommendation MVP) - [Đã hoàn thành]**
+  - Xây dựng bộ máy gợi ý (Recommendation Engine) tại AI Service dựa trên hành vi người dùng (đơn hàng, giỏ hàng) và độ phổ biến.
+  - Triển khai thuật toán xếp hạng (Ranking) và cơ chế Fallback đảm bảo tính liên tục của trải nghiệm khám phá sản phẩm.
+  - Tích hợp widget gợi ý cá nhân hóa vào Trang chủ và các sản phẩm liên quan vào Trang chi tiết.
+  - Hoàn tất kiểm chứng Backend (Contract Testing) và đảm bảo tính nhất quán của dữ liệu gợi ý.
 
 ---
 

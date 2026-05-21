@@ -3,6 +3,7 @@
 import * as React from "react"
 import { X } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
+import { cn } from "@/lib/utils"
 import { Command, CommandGroup, CommandItem, CommandList } from "@/components/ui/command"
 import { Command as CommandPrimitive } from "cmdk"
 
@@ -16,9 +17,18 @@ interface MultiSelectProps {
   selected: string[]
   onChange: (selected: string[]) => void
   placeholder?: string
+  className?: string
+  placeholderClassName?: string
 }
 
-export function MultiSelect({ options, selected, onChange, placeholder = "Chọn các mục..." }: MultiSelectProps) {
+export function MultiSelect({ 
+  options, 
+  selected, 
+  onChange, 
+  placeholder = "Chọn các mục...",
+  className,
+  placeholderClassName
+}: MultiSelectProps) {
   const inputRef = React.useRef<HTMLInputElement>(null)
   const [open, setOpen] = React.useState(false)
   const [inputValue, setInputValue] = React.useState("")
@@ -44,7 +54,7 @@ export function MultiSelect({ options, selected, onChange, placeholder = "Chọn
   const selectables = options.filter((option) => !selected.includes(option.value))
 
   return (
-    <Command onKeyDown={handleKeyDown} className="overflow-visible bg-transparent">
+    <Command onKeyDown={handleKeyDown} className={cn("overflow-visible bg-transparent", className)}>
       <div className="group border border-input px-3 py-2 text-sm ring-offset-background rounded-md focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2">
         <div className="flex gap-1 flex-wrap">
           {selected.map((itemValue) => {
@@ -77,7 +87,7 @@ export function MultiSelect({ options, selected, onChange, placeholder = "Chọn
             onBlur={() => setOpen(false)}
             onFocus={() => setOpen(true)}
             placeholder={selected.length === 0 ? placeholder : ""}
-            className="ml-2 bg-transparent outline-none placeholder:text-muted-foreground flex-1"
+            className={cn("ml-2 bg-transparent outline-none flex-1", placeholderClassName || "placeholder:text-muted-foreground")}
           />
         </div>
       </div>

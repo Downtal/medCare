@@ -2,7 +2,7 @@ package com.medcare.inventoryservice.service;
 
 import com.medcare.common.exception.AppException;
 import com.medcare.common.exception.ErrorCode;
-import com.medcare.inventoryservice.dto.StockDeductRequest;
+import com.medcare.common.dto.inventory.InventoryDeductRequest;
 import com.medcare.inventoryservice.entity.InventoryBatch;
 import com.medcare.inventoryservice.entity.InventoryChangeType;
 import com.medcare.inventoryservice.entity.InventoryLog;
@@ -44,9 +44,9 @@ class InventoryServiceConcurrencyTest {
 
     @Test
     void shouldDeductUsingLockedFifoBatches() {
-        StockDeductRequest request = StockDeductRequest.builder()
+        InventoryDeductRequest request = InventoryDeductRequest.builder()
                 .orderCode("ORD-100")
-                .items(List.of(StockDeductRequest.DeductItem.builder()
+                .items(List.of(InventoryDeductRequest.DeductItem.builder()
                         .productId(10L)
                         .quantity(7)
                         .build()))
@@ -84,9 +84,9 @@ class InventoryServiceConcurrencyTest {
 
     @Test
     void shouldRetryOnLockContentionAndThenSucceed() {
-        StockDeductRequest request = StockDeductRequest.builder()
+        InventoryDeductRequest request = InventoryDeductRequest.builder()
                 .orderCode("ORD-200")
-                .items(List.of(StockDeductRequest.DeductItem.builder()
+                .items(List.of(InventoryDeductRequest.DeductItem.builder()
                         .productId(11L)
                         .quantity(1)
                         .build()))
@@ -113,9 +113,9 @@ class InventoryServiceConcurrencyTest {
 
     @Test
     void shouldMapExhaustedLockContentionToInventoryConflict() {
-        StockDeductRequest request = StockDeductRequest.builder()
+        InventoryDeductRequest request = InventoryDeductRequest.builder()
                 .orderCode("ORD-300")
-                .items(List.of(StockDeductRequest.DeductItem.builder()
+                .items(List.of(InventoryDeductRequest.DeductItem.builder()
                         .productId(12L)
                         .quantity(1)
                         .build()))
@@ -131,9 +131,9 @@ class InventoryServiceConcurrencyTest {
 
     @Test
     void shouldNotRetryWhenStockIsInsufficient() {
-        StockDeductRequest request = StockDeductRequest.builder()
+        InventoryDeductRequest request = InventoryDeductRequest.builder()
                 .orderCode("ORD-400")
-                .items(List.of(StockDeductRequest.DeductItem.builder()
+                .items(List.of(InventoryDeductRequest.DeductItem.builder()
                         .productId(13L)
                         .quantity(10)
                         .build()))

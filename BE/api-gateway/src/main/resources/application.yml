@@ -12,16 +12,24 @@ spring:
           enabled: true
           lowerCaseServiceId: true
       routes:
+        - id: ai-service
+          uri: lb://ai-service
+          predicates:
+            - Path=/ai-service/**
+          filters:
+            - RewritePath=/ai-service/(?<path>.*), /${path}
+            - Authentication
+
         - id: auth-service
           uri: lb://auth-service
           predicates:
             - Path=/auth-service/**
           filters:
             - RewritePath=/auth-service/(?<path>.*), /$\{path}
-        
+            
         - id: user-service
           uri: lb://user-service
-          predicates:
+          predicates:  
             - Path=/user-service/**
           filters:
             - RewritePath=/user-service/(?<path>.*), /$\{path}
@@ -82,13 +90,6 @@ spring:
           filters:
             - RewritePath=/payment-service/(?<path>.*), /$\{path}
             - Authentication
-
-        - id: ai-service
-          uri: http://127.0.0.1:8095
-          predicates:
-            - Path=/ai-service/**
-          filters:
-            - RewritePath=/ai-service/(?<path>.*), /$\{path}
 
       globalcors:
         cors-configurations:

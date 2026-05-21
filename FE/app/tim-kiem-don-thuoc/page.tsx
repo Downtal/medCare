@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, Suspense } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Search, Check, ShoppingCart, Loader2, FileText, X, AlertCircle, ImageIcon, ArrowLeft } from "lucide-react"
+import { Search, Check, ShoppingCart, Loader2, FileText, X, AlertCircle, ImageIcon, ArrowLeft, CheckCircle2, BrainCircuit, ScanSearch } from "lucide-react"
 import Image from "next/image"
 import Tesseract from "tesseract.js"
 import { aiService } from "@/services/aiService"
@@ -162,18 +162,60 @@ function PrescriptionSearchContent() {
           </div>
         </Card>
       ) : isProcessing ? (
-        <div className="flex flex-col items-center justify-center py-24 space-y-6 bg-white rounded-3xl border shadow-sm">
-          <div className="relative">
-            <div className="w-20 h-20 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
-            <div className="absolute inset-0 flex items-center justify-center">
-              <Loader2 className="w-8 h-8 text-primary animate-pulse" />
-            </div>
-          </div>
-          <div className="text-center">
-            <h3 className="text-xl font-bold text-slate-800">
-              {processStep === "scanning" ? `Đang quét ảnh (${scanProgress}%)` : "Đang phân tích AI..."}
+        <div className="flex flex-col items-center justify-center py-24 bg-white rounded-3xl border shadow-sm px-4">
+          <div className="w-full max-w-md space-y-6">
+            <h3 className="text-xl font-bold text-slate-800 text-center mb-8">
+              MedCare đang xử lý yêu cầu của bạn
             </h3>
-            <p className="text-slate-500 text-sm mt-1">Vui lòng đợi MedCare trong giây lát</p>
+            
+            <div className="space-y-4">
+              {/* Step 1: Scanning */}
+              <motion.div 
+                initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+                className={`flex items-center gap-4 p-4 rounded-2xl transition-all ${processStep === 'scanning' ? 'bg-primary/5 border border-primary/20 shadow-sm' : processStep === 'analyzing' || processStep === 'searching' ? 'bg-slate-50 border border-slate-100 opacity-70' : 'opacity-50'}`}
+              >
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${processStep === 'scanning' ? 'bg-primary text-white shadow-md shadow-primary/20 animate-pulse' : processStep === 'analyzing' || processStep === 'searching' ? 'bg-green-500 text-white' : 'bg-slate-100 text-slate-400'}`}>
+                  {processStep === 'analyzing' || processStep === 'searching' ? <CheckCircle2 className="w-5 h-5" /> : <ScanSearch className="w-5 h-5" />}
+                </div>
+                <div className="flex-1">
+                  <h4 className={`font-bold ${processStep === 'scanning' ? 'text-primary' : 'text-slate-700'}`}>Nhận dạng hình ảnh (OCR)</h4>
+                  {processStep === 'scanning' && <p className="text-sm text-slate-500">Đang quét ảnh ({scanProgress}%)...</p>}
+                  {(processStep === 'analyzing' || processStep === 'searching') && <p className="text-sm text-slate-500">Hoàn tất</p>}
+                </div>
+                {processStep === 'scanning' && <Loader2 className="w-5 h-5 text-primary animate-spin" />}
+              </motion.div>
+
+              {/* Step 2: Analyzing */}
+              <motion.div 
+                initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
+                className={`flex items-center gap-4 p-4 rounded-2xl transition-all ${processStep === 'analyzing' ? 'bg-primary/5 border border-primary/20 shadow-sm' : processStep === 'searching' ? 'bg-slate-50 border border-slate-100 opacity-70' : 'opacity-40 grayscale'}`}
+              >
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${processStep === 'analyzing' ? 'bg-primary text-white shadow-md shadow-primary/20 animate-pulse' : processStep === 'searching' ? 'bg-green-500 text-white' : 'bg-slate-100 text-slate-400'}`}>
+                  {processStep === 'searching' ? <CheckCircle2 className="w-5 h-5" /> : <BrainCircuit className="w-5 h-5" />}
+                </div>
+                <div className="flex-1">
+                  <h4 className={`font-bold ${processStep === 'analyzing' ? 'text-primary' : 'text-slate-700'}`}>Gemini AI phân tích</h4>
+                  {processStep === 'analyzing' && <p className="text-sm text-slate-500">Đang trích xuất tên thuốc...</p>}
+                  {processStep === 'searching' && <p className="text-sm text-slate-500">Hoàn tất</p>}
+                </div>
+                {processStep === 'analyzing' && <Loader2 className="w-5 h-5 text-primary animate-spin" />}
+              </motion.div>
+
+              {/* Step 3: Searching */}
+              <motion.div 
+                initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
+                className={`flex items-center gap-4 p-4 rounded-2xl transition-all ${processStep === 'searching' ? 'bg-primary/5 border border-primary/20 shadow-sm' : 'opacity-40 grayscale'}`}
+              >
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${processStep === 'searching' ? 'bg-primary text-white shadow-md shadow-primary/20 animate-pulse' : 'bg-slate-100 text-slate-400'}`}>
+                  <Search className="w-5 h-5" />
+                </div>
+                <div className="flex-1">
+                  <h4 className={`font-bold ${processStep === 'searching' ? 'text-primary' : 'text-slate-700'}`}>Đối chiếu kho hàng</h4>
+                  {processStep === 'searching' && <p className="text-sm text-slate-500">Đang tìm sản phẩm phù hợp...</p>}
+                </div>
+                {processStep === 'searching' && <Loader2 className="w-5 h-5 text-primary animate-spin" />}
+              </motion.div>
+            </div>
           </div>
         </div>
       ) : (

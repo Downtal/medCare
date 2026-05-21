@@ -20,10 +20,14 @@ BE/.gradle/
 BE/**/.gradle/
 BE/.gradle-home/
 .gradle-user-home/
+.gradle-user-home-alt/
 BE/**/venv/
 
 # compiled files
 *.class
+*.pyc
+*.pyc.*
+__pycache__/
 
 # jar/war
 *.jar

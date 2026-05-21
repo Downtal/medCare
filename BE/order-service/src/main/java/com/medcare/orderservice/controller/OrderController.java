@@ -3,6 +3,9 @@ package com.medcare.orderservice.controller;
 import com.medcare.orderservice.dto.OrderDetailResponse;
 import com.medcare.orderservice.dto.OrderRequest;
 import com.medcare.orderservice.dto.OrderStatusUpdateRequest;
+import com.medcare.orderservice.dto.OrderStatisticsResponse;
+import com.medcare.orderservice.dto.PopularMedicineSignalDto;
+import com.medcare.orderservice.dto.RecommendationSignalsResponse;
 import com.medcare.orderservice.entity.Order;
 import com.medcare.orderservice.service.OrderService;
 import lombok.RequiredArgsConstructor;
@@ -151,11 +154,53 @@ public class OrderController {
         return ResponseEntity.ok().build();
     }
 
+    @PostMapping("/{orderCode}/cancel")
+    public ResponseEntity<?> cancelOrder(
+            @PathVariable String orderCode,
+            @RequestHeader(value = "X-User-Id", required = false) String userIdHeader,
+            @AuthenticationPrincipal String userIdPrincipal) {
+        String userId = userIdHeader != null ? userIdHeader : userIdPrincipal;
+        if (userId == null || "null".equals(userId)) {
+            return ResponseEntity.status(401).build();
+        }
+        orderService.cancelOrder(orderCode, userId);
+        return ResponseEntity.ok(Map.of("message", "Đơn hàng đã được hủy thành công"));
+    }
+
     @PutMapping("/internal/{orderCode}/status")
     public ResponseEntity<Void> updateOrderStatusInternal(
             @PathVariable String orderCode,
             @RequestBody OrderStatusUpdateRequest request) {
         orderService.updateOrderStatusInternal(orderCode, request.getStatus());
         return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/internal/recommendations/signals")
+    public ResponseEntity<RecommendationSignalsResponse> getRecommendationSignals(
+            @RequestParam Long userId,
+            @RequestParam(defaultValue = "60") int days) {
+        return ResponseEntity.ok(orderService.getRecommendationSignals(userId, days));
+    }
+
+    @GetMapping("/internal/recommendations/popular")
+    public ResponseEntity<List<PopularMedicineSignalDto>> getPopularSignals(
+            @RequestParam(defaultValue = "60") int days,
+            @RequestParam(defaultValue = "200") int limit) {
+        return ResponseEntity.ok(orderService.getPopularMedicineSignals(days, limit));
+    }
+
+    @GetMapping("/admin/statistics")
+    public ResponseEntity<OrderStatisticsResponse> getStatistics(
+            @RequestParam(defaultValue = "30") int days) {
+        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder
+                .getContext().getAuthentication();
+        boolean hasAccess = auth != null && auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ADMIN") ||
+                        a.getAuthority().equals("ROLE_PHARMACIST") || a.getAuthority().equals("PHARMACIST"));
+
+        if (!hasAccess) {
+            return ResponseEntity.status(403).build();
+        }
+        return ResponseEntity.ok(orderService.getStatistics(days));
     }
 }

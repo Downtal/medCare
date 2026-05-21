@@ -44,53 +44,50 @@ Cung cấp trải nghiệm mua sắm dược phẩm an toàn, tin cậy với qu
 
 ## Đã hoàn thành (Milestone 4)
 
-- [x] **Personalized UI:** Mục "Dành riêng cho bạn" tại Trang chủ và Quick Actions tại Chatbot.
-- [x] **Health Dashboard:** Phân tích bệnh sử tự động bằng AI và quản lý thông tin sức khỏe cá nhân (BMI, dị ứng).
-- [x] **Proactive Safety:** Cảnh báo tương tác thuốc tại Checkout dựa trên lịch sử mua hàng.
 - [x] **Adaptive Chatbot:** Xưng hô theo độ tuổi và hỗ trợ nhắc lịch/tái đặt đơn thuốc.
 
-## Current Milestone: v1.6 Stability & Data Consistency Hardening
+## Đã hoàn thành (Milestone 6)
 
-**Goal:** Ổn định các luồng nghiệp vụ cốt lõi bằng cách xử lý triệt để lỗi Redis serialization, chuẩn hóa phản hồi JWT lỗi về `401 Unauthorized`, và đồng bộ tồn kho an toàn khi checkout đồng thời.
+- [x] **Product Recommendation MVP:** Xây dựng hệ thống gợi ý sản phẩm rule-based cho trang chủ và trang chi tiết.
+    - [x] Thuật toán ranking dựa trên Order/Cart/Popularity.
+    - [x] Tích hợp widget gợi ý vào Frontend với đầy đủ các trạng thái runtime.
+    - [x] Hoàn tất kiểm chứng contract và hiệu năng backend.
+
+## Current Milestone: v1.8 Code Quality & AI UX Polish
+
+**Goal:** Consolidate shared data structures and enhance the user experience for long-running AI operations to meet production-grade maintainability and usability standards.
 
 **Target features:**
-- **Cart Redis Serialization:** Chuẩn hóa cấu hình serialization Redis của giỏ hàng sang `GenericJackson2JsonRedisSerializer` để loại bỏ `ClassCastException` khi đọc/ghi hash.
-- **JWT Error Handling:** Bắt `ExpiredJwtException`/token lỗi ngay tại Spring Security Filter và trả lỗi chuẩn `401` để FE xử lý refresh token.
-- **Inventory Concurrency Control:** Áp dụng khóa khi trừ tồn kho (ưu tiên pessimistic lock trong JPA, phương án mở rộng là Redis distributed lock) để tránh race condition và lệch tồn kho hiển thị.
+- **Technical Debt Cleanup:**
+    - Consolidate duplicated DTOs (OrderRequest, ProductDTO, PaymentInfo, etc.) from Order, Payment, and Product services into the centralized `common-lib`.
+    - Update all microservices to use the unified DTOs, reducing boilerplate and potential mapping errors.
+- **AI UX Optimization:**
+    - Implement a "Stage-based Loading" system for Prescription OCR analysis to provide real-time feedback during the 3-7s processing window.
 
-### Ngoài phạm vi (Out of Scope)
+### Out of Scope
 
-- [Ứng dụng Mobile Native] — Hiện tại tập trung hoàn toàn vào Web Responsive (Next.js).
-- [Coverage target 70%+] — Mức target là 30-50% cho mục đích demo và đảm bảo chất lượng.
+- Implementing new business features.
+- Large-scale database schema refactoring.
+- DevOps/Containerization (Docker/ELK) - moved to next milestone.
 
-## Ngữ cảnh dự án
+## Project Context
 
-- Dự án đã hoàn thành Milestone 1, 2, 3, 4 và 5; các năng lực nghiệp vụ chính đã đi vào trạng thái vận hành.
-- Milestone 6 tập trung vào hardening kỹ thuật sau triển khai: xử lý lỗi runtime có tác động trải nghiệm người dùng, tăng tính nhất quán dữ liệu, và giảm rủi ro regression ở các luồng checkout/profile/cart.
+- Milestone 1-6 established core flows, AI integration, and recommendation systems.
+- Milestone 8 focuses on hardening the existing architecture, removing redundancy, and polishing the user experience for slow AI operations.
+- This is a critical "cleanup" phase to ensure the codebase meets academic/production standards.
 
-## Các ràng buộc (Constraints)
+## Constraints
 
-- **Công nghệ (Tech Stack)**: Java 17+ / Spring Boot 3 (Backend), Next.js 16 / TypeScript (Frontend).
-- **Phụ thuộc**: Các dịch vụ API bên thứ ba (VNPay, GHN, Cloudinary).
-- **Cơ sở dữ liệu**: Mô hình Database-per-service với MySQL.
-- **Coverage target**: 30-50% (đảm bảo chất lượng trước deploy, phù hợp cho demo).
-- **Testing Stack**: JUnit 5 + Mockito (Backend), Vitest (Frontend), Playwright (E2E).
+- **Consistency**: All shared DTOs must be moved to `common-lib` without breaking existing API contracts.
+- **Performance**: Locking mechanisms in Inventory must not introduce significant latency under low load.
+- **Aesthetics**: Loading states must follow the established UI brand guidelines (Framer Motion, Shadcn).
 
-## Các quyết định quan trọng
+## Key Decisions
 
-| Quyết định | Lý do | Trạng thái |
-|------------|-------|------------|
-| Kiến trúc Microservices | Đảm bảo khả năng mở rộng độc lập cho các module. | Đã triển khai |
-| Tích hợp VNPay | Cổng thanh toán phổ biến và ổn định tại Việt Nam. | Đã hoàn thành |
-| GHN Webhooks | Cập nhật trạng thái đơn hàng thời gian thực. | Đã hoàn thành |
-| Đồng bộ tồn kho FIFO | Đảm bảo quản lý lô hàng và hạn sử dụng chính xác. | Đã hoàn thành |
-| Playwright cho E2E | Framework hiện đại, hỗ trợ tốt Next.js, API phong phú. | Milestone 2 |
-| Vitest cho Frontend | Tích hợp sẵn với Vite/Next.js, nhanh hơn Jest. | Milestone 2 |
-| Gemini Multimodal | OCR và phân tích đơn thuốc từ hình ảnh. | Milestone 5 |
-| Cloudinary Storage | Lưu trữ ảnh đơn thuốc và ảnh sản phẩm hiệu quả. | Milestone 5 |
-| GenericJackson2JsonRedisSerializer cho cart | Đồng nhất hash key/value serialization, giảm lỗi cast khi đọc dữ liệu Redis. | Milestone 6 |
-| JWT lỗi phải trả 401 tại filter | FE cần trạng thái xác thực chuẩn để điều phối refresh token. | Milestone 6 |
-| Pessimistic lock cho trừ tồn kho | Ngăn oversell và lệch tồn kho khi có nhiều checkout đồng thời. | Milestone 6 |
+| Decision | Rationale | Outcome |
+|----------|-----------|---------|
+| Move DTOs to common-lib | Reduces code duplication and maintenance overhead | - Pending |
+| Implement Stage-based Loading UI | Manages user expectations for long-running AI tasks | - Pending |
 
 ## Evolution
 
@@ -114,4 +111,4 @@ This document evolves at phase transitions and milestone boundaries.
 Tài liệu này sẽ tiếp tục được cập nhật theo từng Milestone mới.
 
 ---
-*Cập nhật lần cuối: 2026-05-14 — Bắt đầu Milestone 6: Stability & Data Consistency Hardening*
+*Last updated: 2026-05-15 after milestone v1.7 initialization*

@@ -135,5 +135,17 @@ export const productService = {
 
   searchProducts: async (query: string, page: number = 0, size: number = 5) => {
     return axiosInstance.get(`${PRODUCT_PREFIX}/products/search?q=${encodeURIComponent(query)}&page=${page}&size=${size}`) as Promise<any>
+  },
+
+  getSymptoms: async () => {
+    return axiosInstance.get(`${PRODUCT_PREFIX}/symptoms`) as Promise<any[]>
+  },
+  
+  addSymptom: async (name: string) => {
+    return axiosInstance.post(`${PRODUCT_PREFIX}/symptoms`, { name }) as Promise<any>
+  },
+
+  deleteSymptom: async (id: number) => {
+    return axiosInstance.delete(`${PRODUCT_PREFIX}/symptoms/${id}`) as Promise<any>
   }
 }

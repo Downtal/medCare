@@ -2,8 +2,8 @@
 
 import { useState, useMemo } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import { Ticket, Plus, Search, Edit, Trash, Calendar, Percent, Banknote, RotateCcw, XCircle, Trash2, MoreVertical, ChevronLeft, ChevronRight, Clock, Info, Layers, Package, UserCheck, ShieldCheck } from "lucide-react"
-// ...
+import { Ticket, Plus, Search, Edit, Trash, Calendar, Percent, Banknote, RotateCcw, XCircle, Trash2, MoreVertical, ChevronLeft, ChevronRight, Clock, Info, Layers, Package, UserCheck, ShieldCheck, X, Check, ChevronsUpDown } from "lucide-react"
+import { productService } from "@/services/productService"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -22,6 +22,8 @@ import { Switch } from "@/components/ui/switch"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 
 const voucherSchema = z.object({
   code: z.string().min(3, "Mã tối thiểu 3 ký tự").max(50, "Mã tối đa 50 ký tự").toUpperCase(),
@@ -34,6 +36,8 @@ const voucherSchema = z.object({
   usageLimit: z.coerce.number().min(1, "Lượt sử dụng tối đa phải >= 1").default(999999),
   limitPerUser: z.coerce.number().min(1, "Lượt dùng mỗi khách phải >= 1").default(1),
   excludePrescriptionDrugs: z.boolean().default(true),
+  applicableProductId: z.coerce.number().optional().nullable(),
+  applicableCategoryId: z.coerce.number().optional().nullable(),
   startAt: z.string().optional(),
   endAt: z.string().optional(),
   isActive: z.boolean().default(true),
@@ -60,6 +64,56 @@ export default function AdminVouchersPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 8
 
+  // Local UI states for conditional visibility
+  const [isProductLimited, setIsProductLimited] = useState(false)
+  const [isCategoryLimited, setIsCategoryLimited] = useState(false)
+
+  // Fetch products and categories for limits
+  const { data: productsData = [] } = useQuery({
+    queryKey: ["admin_products_all"],
+    queryFn: () => productService.getProducts()
+  })
+  const products = Array.isArray(productsData) ? productsData : (productsData as any)?.content || []
+
+  const { data: categoryTree = [] } = useQuery({
+    queryKey: ["admin_category_tree"],
+    queryFn: () => productService.getCategoryTree()
+  })
+
+  // Flatten categories for select with hierarchy
+  const flatCategories = useMemo(() => {
+    const list: any[] = []
+    const flatten = (items: any, level = 0) => {
+      if (!items) return
+      const arr = Array.isArray(items) ? items : items.content || []
+      if (!Array.isArray(arr)) return
+
+      arr.forEach(cat => {
+        list.push({
+          id: cat.id,
+          name: cat.name,
+          displayName: level > 0 ? `── ${cat.name}` : cat.name,
+          level
+        })
+        if (cat.children && cat.children.length > 0) {
+          flatten(cat.children, level + 1)
+        }
+      })
+    }
+    flatten(categoryTree)
+    return list
+  }, [categoryTree])
+
+  const resetFilters = () => {
+    setSearchQuery("")
+    setSelectedType("ALL")
+    setStatusFilter("ALL")
+    setSortBy("newest")
+    setCurrentPage(1)
+  }
+
+  const isFiltered = searchQuery !== "" || selectedType !== "ALL" || statusFilter !== "ALL" || sortBy !== "newest"
+
   const { data: vouchers = [], isLoading: isLoadingActive } = useQuery({
     queryKey: ["admin_vouchers"],
     queryFn: () => voucherService.getAllVouchers()
@@ -84,6 +138,8 @@ export default function AdminVouchersPage() {
       usageLimit: 999999,
       limitPerUser: 1,
       excludePrescriptionDrugs: true,
+      applicableProductId: null,
+      applicableCategoryId: null,
       startAt: "",
       endAt: "",
       isActive: true,
@@ -281,9 +337,13 @@ export default function AdminVouchersPage() {
                     setEditingVoucher(v)
                     form.reset({
                       ...v as any,
+                      applicableProductId: v.applicableProductId || null,
+                      applicableCategoryId: v.applicableCategoryId || null,
                       startAt: v.startAt ? v.startAt.slice(0, 16) : "",
                       endAt: v.endAt ? v.endAt.slice(0, 16) : "",
                     })
+                    setIsProductLimited(!!v.applicableProductId)
+                    setIsCategoryLimited(!!v.applicableCategoryId)
                     setIsDialogOpen(true)
                   }} className="rounded-lg cursor-pointer">
                     <Edit className="mr-2 h-4 w-4 text-blue-600" /> Chỉnh sửa
@@ -348,6 +408,8 @@ export default function AdminVouchersPage() {
           <Button className="h-14 px-8 bg-blue-600 font-black rounded-2xl gap-2 shadow-2xl shadow-blue-200 hover:scale-[1.02] transition-all" onClick={() => {
             setEditingVoucher(null)
             form.reset()
+            setIsProductLimited(false)
+            setIsCategoryLimited(false)
             setIsDialogOpen(true)
           }}>
             <Plus className="w-6 h-6 text-white" /> TẠO VOUCHER MỚI
@@ -360,14 +422,26 @@ export default function AdminVouchersPage() {
         {activeTab === "active" ? (
           <div className="flex flex-col gap-5">
             {/* Row 1: Search Bar */}
-            <div className="relative group">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
-              <Input
-                placeholder="Tìm theo mã code, tên voucher hoặc tiêu đề khuyến mãi..."
-                className="pl-12 h-14 rounded-2xl bg-slate-50 border-none focus-visible:ring-2 focus-visible:ring-blue-100 font-bold w-full transition-all text-sm"
-                value={searchQuery}
-                onChange={e => { setSearchQuery(e.target.value); setCurrentPage(1); }}
-              />
+            <div className="flex items-center gap-4">
+              <div className="relative flex-1 group">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
+                <Input
+                  placeholder="Tìm theo mã code, tên voucher hoặc tiêu đề khuyến mãi..."
+                  className="pl-12 h-14 rounded-2xl bg-slate-50 border-none focus-visible:ring-2 focus-visible:ring-blue-100 font-bold w-full transition-all text-sm"
+                  value={searchQuery}
+                  onChange={e => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+                />
+              </div>
+              {isFiltered && (
+                <Button
+                  variant="ghost"
+                  onClick={resetFilters}
+                  className="h-14 px-6 rounded-2xl font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 transition-all flex items-center gap-2 shrink-0 border-none"
+                >
+                  <X className="h-4 w-4" />
+                  Xóa tất cả lọc
+                </Button>
+              )}
             </div>
 
             {/* Row 2: Filters */}
@@ -381,8 +455,8 @@ export default function AdminVouchersPage() {
                 </SelectTrigger>
                 <SelectContent className="rounded-2xl border-none shadow-2xl">
                   <SelectItem value="ALL">Tất cả trạng thái</SelectItem>
-                  <SelectItem value="ACTIVE">● Đang hoạt động</SelectItem>
-                  <SelectItem value="LOCKED">○ Đang bị khóa</SelectItem>
+                  <SelectItem value="ACTIVE">Đang hoạt động</SelectItem>
+                  <SelectItem value="LOCKED">Đang bị khóa</SelectItem>
                 </SelectContent>
               </Select>
 
@@ -647,6 +721,136 @@ export default function AdminVouchersPage() {
               </div>
 
               <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-4 rounded-xl border border-slate-100 bg-slate-50/50 h-14">
+                    <FormLabel className="font-bold text-slate-700 m-0">Giới hạn theo Sản phẩm</FormLabel>
+                    <Switch
+                      checked={isProductLimited}
+                      onCheckedChange={(val) => {
+                        setIsProductLimited(val)
+                        if (val) {
+                          setIsCategoryLimited(false)
+                          form.setValue("applicableCategoryId", null)
+                        }
+                        if (!val) form.setValue("applicableProductId", null)
+                      }}
+                    />
+                  </div>
+                  {isProductLimited && (
+                    <FormField
+                      control={form.control}
+                      name="applicableProductId"
+                      render={({ field }) => (
+                        <FormItem className="flex flex-col animate-in fade-in slide-in-from-top-2 duration-300">
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <FormControl>
+                                <Button
+                                  variant="outline"
+                                  role="combobox"
+                                  className={cn(
+                                    "h-14 w-full justify-between rounded-2xl bg-white border border-slate-200 font-bold text-slate-800 shadow-sm",
+                                    !field.value && "text-slate-400"
+                                  )}
+                                >
+                                  <span className="truncate">
+                                    {field.value
+                                      ? products.find((p: any) => p.id === field.value)?.name
+                                      : "Chọn sản phẩm áp dụng..."}
+                                  </span>
+                                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                </Button>
+                              </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[450px] p-0 rounded-2xl border-none shadow-2xl z-[100]">
+                              <Command>
+                                <CommandInput placeholder="Tìm tên sản phẩm..." className="h-12" />
+                                <CommandList>
+                                  <CommandEmpty>Không tìm thấy sản phẩm.</CommandEmpty>
+                                  <CommandGroup className="max-h-[300px] overflow-y-auto">
+                                    {products.map((p: any) => (
+                                      <CommandItem
+                                        value={p.name}
+                                        key={p.id}
+                                        onSelect={() => field.onChange(p.id)}
+                                        className="cursor-pointer py-3"
+                                      >
+                                        <Check
+                                          className={cn(
+                                            "mr-2 h-4 w-4",
+                                            p.id === field.value ? "opacity-100" : "opacity-0"
+                                          )}
+                                        />
+                                        {p.name}
+                                      </CommandItem>
+                                    ))}
+                                  </CommandGroup>
+                                </CommandList>
+                              </Command>
+                            </PopoverContent>
+                          </Popover>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-4 rounded-xl border border-slate-100 bg-slate-50/50 h-14">
+                    <FormLabel className="font-bold text-slate-700 m-0">Giới hạn theo Danh mục</FormLabel>
+                    <Switch
+                      checked={isCategoryLimited}
+                      onCheckedChange={(val) => {
+                        setIsCategoryLimited(val)
+                        if (val) {
+                          setIsProductLimited(false)
+                          form.setValue("applicableProductId", null)
+                        }
+                        if (!val) form.setValue("applicableCategoryId", null)
+                      }}
+                    />
+                  </div>
+                  {isCategoryLimited && (
+                    <FormField
+                      control={form.control}
+                      name="applicableCategoryId"
+                      render={({ field }) => (
+                        <FormItem className="animate-in fade-in slide-in-from-top-2 duration-300">
+                          <Select
+                            onValueChange={(v) => field.onChange(v === "none" ? null : Number(v))}
+                            value={field.value ? field.value.toString() : "none"}
+                          >
+                            <FormControl>
+                              <SelectTrigger className="h-14 rounded-2xl bg-white border border-slate-200 font-bold shadow-sm">
+                                <SelectValue placeholder="Chọn danh mục áp dụng..." />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent className="rounded-2xl border-none shadow-2xl max-h-[300px] z-[100]">
+                              <SelectItem value="none" className="font-bold">-- Tất cả danh mục --</SelectItem>
+                              {flatCategories.map((c: any) => (
+                                <SelectItem
+                                  key={c.id}
+                                  value={c.id.toString()}
+                                  className={cn(
+                                    "cursor-pointer",
+                                    c.level === 0 ? "font-black text-slate-800" : "text-slate-500 pl-6"
+                                  )}
+                                >
+                                  {c.displayName}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
                   name="excludePrescriptionDrugs"
@@ -779,13 +983,13 @@ export default function AdminVouchersPage() {
                 </div>
               </DialogHeader>
 
-              <div className="p-8 px-10 space-y-6 max-h-[60vh] overflow-y-auto custom-scrollbar-slim">
-                <div className="grid grid-cols-2 gap-6">
+              <div className="p-6 space-y-4 max-h-[65vh] overflow-y-auto custom-scrollbar-slim">
+                <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-3">
                     <h4 className="text-[13px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
                       GIÁ TRỊ ƯU ĐÃI
                     </h4>
-                    <div className="p-5 bg-blue-50/50 rounded-2xl border border-blue-100/50">
+                    <div className="p-4 bg-blue-50/50 rounded-2xl border border-blue-100/50">
                       <div className="text-xs font-bold text-slate-500 mb-1">Loại: <span className="text-blue-600 uppercase">{selectedVoucher.discountType}</span></div>
                       <div className="text-3xl font-black text-slate-800">
                         {selectedVoucher.discountType === "PERCENT" ? `${selectedVoucher.discountValue}%` : selectedVoucher.discountType === "FIXED" ? `${selectedVoucher.discountValue.toLocaleString("vi-VN")}đ` : "FREESHIP"}
@@ -800,7 +1004,7 @@ export default function AdminVouchersPage() {
                     <h4 className="text-[13px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
                       THỜI HẠN
                     </h4>
-                    <div className="p-5 bg-slate-50 rounded-2xl border border-slate-100">
+                    <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
                       <div className="space-y-2">
                         <div className="flex justify-between items-center text-xs font-bold">
                           <span className="text-slate-400">Bắt đầu:</span>
@@ -820,21 +1024,21 @@ export default function AdminVouchersPage() {
                     ĐIỀU KIỆN SỬ DỤNG
                   </h4>
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="p-4 bg-white border border-slate-100 rounded-2xl flex items-center gap-3 shadow-sm">
+                    <div className="p-3 bg-white border border-slate-100 rounded-xl flex items-center gap-3 shadow-sm">
                       <div className="p-2 bg-slate-50 rounded-lg"><Package className="w-4 h-4 text-slate-400" /></div>
                       <div>
                         <p className="text-[13px] font-black text-slate-400 uppercase tracking-tighter">Đơn hàng tối thiểu</p>
                         <p className="text-xs font-black text-slate-800">{selectedVoucher.minOrderValue?.toLocaleString("vi-VN") ?? 0}đ</p>
                       </div>
                     </div>
-                    <div className="p-4 bg-white border border-slate-100 rounded-2xl flex items-center gap-3 shadow-sm">
+                    <div className="p-3 bg-white border border-slate-100 rounded-xl flex items-center gap-3 shadow-sm">
                       <div className="p-2 bg-slate-50 rounded-lg"><UserCheck className="w-4 h-4 text-slate-400" /></div>
                       <div>
                         <p className="text-[13px] font-black text-slate-400 uppercase tracking-tighter">Lượt dùng mỗi khách</p>
                         <p className="text-xs font-black text-slate-800">{selectedVoucher.limitPerUser} lần</p>
                       </div>
                     </div>
-                    <div className="p-4 bg-white border border-slate-100 rounded-2xl flex items-center gap-3 col-span-2 shadow-sm">
+                    <div className="p-3 bg-white border border-slate-100 rounded-xl flex items-center gap-3 col-span-2 shadow-sm">
                       <div className="p-2 bg-slate-50 rounded-lg"><ShieldCheck className="w-4 h-4 text-slate-400" /></div>
                       <div className="flex justify-between items-center flex-1">
                         <div>
@@ -844,44 +1048,72 @@ export default function AdminVouchersPage() {
                         {selectedVoucher.excludePrescriptionDrugs && <Badge className="bg-rose-50 text-rose-500 border-none px-2 h-5 text-[10px]">Hạn chế</Badge>}
                       </div>
                     </div>
+
+                    <div className="p-3 bg-white border border-slate-100 rounded-xl flex items-center gap-3 col-span-2 shadow-sm">
+                      <div className="p-2 bg-blue-50 rounded-lg"><Layers className="w-4 h-4 text-blue-400" /></div>
+                      <div className="flex justify-between items-center flex-1">
+                        <div>
+                          <p className="text-[13px] font-black text-slate-400 uppercase tracking-tighter">Phạm vi áp dụng</p>
+                          <p className="text-xs font-black text-blue-600">
+                            {selectedVoucher.applicableProductId ? (
+                              <span>Riêng sản phẩm: <span className="">{products.find((p: any) => p.id === selectedVoucher.applicableProductId)?.name || "Sản phẩm cụ thể"}</span></span>
+                            ) : selectedVoucher.applicableCategoryId ? (
+                              <span>Riêng danh mục: <span className="">{flatCategories.find((c: any) => c.id === selectedVoucher.applicableCategoryId)?.name || "Danh mục cụ thể"}</span></span>
+                            ) : (
+                              "Tất cả sản phẩm & đơn hàng"
+                            )}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
                 <div className="space-y-3">
                   <h4 className="text-[13px] font-black text-slate-400 uppercase tracking-widest">TIẾN ĐỘ SỬ DỤNG VOUCHER</h4>
-                  <div className="p-6 bg-slate-900 text-white rounded-[2rem] shadow-xl relative overflow-hidden">
-                    <div className="absolute -right-8 -bottom-8 w-40 h-40 bg-blue-600/10 blur-3xl rounded-full" />
-                    <div className="flex justify-between items-end mb-4">
-                      <div>
-                        <p className="text-[10px] font-black opacity-40 uppercase tracking-wider mb-0.5">Đã sử dụng</p>
-                        <p className="text-4xl font-black text-blue-400">{selectedVoucher.usedCount ?? 0} <span className="text-xs opacity-50 ml-0.5 uppercase tracking-tighter">lượt</span></p>
+                  <div className="p-5 bg-slate-900 rounded-[2rem] border border-slate-800 shadow-2xl relative overflow-hidden group">
+                    <div className="relative z-10 flex justify-between items-end mb-3">
+                      <div className="space-y-1">
+                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">ĐÃ SỬ DỤNG</p>
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-4xl font-black text-white tracking-tighter">{selectedVoucher.usedCount || 0}</span>
+                          <span className="text-xs font-bold text-slate-400 uppercase">LƯỢT</span>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <p className="text-[10px] font-black opacity-40 uppercase tracking-wider mb-0.5">Ngân sách tối đa</p>
-                        <p className="text-xl font-bold">{selectedVoucher.usageLimit?.toLocaleString("vi-VN")} <span className="text-xs">mã</span></p>
+                      <div className="text-right space-y-1">
+                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">NGÂN SÁCH TỐI ĐA</p>
+                        <div className="flex items-baseline justify-end gap-1.5">
+                          <span className="text-xl font-black text-slate-300">{selectedVoucher.usageLimit.toLocaleString()}</span>
+                          <span className="text-[10px] font-bold text-slate-500 uppercase">mã</span>
+                        </div>
                       </div>
                     </div>
-                    <div className="h-3 w-full bg-white/10 rounded-full overflow-hidden">
+
+                    <div className="relative h-2.5 bg-white/5 rounded-full overflow-hidden border border-white/5 p-0.5">
                       <div
-                        className="h-full bg-blue-500 rounded-full transition-all duration-1000 shadow-[0_0_12px_rgba(59,130,246,0.5)]"
-                        style={{ width: `${Math.min(100, ((selectedVoucher.usedCount ?? 0) / (selectedVoucher.usageLimit || 1)) * 100)}%` }}
+                        className="h-full bg-gradient-to-r from-blue-600 via-blue-400 to-emerald-400 rounded-full transition-all duration-1000 shadow-[0_0_20px_rgba(37,99,235,0.4)]"
+                        style={{ width: `${Math.min(((selectedVoucher.usedCount || 0) / selectedVoucher.usageLimit) * 100, 100)}%` }}
                       />
                     </div>
                   </div>
                 </div>
               </div>
 
-              <DialogFooter className="p-8 px-10 bg-slate-50 border-t border-slate-100 flex items-center gap-4">
-                <Button className="flex-1 h-12 rounded-2xl bg-white border border-slate-200 text-slate-600 font-bold hover:bg-slate-100 shadow-sm" onClick={() => setIsDetailsOpen(false)}>ĐÓNG CỬA SỔ</Button>
-                <Button className="flex-1 h-12 rounded-2xl bg-blue-600 text-white font-black hover:bg-blue-700 shadow-xl shadow-blue-100 gap-2" onClick={() => {
+              <DialogFooter className="p-6 border-t bg-slate-50/50">
+                <Button type="button" variant="outline" className="font-bold rounded-2xl h-12 px-8" onClick={() => setIsDetailsOpen(false)}>ĐÓNG CỬA SỔ</Button>
+                <Button className="rounded-2xl bg-blue-600 font-black h-12 px-12 text-white shadow-xl shadow-blue-100 gap-2" onClick={() => {
+                  setEditingVoucher(selectedVoucher)
                   setIsDetailsOpen(false)
                   setTimeout(() => {
-                    setEditingVoucher(selectedVoucher)
                     form.reset({
                       ...selectedVoucher as any,
+                      applicableProductId: selectedVoucher.applicableProductId || null,
+                      applicableCategoryId: selectedVoucher.applicableCategoryId || null,
                       startAt: selectedVoucher.startAt ? selectedVoucher.startAt.slice(0, 16) : "",
                       endAt: selectedVoucher.endAt ? selectedVoucher.endAt.slice(0, 16) : "",
                     })
+                    setIsProductLimited(!!selectedVoucher.applicableProductId)
+                    setIsCategoryLimited(!!selectedVoucher.applicableCategoryId)
                     setIsDialogOpen(true)
                   }, 200)
                 }}>

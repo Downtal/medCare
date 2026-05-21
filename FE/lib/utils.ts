@@ -23,3 +23,9 @@ export function getOptimizedImageUrl(url: string) {
   
   return url;
 }
+export function formatCurrency(amount: number | bigint) {
+  return new Intl.NumberFormat('vi-VN', {
+    style: 'currency',
+    currency: 'VND',
+  }).format(amount)
+}

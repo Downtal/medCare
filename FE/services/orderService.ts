@@ -18,7 +18,7 @@ export interface OrderStatusLog {
   createdAt: string
 }
 
-export type OrderStatus = "PENDING" | "CONFIRMED" | "SHIPPING" | "DELIVERED" | "CANCELLED" | "PENDING_PRESCRIPTION"
+export type OrderStatus = "PENDING" | "CONFIRMED" | "SHIPPING" | "DELIVERED" | "CANCELLED" | "PENDING_PRESCRIPTION" | "PAID"
 
 export interface Order {
   id: number
@@ -77,5 +77,34 @@ export const orderService = {
 
   hardDeleteOrder: async (id: number): Promise<void> => {
     return axiosInstance.delete(`${ORDER_PREFIX}/admin/${id}/hard`)
+  },
+
+  getStatistics: async (days: number = 30): Promise<OrderStatistics> => {
+    return axiosInstance.get(`${ORDER_PREFIX}/admin/statistics?days=${days}`)
   }
+}
+
+export interface OrderStatistics {
+  totalRevenue: number
+  totalOrders: number
+  averageOrderValue: number
+  pendingOrders: number
+  shippingOrders: number
+  completedOrders: number
+  revenueGrowth: number
+  ordersGrowth: number
+  aovGrowth: number
+  completionGrowth: number
+  revenueTrend: Array<{
+    period: string
+    revenue: number
+    orderCount: number
+  }>
+  topProducts: Array<{
+    productId: number
+    productName: string
+    quantitySold: number
+    totalRevenue: number
+  }>
+  paymentMethodDistribution: Record<string, number>
 }

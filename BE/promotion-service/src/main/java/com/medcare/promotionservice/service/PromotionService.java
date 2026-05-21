@@ -77,6 +77,23 @@ public class PromotionService {
             throw new AppException(ErrorCode.VOUCHER_EXPIRED);
         }
 
+        // Check product/category limits
+        if (voucher.getApplicableProductId() != null) {
+            boolean hasProduct = request.getItems().stream()
+                    .anyMatch(item -> item.getProductId().equals(voucher.getApplicableProductId()));
+            if (!hasProduct) {
+                throw new AppException(ErrorCode.VALIDATION_ERROR, "Mã này chỉ áp dụng cho một số sản phẩm nhất định.");
+            }
+        }
+
+        if (voucher.getApplicableCategoryId() != null) {
+            boolean hasCategory = request.getItems().stream()
+                    .anyMatch(item -> item.getCategoryId() != null && item.getCategoryId().equals(voucher.getApplicableCategoryId()));
+            if (!hasCategory) {
+                throw new AppException(ErrorCode.VALIDATION_ERROR, "Mã này chỉ áp dụng cho một số danh mục sản phẩm nhất định.");
+            }
+        }
+
         // Check user limit
         if (request.getUserId() != null) {
             long usedCountByUser = voucherUsageRepository.countByVoucherIdAndUserId(voucher.getId(),
@@ -242,6 +259,8 @@ public class PromotionService {
         voucher.setExcludePrescriptionDrugs(request.isExcludePrescriptionDrugs());
         voucher.setStartAt(request.getStartAt());
         voucher.setEndAt(request.getEndAt());
+        voucher.setApplicableProductId(request.getApplicableProductId());
+        voucher.setApplicableCategoryId(request.getApplicableCategoryId());
         voucher.setActive(request.isActive());
         return voucherRepository.save(voucher);
     }
@@ -280,24 +299,31 @@ public class PromotionService {
             return shippingFee;
         }
 
-        BigDecimal discountableAmount;
+        // Identify discountable items based on all rules
+        BigDecimal discountableAmount = request.getItems().stream()
+                .filter(item -> {
+                    // 1. Check Prescription Rule
+                    if (voucher.isExcludePrescriptionDrugs() && item.isPrescription()) return false;
+                    
+                    // 2. Check Product Rule
+                    if (voucher.getApplicableProductId() != null && !item.getProductId().equals(voucher.getApplicableProductId())) return false;
+                    
+                    // 3. Check Category Rule
+                    if (voucher.getApplicableCategoryId() != null && (item.getCategoryId() == null || !item.getCategoryId().equals(voucher.getApplicableCategoryId()))) return false;
+                    
+                    return true;
+                })
+                .map(item -> item.getPrice().multiply(BigDecimal.valueOf(item.getQuantity())))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        if (voucher.isExcludePrescriptionDrugs()) {
-            // Only sum products that ARE NOT prescriptions
-            discountableAmount = request.getItems().stream()
-                    .filter(item -> !item.isPrescription())
-                    .map(item -> item.getPrice().multiply(BigDecimal.valueOf(item.getQuantity())))
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-            if (discountableAmount.compareTo(BigDecimal.ZERO) == 0 && !request.getItems().isEmpty()) {
-                throw new AppException(ErrorCode.VALIDATION_ERROR,
-                        "Mã này không áp dụng cho các sản phẩm kê đơn trong đơn hàng.");
+        if (discountableAmount.compareTo(BigDecimal.ZERO) == 0 && !request.getItems().isEmpty()) {
+            // This should technically be caught by validateVoucher, but as a safety measure:
+            if (voucher.getApplicableProductId() != null || voucher.getApplicableCategoryId() != null) {
+                throw new AppException(ErrorCode.VALIDATION_ERROR, "Đơn hàng không có sản phẩm phù hợp với mã giảm giá này.");
             }
-        } else {
-            // Apply to all items
-            discountableAmount = request.getItems().stream()
-                    .map(item -> item.getPrice().multiply(BigDecimal.valueOf(item.getQuantity())))
-                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            if (voucher.isExcludePrescriptionDrugs()) {
+                throw new AppException(ErrorCode.VALIDATION_ERROR, "Mã này không áp dụng cho các sản phẩm kê đơn.");
+            }
         }
 
         // Get matching strategy
@@ -306,12 +332,6 @@ public class PromotionService {
                 .findFirst()
                 .orElseThrow(() -> new AppException(ErrorCode.INTERNAL_SERVER_ERROR,
                         "Loại giảm giá chưa được hỗ trợ"));
-
-        if (discountableAmount.compareTo(BigDecimal.ZERO) == 0 && !request.getItems().isEmpty()
-                && voucher.isExcludePrescriptionDrugs()) {
-            throw new AppException(ErrorCode.VALIDATION_ERROR,
-                    "Mã này không áp dụng cho các sản phẩm kê đơn trong đơn hàng.");
-        }
 
         return strategy.calculateDiscount(discountableAmount, voucher);
     }

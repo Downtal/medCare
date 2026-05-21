@@ -75,6 +75,7 @@ public class CartService {
             item.setOriginalPrice(product.getOriginalPrice());
             item.setTotalPrice(item.getUnitPrice().multiply(BigDecimal.valueOf(item.getQuantity())));
             item.setStockQuantity(realStock);
+            item.setRequiresPrescription(product.isRequiresPrescription());
         } else {
             item = CartItemDto.builder()
                 .medicineId(product.getId())
@@ -87,6 +88,7 @@ public class CartService {
                 .originalPrice(product.getOriginalPrice())
                 .totalPrice(product.getPrice().multiply(BigDecimal.valueOf(request.getQuantity())))
                 .stockQuantity(realStock)
+                .requiresPrescription(product.isRequiresPrescription())
                 .build();
         }
         

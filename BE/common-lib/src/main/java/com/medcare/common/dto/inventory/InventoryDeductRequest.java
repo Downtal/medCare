@@ -1,4 +1,4 @@
-package com.medcare.orderservice.dto;
+package com.medcare.common.dto.inventory;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -11,7 +11,7 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class StockDeductRequest {
+public class InventoryDeductRequest {
     private List<DeductItem> items;
     private String orderCode;
 

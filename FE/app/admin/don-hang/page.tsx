@@ -17,7 +17,8 @@ import {
   Filter,
   ListFilter,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  X
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -39,6 +40,15 @@ export default function AdminOrdersPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 10
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
+
+  const resetFilters = () => {
+    setSearchQuery("")
+    setSelectedStatus("all")
+    setSortBy("newest")
+    setCurrentPage(1)
+  }
+
+  const isFiltered = searchQuery !== "" || selectedStatus !== "all" || sortBy !== "newest"
 
   // Dialog States
   const [isDetailsOpen, setIsDetailsOpen] = useState(false)
@@ -67,8 +77,7 @@ export default function AdminOrdersPage() {
     SHIPPING: { label: "Đang giao", color: "bg-indigo-50 text-indigo-600 border-indigo-100", icon: Truck },
     DELIVERED: { label: "Đã giao", color: "bg-emerald-50 text-emerald-600 border-emerald-100", icon: CheckCircle2 },
     CANCELLED: { label: "Đã hủy/Từ chối", color: "bg-rose-50 text-rose-600 border-rose-100", icon: XCircle },
-    PENDING_PRESCRIPTION: { label: "Chờ duyệt toa", color: "bg-purple-50 text-purple-600 border-purple-100", icon: FileImage },
-    CONFIRME: { label: "Đã xác nhận", color: "bg-blue-50 text-blue-600 border-blue-100", icon: ClipboardList },
+    PAID: { label: "Đã thanh toán", color: "bg-emerald-50 text-emerald-600 border-emerald-100", icon: CheckCircle2 },
   }
 
   const columns: ColumnDef<Order>[] = [
@@ -182,14 +191,26 @@ export default function AdminOrdersPage() {
       </div>
 
       <div className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-100 space-y-4">
-        <div className="relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
-          <Input
-            placeholder="Tìm mã đơn, tên khách, số điện thoại..."
-            className="pl-12 h-14 bg-slate-50 border-none rounded-2xl font-bold focus-visible:ring-blue-100"
-            value={searchQuery}
-            onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
-          />
+        <div className="flex items-center gap-4">
+          <div className="relative flex-1">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+            <Input
+              placeholder="Tìm mã đơn, tên khách, số điện thoại..."
+              className="pl-12 h-14 bg-slate-50 border-none rounded-2xl font-bold focus-visible:ring-blue-100"
+              value={searchQuery}
+              onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+            />
+          </div>
+          {isFiltered && (
+            <Button 
+              variant="ghost" 
+              onClick={resetFilters}
+              className="h-14 px-6 rounded-2xl font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 transition-all flex items-center gap-2 shrink-0 border-none"
+            >
+              <X className="h-4 w-4" />
+              Xóa tất cả lọc
+            </Button>
+          )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -470,14 +491,6 @@ export default function AdminOrdersPage() {
                       className="bg-emerald-600 font-black rounded-2xl px-10 h-14 text-white hover:bg-emerald-700 shadow-xl shadow-emerald-100"
                     >
                       XÁC NHẬN ĐÃ GIAO
-                    </Button>
-                  )}
-                  {selectedOrder.status === 'PENDING_PRESCRIPTION' && (
-                    <Button
-                      onClick={() => updateStatusMutation.mutate({ id: selectedOrder.id, status: 'PENDING' })}
-                      className="bg-purple-600 font-black rounded-2xl px-10 h-14 text-white hover:bg-purple-700 shadow-xl shadow-purple-100"
-                    >
-                      DUYỆT TOA THUỐC
                     </Button>
                   )}
                 </div>

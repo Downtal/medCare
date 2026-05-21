@@ -16,7 +16,8 @@ import {
   LogOut,
   Pill,
   Ticket,
-  MessageSquare
+  MessageSquare,
+  FileText
 } from "lucide-react"
 
 const sidebarItems = [
@@ -24,11 +25,12 @@ const sidebarItems = [
   { name: "Sản phẩm", href: "/admin/san-pham", icon: PackageSearch },
   { name: "Danh mục", href: "/admin/danh-muc", icon: Tags },
   { name: "Đơn hàng", href: "/admin/don-hang", icon: ShoppingCart },
+  { name: "Toa thuốc", href: "/admin/don-thuoc", icon: FileText },
   { name: "Vouchers", href: "/admin/vouchers", icon: Ticket },
   { name: "Đánh giá", href: "/admin/danh-gia", icon: MessageSquare },
   { name: "Người dùng", href: "/admin/nguoi-dung", icon: Users },
   { name: "Kho hàng", href: "/admin/kho-hang", icon: Pill },
-  { name: "Chatbot QA", href: "/admin/chatbot", icon: MessageSquareShare },
+  { name: "Chatbot Knowledge", href: "/admin/chatbot", icon: MessageSquareShare },
   { name: "Báo cáo", href: "/admin/bao-cao", icon: LineChart },
 ]
 

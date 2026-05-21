@@ -5,9 +5,9 @@ import { useSession } from "next-auth/react"
 import { getApiBaseUrl } from "@/lib/config"
 import { ProductCard } from "@/components/product-card"
 import { Button } from "@/components/ui/button"
-import { Sparkles, Loader2, ChevronRight } from "lucide-react"
+import { Sparkles, ChevronRight, AlertTriangle } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
-import type { Product } from "@/lib/types"
+import type { Product, RecommendationResponse } from "@/lib/types"
 import Link from "next/link"
 import { inventoryService } from "@/services/inventoryService"
 
@@ -15,46 +15,59 @@ export function PersonalizedProducts() {
   const { data: session } = useSession()
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
+  const [degraded, setDegraded] = useState(false)
 
   useEffect(() => {
     const fetchRecommendations = async () => {
       try {
+        setError(false)
         const headers: Record<string, string> = {}
         if (session?.user?.id) {
           headers["X-User-Id"] = session.user.id.toString()
         }
 
-        const res = await fetch(`${getApiBaseUrl()}/ai-service/api/ai/recommendations?limit=4`, {
+        const res = await fetch(`${getApiBaseUrl()}/ai-service/api/recommendations/home?limit=4`, {
           headers,
           cache: 'no-store'
         })
 
         if (res.ok) {
-          let data = await res.json()
-          
+          const payload = await res.json() as RecommendationResponse
+          const rawItems = Array.isArray(payload?.items) ? payload.items : []
+          // Filter out prescription drugs immediately so it applies to both success and fallback paths
+          const items = rawItems.filter((p: Product) => p.requiresPrescription !== true)
+          setDegraded(Boolean(payload?.metadata?.degraded))
+
           // Refresh real-time stock from inventory-service
-          if (Array.isArray(data) && data.length > 0) {
+          if (items.length > 0) {
             try {
-              const productIds = data.map((p: Product) => p.id)
+              const productIds = items.map((p: Product) => p.id)
               const stockMap = await inventoryService.getStocksBulk(productIds)
-              data = data.map((p: Product) => ({
+              const hydratedItems = items.map((p: Product) => ({
                 ...p,
                 stockQuantity: stockMap[p.id] !== undefined ? stockMap[p.id] : p.stockQuantity
               }))
+              setProducts(hydratedItems)
             } catch (err) {
               console.warn("Failed to fetch real-time stocks in recommendations:", err)
+              setProducts(items)
             }
+          } else {
+            setProducts([])
           }
-          
-          setProducts(data)
         } else {
           console.error(`Recommendations failed with status: ${res.status} ${res.statusText}`)
+          setProducts([])
+          setError(true)
         }
       } catch (error) {
         console.error("Failed to fetch recommendations:", error)
         if (error instanceof TypeError) {
-          console.error("Network error or CORS issue suspected. URL:", `${getApiBaseUrl()}/ai-service/api/ai/recommendations?limit=4`);
+          console.error("Network error or CORS issue suspected. URL:", `${getApiBaseUrl()}/ai-service/api/recommendations/home?limit=4`);
         }
+        setProducts([])
+        setError(true)
       } finally {
         setLoading(false)
       }
@@ -63,10 +76,8 @@ export function PersonalizedProducts() {
     fetchRecommendations()
   }, [session?.user?.id])
 
-  if (!loading && products.length === 0) return null
-
   return (
-    <section className="py-20 bg-slate-50">
+    <section className="py-20 bg-slate-50" data-testid="homepage-recommendation-widget">
       <div className="container mx-auto px-4">
         <div className="flex flex-col md:flex-row justify-between items-end mb-12 gap-6">
           <div className="max-w-2xl">
@@ -91,9 +102,11 @@ export function PersonalizedProducts() {
           </Button>
         </div>
 
+        {/* Removed degraded alert to keep UI clean for users */}
+
         <AnimatePresence mode="wait">
           {loading ? (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-8" data-testid="homepage-recommendation-loading">
               {[1, 2, 3, 4].map(i => (
                 <div key={i} className="bg-white border border-slate-100 rounded-[32px] p-6 space-y-4">
                   <div className="aspect-square bg-slate-100 rounded-2xl animate-shimmer relative overflow-hidden">
@@ -107,11 +120,20 @@ export function PersonalizedProducts() {
                 </div>
               ))}
             </div>
+          ) : error ? (
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-600" data-testid="homepage-recommendation-error">
+              Không thể tải gợi ý lúc này.
+            </div>
+          ) : products.length === 0 ? (
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-600" data-testid="homepage-recommendation-empty">
+              Chưa có gợi ý phù hợp.
+            </div>
           ) : (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8 md:gap-10"
+              data-testid="homepage-recommendation-ready"
             >
               {products.map((product) => (
                 <ProductCard

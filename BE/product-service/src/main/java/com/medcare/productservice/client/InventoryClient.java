@@ -14,8 +14,11 @@ public interface InventoryClient {
     java.util.Map<Long, Integer> getStocks(@org.springframework.web.bind.annotation.RequestBody java.util.List<Long> productIds);
 
     @org.springframework.web.bind.annotation.PostMapping("/api/inventory/import")
-    void importStock(@org.springframework.web.bind.annotation.RequestBody com.medcare.productservice.dto.InventoryImportRequest request);
+    void importStock(@org.springframework.web.bind.annotation.RequestBody com.medcare.common.dto.inventory.InventoryImportRequest request);
 
     @org.springframework.web.bind.annotation.PostMapping("/api/inventory/internal/events/product-created")
-    void onProductCreated(@org.springframework.web.bind.annotation.RequestBody com.medcare.productservice.dto.ProductCreatedEvent event);
+    void onProductCreated(@org.springframework.web.bind.annotation.RequestBody com.medcare.common.dto.inventory.ProductCreatedEvent event);
+
+    @org.springframework.web.bind.annotation.DeleteMapping("/api/inventory/product/{productId}/hard")
+    void deleteProductStock(@org.springframework.web.bind.annotation.PathVariable("productId") Long productId);
 }

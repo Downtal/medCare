@@ -13,6 +13,7 @@ export interface CartItem {
   totalPrice: number;
   packingUnit?: string;
   stockQuantity?: number;
+  requiresPrescription?: boolean;
 }
 
 interface CartState {

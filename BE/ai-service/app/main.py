@@ -1,6 +1,7 @@
 import os
 import logging
 from fastapi import FastAPI
+from fastapi.responses import Response
 from app.config.settings import settings
 from app.models.chat_log import Base, engine
 from py_eureka_client import eureka_client
@@ -8,8 +9,10 @@ from app.core.limiter import limiter
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from fastapi import Request
+from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
 app = FastAPI(title=settings.PROJECT_NAME)
+
 
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
@@ -42,6 +45,11 @@ async def shutdown_event():
 @app.get("/health")
 async def health_check():
     return {"status": "UP", "service": settings.APP_NAME}
+
+
+@app.get("/metrics")
+async def metrics():
+    return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
 # Routes (Imported and included at the end to prevent circular dependency)
 from app.api import chat, admin, recommendations, prescriptions

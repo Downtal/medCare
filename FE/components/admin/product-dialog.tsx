@@ -4,22 +4,24 @@ import { useEffect, useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
-import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { MultiSelect } from "./multi-select"
 import { toast } from "sonner"
-import { Loader2, Pill, FileText, Bot, Thermometer, Boxes } from "lucide-react"
+import { Loader2, Pill, FileText, Bot, Thermometer, Boxes, CheckCircle2, Clock, Info, Database } from "lucide-react"
 import { productService, ProductPayload } from "@/services/productService"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useRef } from "react"
 import { MultiImageUpload, MultiImageUploadRef } from "./multi-image-upload"
 import { cn } from "@/lib/utils"
+import { SYMPTOM_OPTIONS } from "@/constants/symptoms"
 
 const productSchema = z.object({
   name: z.string().min(2, "Tên sản phẩm tối thiểu 2 ký tự"),
@@ -89,16 +91,6 @@ interface ProductDialogProps {
   categories: any[]
 }
 
-const SYMPTOM_OPTIONS = [
-  { label: "Sốt", value: "Sốt" },
-  { label: "Ho", value: "Ho" },
-  { label: "Đau đầu", value: "Đau đầu" },
-  { label: "Sổ mũi", value: "Sổ mũi" },
-  { label: "Đau bụng", value: "Đau bụng" },
-  { label: "Dị ứng", value: "Dị ứng" },
-  { label: "Đau nhức xương khớp", value: "Đau nhức xương khớp" },
-  { label: "Mất ngủ", value: "Mất ngủ" },
-]
 
 const DEFAULT_VALUES = {
   name: "",
@@ -133,6 +125,19 @@ const DEFAULT_VALUES = {
 export function ProductDialog({ open, onOpenChange, product, categories }: ProductDialogProps) {
   const imageUploadRef = useRef<MultiImageUploadRef>(null)
   const queryClient = useQueryClient()
+  const { data: symptomsData = [] } = useQuery({
+    queryKey: ["symptoms"],
+    queryFn: () => productService.getSymptoms()
+  })
+
+  // Combine DB symptoms with our initial defaults for a rich list
+  const dynamicSymptoms = Array.from(new Set([
+    ...SYMPTOM_OPTIONS.map(s => s.value),
+    ...symptomsData.map((s: any) => s.name)
+  ])).map(name => {
+    const existing = SYMPTOM_OPTIONS.find(s => s.value === name)
+    return existing || { label: name, value: name }
+  })
   const [activeTab, setActiveTab] = useState("general")
 
   const form = useForm<ProductFormValues>({
@@ -716,37 +721,62 @@ export function ProductDialog({ open, onOpenChange, product, categories }: Produ
 
                     {activeTab === "chatbot" && (
                       <div className="space-y-6 animate-in fade-in slide-in-from-left-2 duration-300">
-                        <div className="bg-gradient-to-br from-indigo-600 to-blue-700 p-8 rounded-[2rem] text-white shadow-xl shadow-blue-200">
-                          <div className="flex items-center gap-4 mb-6">
-                            <div className="h-14 w-14 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center border border-white/30">
-                              <Bot className="h-8 w-8" />
+                        <div className="bg-gradient-to-br from-indigo-600 via-blue-700 to-blue-800 p-10 rounded-[2.5rem] text-white shadow-2xl shadow-blue-200 relative">
+                          {/* Decorative Elements */}
+                          <div className="absolute -top-24 -right-24 w-64 h-64 bg-white/10 rounded-full blur-3xl" />
+                          <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-indigo-400/20 rounded-full blur-3xl" />
+
+                          <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center gap-6 mb-8">
+                            <div className="h-20 w-20 bg-white/20 backdrop-blur-xl rounded-[2rem] flex items-center justify-center border border-white/30 shadow-inner">
+                              <Bot className="h-10 w-10 text-white animate-pulse" />
                             </div>
                             <div className="space-y-2">
-                              <h3 className="text-2xl font-black tracking-tight">AI Training Model</h3>
-                              <p className="text-white/80 font-medium">Gắn thẻ triệu chứng để Gemini có thể tư vấn sản phẩm này.</p>
+                              <div className="flex items-center gap-2">
+                                <h3 className="text-3xl font-black tracking-tight">AI Training Model</h3>
+                                <Badge className="bg-emerald-400 text-emerald-950 font-black border-none">RAG Ready</Badge>
+                              </div>
+                              <p className="text-blue-50/80 font-medium text-lg">Gắn thẻ triệu chứng để Gemini có thể tư vấn sản phẩm này.</p>
                             </div>
                           </div>
 
-                          <div className="bg-white/10 backdrop-blur-md p-6 rounded-2xl border border-white/20">
+
+                          <div className="bg-white/5 backdrop-blur-xl p-8 rounded-[2rem] border border-white/10 shadow-inner">
                             <FormField
                               control={form.control}
                               name="symptoms"
                               render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel className="font-bold text-white mb-3 block">Triệu chứng liên quan (Symptoms)</FormLabel>
+                                <FormItem className="space-y-4">
+                                  <div className="flex items-center justify-between">
+                                    <FormLabel className="font-black text-white text-lg block">Triệu chứng liên quan (Symptoms)</FormLabel>
+                                    <Badge variant="outline" className="border-white/20 text-white/60 font-bold uppercase text-[10px]">Optional</Badge>
+                                  </div>
                                   <FormControl>
                                     <MultiSelect
-                                      options={SYMPTOM_OPTIONS}
+                                      options={dynamicSymptoms}
                                       selected={field.value}
                                       onChange={field.onChange}
-                                      placeholder="Gõ để tìm triệu chứng..."
+                                      placeholder="Gõ để tìm triệu chứng (VD: Đau đầu, Sốt...)"
+                                      className="border-white/20 bg-white/10"
+                                      placeholderClassName="placeholder:text-white/40 text-white font-bold"
                                     />
                                   </FormControl>
-                                  <FormDescription className="text-white/60 text-xs mt-2 italic">Dữ liệu này sẽ được vector hóa phục vụ RAG của Chatbot.</FormDescription>
                                   <FormMessage />
                                 </FormItem>
                               )}
                             />
+
+                            <div className="mt-8 p-6 bg-white/5 rounded-2xl border border-white/10 flex gap-4 items-start">
+                              <div className="bg-amber-400/20 p-2 rounded-lg">
+                                <Info className="h-5 w-5 text-amber-300" />
+                              </div>
+                              <div className="space-y-1">
+                                <p className="text-sm font-black text-amber-200">Tip cho Admin:</p>
+                                <p className="text-xs text-white/70 font-medium leading-relaxed">
+                                  Bạn có thể <span className="text-white font-black underline decoration-amber-400 underline-offset-4">BỎ TRỐNG</span> phần này lúc tạo sản phẩm và bổ sung sau tại mục
+                                  <span className="text-white font-bold mx-1 italic">"Quản lý Chatbot QA"</span> bất cứ lúc nào. AI vẫn sẽ học từ mô tả sản phẩm, nhưng tag triệu chứng giúp độ chính xác cao hơn 40%.
+                                </p>
+                              </div>
+                            </div>
                           </div>
                         </div>
                       </div>
