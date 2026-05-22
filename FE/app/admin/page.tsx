@@ -19,6 +19,7 @@ import {
 import { useMemo } from "react"
 import { Badge } from "@/components/ui/badge"
 import { TrendingUp, Award } from "lucide-react"
+import { useSession } from "next-auth/react"
 
 export default function AdminDashboardPage() {
   const { data: products = [], isLoading: loadingProducts } = useQuery({
@@ -26,9 +27,13 @@ export default function AdminDashboardPage() {
     queryFn: () => productService.getProducts()
   })
 
+  const { data: session } = useSession()
+  const isAdmin = session?.user?.role === "ADMIN"
+
   const { data: users = [], isLoading: loadingUsers } = useQuery({
     queryKey: ["admin_users"],
-    queryFn: () => userService.getAllUsers()
+    queryFn: () => userService.getAllUsers(),
+    enabled: isAdmin
   })
 
   const { data: orders = [], isLoading: loadingOrders } = useQuery({
