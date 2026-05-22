@@ -5,8 +5,8 @@ import { useSession } from "next-auth/react"
 import { useQueryClient } from "@tanstack/react-query" // Optional if needed
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
-import { 
-  Minus, Plus, Trash2, ShoppingCart, HelpCircle, Tag, ArrowLeft, Ticket, X, 
+import {
+  Minus, Plus, Trash2, ShoppingCart, HelpCircle, Tag, ArrowLeft, Ticket, X,
   ChevronRight, Loader2, CheckCircle2, AlertCircle, FileText, CheckCircle,
   User, Clock, Truck, Pill
 } from "lucide-react"
@@ -102,7 +102,7 @@ export default function CartPage() {
         if (res.ok) {
           const data = await res.json()
           const approved = data.filter((p: PrescriptionResponse) => p.status === 'APPROVED' && !p.isUsed)
-          
+
           // Filter prescriptions that contain ALL selected RX items
           const rxMedicineIds = selectedItems
             .filter(item => (item as any).requiresPrescription)
@@ -113,19 +113,25 @@ export default function CartPage() {
             try {
               const extracted = JSON.parse(p.extractedData)
               const mappedMeds = extracted.mapped_medicines || []
-              const medicinceIdsInPrescription = mappedMeds
-                .filter((m: any) => m.matched_product?.id)
-                .map((m: any) => m.matched_product.id)
-              
-              // Must contain ALL selected Rx items
-              return rxMedicineIds.every(id => medicinceIdsInPrescription.includes(id))
+
+              // Must contain ALL selected Rx items AND have remaining quantity
+              return rxMedicineIds.every(id => {
+                const med = mappedMeds.find((m: any) => m.matched_product?.id === id);
+                if (!med) return false;
+                
+                const prescribedQty = med.prescribed_quantity ?? 999;
+                const orderedQty = med.ordered_quantity ?? 0;
+                const remaining = prescribedQty - orderedQty;
+                
+                return !med.purchased && remaining > 0;
+              })
             } catch (e) {
               return false
             }
           })
 
           setApprovedPrescriptions(validPrescriptions)
-          
+
           // Reset selected prescription if it's no longer valid
           if (selectedPrescription && !validPrescriptions.find(p => p.id === selectedPrescription.id)) {
             setSelectedPrescription(null)
@@ -151,10 +157,10 @@ export default function CartPage() {
   const baseShipping = selectedItems.length > 0 && subtotal < 300000 ? 30000 : 0
   const productDiscount = appliedProductVoucher?.discountAmount || 0
   const shippingDiscount = appliedShippingVoucher?.discountAmount || 0
-  
+
   const shipping = Math.max(0, baseShipping - shippingDiscount)
   const voucherDiscount = productDiscount + shippingDiscount
-  
+
   const savings = discountDirect + voucherDiscount
   const finalTotal = subtotal + shipping - productDiscount
 
@@ -181,7 +187,7 @@ export default function CartPage() {
     )
   }
 
-  const isCheckoutDisabled = selectedItems.length === 0 || 
+  const isCheckoutDisabled = selectedItems.length === 0 ||
     selectedItems.some(item => typeof item.stockQuantity === 'number' && item.stockQuantity <= 0) ||
     (hasRXItems && !selectedPrescription)
 
@@ -237,13 +243,19 @@ export default function CartPage() {
         const discountType = voucherData.discountType || (availableVouchers.find(v => v.code === code)?.discountType)
 
         if (discountType === 'FREESHIP') {
+          if (subtotal >= 300000) {
+            toast.info("Đơn hàng trên 300k đã được miễn phí vận chuyển rồi, áp dụng mã này cho đơn dưới 300k để tiết kiệm nhé!")
+            setVouchersModalOpen(false)
+            setVoucherCode("")
+            return
+          }
           setAppliedShippingVoucher({ ...voucherData, code: code, discountAmount: voucherData.discountAmount || data.discountAmount })
           toast.success(`Đã áp dụng mã vận chuyển ${code}!`)
         } else {
           setAppliedProductVoucher({ ...voucherData, code: code, discountAmount: voucherData.discountAmount || data.discountAmount })
           toast.success(`Đã áp dụng mã giảm giá ${code}!`)
         }
-        
+
         setVouchersModalOpen(false)
         setVoucherCode("")
       } else {
@@ -328,12 +340,13 @@ export default function CartPage() {
 
               {/* Items List */}
               <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden divide-y divide-slate-100">
-                {items.map((item) => {
+                {items.map((item, index) => {
                   const itemOptions = getUnitOptions(item.packingUnit)
                   const hasDiscount = item.originalPrice && item.originalPrice > item.unitPrice
+                  const itemQuantity = typeof item.quantity === 'number' && !isNaN(item.quantity) ? item.quantity : 1
 
                   return (
-                    <div key={item.medicineId} className="p-4 sm:p-6 md:p-8 flex flex-col md:flex-row items-start gap-4 md:gap-6 group hover:bg-slate-50/50 transition-colors">
+                    <div key={`${item.medicineId || 'cart'}-${index}`} className="p-4 sm:p-6 md:p-8 flex flex-col md:flex-row items-start gap-4 md:gap-6 group hover:bg-slate-50/50 transition-colors">
                       {/* Top Row for Mobile (Checkbox + Image + Name/Tags + Delete) */}
                       <div className="flex items-start gap-3 w-full">
                         <Checkbox
@@ -409,7 +422,7 @@ export default function CartPage() {
                           {/* Unit Selection */}
                           <div className="flex flex-col gap-1">
                             <span className="text-[9px] md:text-[11px] font-black text-slate-400 uppercase tracking-wider ml-1">Đơn vị</span>
-                            <Select defaultValue={item.unit.toLowerCase()} disabled={itemOptions.length <= 1}>
+                            <Select defaultValue={item.unit?.toLowerCase() || itemOptions[0]?.toLowerCase() || "hộp"} disabled={itemOptions.length <= 1}>
                               <SelectTrigger className="w-20 sm:w-28 h-9 sm:h-12 border-slate-200 rounded-xl md:rounded-2xl font-bold text-xs sm:text-sm text-slate-700 focus:ring-blue-100 shadow-none bg-slate-50/50 border-none disabled:opacity-50">
                                 <SelectValue />
                               </SelectTrigger>
@@ -428,15 +441,15 @@ export default function CartPage() {
                               <Button
                                 variant="ghost"
                                 className="h-8 w-8 sm:h-10 sm:w-10 hover:bg-white text-slate-400 hover:text-blue-600 rounded-lg sm:rounded-xl"
-                                onClick={() => updateQuantity(item.medicineId, Math.max(1, item.quantity - 1), token)}
+                                onClick={() => updateQuantity(item.medicineId, Math.max(1, itemQuantity - 1), token)}
                               >
                                 <Minus className="h-3 w-3 sm:h-4 sm:w-4" />
                               </Button>
-                              <div className="w-8 sm:w-12 text-center font-black text-slate-800 text-sm sm:text-lg tabular-nums">{item.quantity}</div>
+                              <div className="w-8 sm:w-12 text-center font-black text-slate-800 text-sm sm:text-lg tabular-nums">{itemQuantity}</div>
                               <Button
                                 variant="ghost"
                                 className="h-8 w-8 sm:h-10 sm:w-10 hover:bg-white text-slate-400 hover:text-blue-600 rounded-lg sm:rounded-xl"
-                                onClick={() => updateQuantity(item.medicineId, item.quantity + 1, token)}
+                                onClick={() => updateQuantity(item.medicineId, itemQuantity + 1, token)}
                               >
                                 <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
                               </Button>
@@ -463,38 +476,38 @@ export default function CartPage() {
               {hasRXItems && (
                 <div className={cn(
                   "p-8 rounded-[2rem] border-2 transition-all flex flex-col md:flex-row items-center gap-6",
-                  selectedPrescription 
-                    ? "bg-emerald-50 border-emerald-100 shadow-sm" 
+                  selectedPrescription
+                    ? "bg-emerald-50 border-emerald-100 shadow-sm"
                     : "bg-amber-50 border-amber-100 shadow-md animate-pulse"
                 )}>
-                   <div className={cn(
-                     "h-16 w-16 rounded-2xl flex items-center justify-center shrink-0 shadow-lg",
-                     selectedPrescription ? "bg-emerald-500 text-white" : "bg-amber-500 text-white"
-                   )}>
-                      {selectedPrescription ? <CheckCircle className="w-8 h-8" /> : <FileText className="w-8 h-8" />}
-                   </div>
-                   <div className="flex-1 text-center md:text-left">
-                      <h4 className={cn("text-xl font-black mb-1", selectedPrescription ? "text-emerald-800" : "text-amber-800")}>
-                        {selectedPrescription ? "Đơn thuốc đã sẵn sàng" : "Yêu cầu Đơn thuốc (RX)"}
-                      </h4>
-                      <p className={cn("text-sm font-medium", selectedPrescription ? "text-emerald-600" : "text-amber-700")}>
-                        {selectedPrescription 
-                          ? `Đã chọn đơn của Bác sĩ ${selectedPrescription.doctorName || "---"} - ${selectedPrescription.hospitalName || "Bệnh viện"}`
-                          : "Giỏ hàng của bạn có thuốc kê đơn. Vui lòng chọn một đơn thuốc đã được dược sĩ MedCare phê duyệt để tiếp tục."
-                        }
-                      </p>
-                   </div>
-                   <Button 
-                      onClick={() => setIsPrescriptionModalOpen(true)}
-                      className={cn(
-                        "rounded-2xl h-14 px-8 font-black shadow-lg transition-all",
-                        selectedPrescription 
-                          ? "bg-white text-emerald-600 hover:bg-white/90 border border-emerald-200" 
-                          : "bg-amber-600 hover:bg-amber-700 text-white shadow-amber-100"
-                      )}
-                   >
-                      {selectedPrescription ? "Thay đổi đơn thuốc" : "Chọn đơn thuốc đã duyệt"}
-                   </Button>
+                  <div className={cn(
+                    "h-16 w-16 rounded-2xl flex items-center justify-center shrink-0 shadow-lg",
+                    selectedPrescription ? "bg-emerald-500 text-white" : "bg-amber-500 text-white"
+                  )}>
+                    {selectedPrescription ? <CheckCircle className="w-8 h-8" /> : <FileText className="w-8 h-8" />}
+                  </div>
+                  <div className="flex-1 text-center md:text-left">
+                    <h4 className={cn("text-xl font-black mb-1", selectedPrescription ? "text-emerald-800" : "text-amber-800")}>
+                      {selectedPrescription ? "Đơn thuốc đã sẵn sàng" : "Yêu cầu Đơn thuốc (RX)"}
+                    </h4>
+                    <p className={cn("text-sm font-medium", selectedPrescription ? "text-emerald-600" : "text-amber-700")}>
+                      {selectedPrescription
+                        ? `Đã chọn đơn của Bác sĩ ${selectedPrescription.doctorName || "---"} - ${selectedPrescription.hospitalName || "Bệnh viện"}`
+                        : "Giỏ hàng của bạn có thuốc kê đơn. Vui lòng chọn một đơn thuốc đã được dược sĩ MedCare phê duyệt để tiếp tục."
+                      }
+                    </p>
+                  </div>
+                  <Button
+                    onClick={() => setIsPrescriptionModalOpen(true)}
+                    className={cn(
+                      "rounded-2xl h-14 px-8 font-black shadow-lg transition-all",
+                      selectedPrescription
+                        ? "bg-white text-emerald-600 hover:bg-white/90 border border-emerald-200"
+                        : "bg-amber-600 hover:bg-amber-700 text-white shadow-amber-100"
+                    )}
+                  >
+                    {selectedPrescription ? "Thay đổi đơn thuốc" : "Chọn đơn thuốc đã duyệt"}
+                  </Button>
                 </div>
               )}
             </div>
@@ -648,7 +661,7 @@ export default function CartPage() {
                   {isCheckoutDisabled ? (
                     <span>Không thể thanh toán</span>
                   ) : (
-                    <Link href={`/thanh-toan?ids=${selectedIds.join(",")}${selectedPrescription ? `&prescriptionId=${selectedPrescription.id}` : ''}`}>
+                    <Link href={`/thanh-toan?ids=${selectedIds.join(",")}${selectedPrescription ? `&prescriptionId=${selectedPrescription.id}` : ''}${appliedProductVoucher ? `&productVoucher=${appliedProductVoucher.code}` : ''}${appliedShippingVoucher ? `&shippingVoucher=${appliedShippingVoucher.code}` : ''}`}>
                       Tiến hành thanh toán
                     </Link>
                   )}
@@ -711,29 +724,29 @@ export default function CartPage() {
                     <div className="flex flex-1 items-center gap-4 p-5">
                       <div className={cn(
                         "h-16 w-16 rounded-2xl flex items-center justify-center shrink-0 transition-transform duration-300",
-                        isDisabled 
-                          ? "bg-slate-50 text-slate-300" 
+                        isDisabled
+                          ? "bg-slate-50 text-slate-300"
                           : v.discountType === 'FREESHIP'
                             ? "bg-blue-50 text-blue-600 group-hover:scale-110"
                             : "bg-emerald-50 text-emerald-600 group-hover:scale-110"
                       )}>
                         {v.discountType === 'FREESHIP' ? <Truck size={32} strokeWidth={1.5} /> : <Ticket size={32} strokeWidth={1.5} />}
                       </div>
- 
+
                       <div className="flex-1 min-w-0">
                         <div className="flex flex-col">
                           <div className="flex items-center gap-2 mb-1">
-                             <p className="font-black text-slate-800 text-xl tracking-tight truncate">{v.code}</p>
-                             <span className={cn(
-                               "text-[9px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-wider",
-                               isDisabled 
-                                ? "bg-slate-100 text-slate-400" 
+                            <p className="font-black text-slate-800 text-xl tracking-tight truncate">{v.code}</p>
+                            <span className={cn(
+                              "text-[9px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-wider",
+                              isDisabled
+                                ? "bg-slate-100 text-slate-400"
                                 : v.discountType === 'FREESHIP'
                                   ? "bg-blue-100 text-blue-700"
                                   : "bg-emerald-100 text-emerald-700"
-                             )}>
-                               {v.discountType === 'FREESHIP' ? 'Vận chuyển' : 'Sản phẩm'}
-                             </span>
+                            )}>
+                              {v.discountType === 'FREESHIP' ? 'Vận chuyển' : 'Sản phẩm'}
+                            </span>
                           </div>
                           <p className="text-[13px] font-bold text-slate-500 mb-2 truncate">{v.description || v.title}</p>
                           <div className="flex items-center gap-2">
@@ -777,66 +790,66 @@ export default function CartPage() {
           </DialogHeader>
 
           <div className="bg-gradient-to-br from-blue-600 to-indigo-700 p-10 text-white relative overflow-hidden">
-             <div className="absolute top-0 right-0 -mr-10 -mt-10 w-40 h-40 rounded-full bg-white/10 blur-3xl"></div>
-             <h2 className="text-3xl font-black mb-2 tracking-tight flex items-center gap-3 relative z-10 uppercase">
-                <FileText className="h-8 w-8 text-blue-200" />
-                Đơn thuốc của bạn
-             </h2>
-             <p className="text-blue-100 text-sm font-medium relative z-10">Chọn đơn thuốc RX để hoàn tất mua hàng</p>
+            <div className="absolute top-0 right-0 -mr-10 -mt-10 w-40 h-40 rounded-full bg-white/10 blur-3xl"></div>
+            <h2 className="text-3xl font-black mb-2 tracking-tight flex items-center gap-3 relative z-10 uppercase">
+              <FileText className="h-8 w-8 text-blue-200" />
+              Đơn thuốc của bạn
+            </h2>
+            <p className="text-blue-100 text-sm font-medium relative z-10">Chọn đơn thuốc RX để hoàn tất mua hàng</p>
           </div>
 
           <div className="p-8 space-y-4 max-h-[60vh] overflow-y-auto custom-scrollbar-slim">
             {approvedPrescriptions.length === 0 ? (
-               <div className="py-20 flex flex-col items-center text-center gap-6">
-                  <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center border-4 border-white shadow-sm">
-                     <AlertCircle className="w-10 h-10 text-slate-300" />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-black text-slate-800 mb-2">Chưa có đơn thuốc nào được duyệt</h3>
-                    <p className="text-slate-500 font-medium text-sm max-w-[350px] mx-auto">Bạn cần gửi ảnh đơn thuốc và đợi Dược sĩ MedCare phê duyệt trước khi mua các sản phẩm này.</p>
-                  </div>
-                  <Button className="rounded-full px-10 h-14 font-bold bg-blue-600 hover:bg-blue-700 shadow-xl shadow-blue-100" asChild>
-                     <Link href="/tai-khoan/don-thuoc">Tới trang Đơn thuốc</Link>
-                  </Button>
-               </div>
+              <div className="py-20 flex flex-col items-center text-center gap-6">
+                <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center border-4 border-white shadow-sm">
+                  <AlertCircle className="w-10 h-10 text-slate-300" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-black text-slate-800 mb-2">Chưa có đơn thuốc nào được duyệt</h3>
+                  <p className="text-slate-500 font-medium text-sm max-w-[350px] mx-auto">Bạn cần gửi ảnh đơn thuốc và đợi Dược sĩ MedCare phê duyệt trước khi mua các sản phẩm này.</p>
+                </div>
+                <Button className="rounded-full px-10 h-14 font-bold bg-blue-600 hover:bg-blue-700 shadow-xl shadow-blue-100" asChild>
+                  <Link href="/tai-khoan/don-thuoc">Tới trang Đơn thuốc</Link>
+                </Button>
+              </div>
             ) : (
-               <div className="grid grid-cols-1 gap-4">
-                  {approvedPrescriptions.map((p) => (
-                    <div 
-                      key={p.id}
-                      onClick={() => { setSelectedPrescription(p); setIsPrescriptionModalOpen(false); }}
-                      className={cn(
-                        "p-6 rounded-[2rem] border-2 cursor-pointer transition-all flex items-center gap-6 group",
-                        selectedPrescription?.id === p.id 
-                          ? "bg-blue-50 border-blue-600 shadow-blue-50" 
-                          : "bg-white border-slate-100 hover:border-blue-200 hover:bg-slate-50/50"
-                      )}
-                    >
-                       <div className="relative h-16 w-16 rounded-2xl overflow-hidden shadow-md group-hover:scale-105 transition-transform">
-                          <Image src={p.imageUrl} alt="Don thuốc" fill className="object-cover" />
-                       </div>
-                       <div className="flex-1 min-w-0">
-                          <p className="font-black text-slate-800 text-lg truncate mb-1">
-                             {p.hospitalName || "Bệnh viện / Phòng khám"}
-                          </p>
-                          <div className="flex items-center gap-4 text-xs font-bold text-slate-500">
-                             <span className="flex items-center gap-1"><User className="w-3 h-3" /> BS. {p.doctorName || "---"}</span>
-                             <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> Hạn: {p.expiryDate || "Chưa rõ"}</span>
-                          </div>
-                       </div>
-                       {selectedPrescription?.id === p.id && (
-                         <div className="h-8 w-8 bg-blue-600 rounded-full flex items-center justify-center text-white shadow-lg">
-                            <CheckCircle size={18} />
-                         </div>
-                       )}
+              <div className="grid grid-cols-1 gap-4">
+                {approvedPrescriptions.map((p) => (
+                  <div
+                    key={p.id}
+                    onClick={() => { setSelectedPrescription(p); setIsPrescriptionModalOpen(false); }}
+                    className={cn(
+                      "p-6 rounded-[2rem] border-2 cursor-pointer transition-all flex items-center gap-6 group",
+                      selectedPrescription?.id === p.id
+                        ? "bg-blue-50 border-blue-600 shadow-blue-50"
+                        : "bg-white border-slate-100 hover:border-blue-200 hover:bg-slate-50/50"
+                    )}
+                  >
+                    <div className="relative h-16 w-16 rounded-2xl overflow-hidden shadow-md group-hover:scale-105 transition-transform">
+                      <Image src={p.imageUrl} alt="Don thuốc" fill className="object-cover" />
                     </div>
-                  ))}
-               </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-black text-slate-800 text-lg truncate mb-1">
+                        {p.hospitalName || "Bệnh viện / Phòng khám"}
+                      </p>
+                      <div className="flex items-center gap-4 text-xs font-bold text-slate-500">
+                        <span className="flex items-center gap-1"><User className="w-3 h-3" /> BS. {p.doctorName || "---"}</span>
+                        <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> Hạn: {p.expiryDate || "Chưa rõ"}</span>
+                      </div>
+                    </div>
+                    {selectedPrescription?.id === p.id && (
+                      <div className="h-8 w-8 bg-blue-600 rounded-full flex items-center justify-center text-white shadow-lg">
+                        <CheckCircle size={18} />
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
             )}
           </div>
-          
+
           <div className="p-8 bg-slate-50 border-t border-slate-100 text-center">
-             <p className="text-xs text-slate-400 font-medium italic">Chỉ hiển thị các đơn thuốc còn hạn sử dụng và đã được Dược sĩ duyệt</p>
+            <p className="text-xs text-slate-400 font-medium italic">Chỉ hiển thị các đơn thuốc còn hạn, đã duyệt và chưa mua hết số lượng</p>
           </div>
         </DialogContent>
       </Dialog>

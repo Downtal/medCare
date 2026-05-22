@@ -336,6 +336,7 @@ export function ProductDetailView({ initialProduct, reviews, productSlug }: Prod
                     <div className="flex flex-col sm:flex-row gap-3 mb-6">
                       <Button
                         className="flex-1 h-14 rounded-2xl bg-blue-600 hover:bg-blue-700 text-lg font-black shadow-lg shadow-blue-200 active:scale-95 transition-all uppercase"
+                        onClick={() => window.location.href = '/tu-van'}
                       >
                         Tư vấn ngay
                       </Button>
@@ -493,7 +494,7 @@ export function ProductDetailView({ initialProduct, reviews, productSlug }: Prod
 
               {/* Reviews Section Toggleable */}
               <div className="mt-10">
-                <button 
+                <button
                   onClick={() => setIsReviewsVisible(!isReviewsVisible)}
                   className="flex items-center justify-between w-full p-6 bg-white border border-gray-100 rounded-2xl shadow-sm hover:bg-gray-50 transition-colors group"
                 >

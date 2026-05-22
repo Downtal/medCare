@@ -9,9 +9,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
+import lombok.extern.slf4j.Slf4j;
 
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class AdminInitConfig implements CommandLineRunner {
 
     private final UserRepository userRepository;
@@ -41,10 +43,10 @@ public class AdminInitConfig implements CommandLineRunner {
                         .build();
                 userClient.createProfile(profileRequest);
             } catch (Exception e) {
-                System.err.println("Could not create admin profile in user-service: " + e.getMessage());
+                log.error("Could not create admin profile in user-service: {}", e.getMessage());
             }
 
-            System.out.println("Default Admin account created: admin / admin123");
+            log.info("Default Admin account created: admin / admin123");
         }
     }
 }

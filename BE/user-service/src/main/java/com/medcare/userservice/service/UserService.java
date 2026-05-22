@@ -30,4 +30,6 @@ public interface UserService {
     // Health Metric operations
     HealthMetricDto addHealthMetric(Long userId, CreateMetricRequest request);
     List<HealthMetricDto> getHealthMetrics(Long userId, String type);
+    void deleteHealthMetric(Long userId, Long metricId);
+    HealthMetricDto updateHealthMetric(Long userId, Long metricId, CreateMetricRequest request);
 }

@@ -23,8 +23,12 @@ export default function AccountLayout({ children }: { children: React.ReactNode 
     { id: "don-thuoc", label: "Đơn thuốc của tôi", icon: FileCheck, path: "/tai-khoan/don-thuoc" },
     { id: "voucher", label: "Voucher của tôi", icon: Ticket, path: "/tai-khoan/voucher" },
     { id: "danh-gia", label: "Đánh giá của tôi", icon: Star, path: "/tai-khoan/danh-gia" },
-    { id: "doi-mat-khau", label: "Đổi mật khẩu", icon: Lock, path: "/tai-khoan/doi-mat-khau" },
   ]
+
+  // Add "Đổi mật khẩu" only for LOCAL users
+  if (!user || user.provider === "LOCAL" || user.provider === undefined) {
+    menuItems.push({ id: "doi-mat-khau", label: "Đổi mật khẩu", icon: Lock, path: "/tai-khoan/doi-mat-khau" })
+  }
 
   const isAdmin = user?.role === "ADMIN" || user?.role === "PHARMACIST"
 

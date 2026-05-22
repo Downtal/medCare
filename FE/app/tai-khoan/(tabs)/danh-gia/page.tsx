@@ -35,7 +35,7 @@ export default function ReviewsPage() {
     if (session?.user?.accessToken) {
       fetchReviews()
     }
-  }, [session])
+  }, [session?.user?.accessToken])
 
   const fetchReviews = async () => {
     try {

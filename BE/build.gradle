@@ -43,6 +43,10 @@ subprojects {
 		useJUnitPlatform()
 	}
 
+    configurations.configureEach {
+        exclude group: 'commons-logging', module: 'commons-logging'
+    }
+
 //	apply plugin: 'jacoco'
 //
 //	jacocoTestReport {

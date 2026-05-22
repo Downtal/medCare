@@ -87,6 +87,7 @@ class PaymentServiceTest {
         Payment payment = new Payment();
         payment.setId(1L);
         payment.setTransactionId("ORD123-12345");
+        payment.setOrderCode("ORD123");
         payment.setAmount(BigDecimal.valueOf(100000));
         payment.setStatus(PaymentStatus.PENDING);
 

@@ -1,0 +1,22 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:paymentdb;DB_CLOSE_DELAY=-1;MODE=MySQL
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    database-platform: org.hibernate.dialect.H2Dialect
+
+vnpay:
+  tmn-code: TEST_TMN
+  hash-secret: TEST_HASH_SECRET_12345678901234
+  pay-url: https://sandbox.vnpayment.vn/paymentv2/vpcpay.html
+  return-url: http://localhost:3000/payment/callback
+  api-url: https://sandbox.vnpayment.vn/merchant_webapi/api/transaction
+
+application:
+  security:
+    jwt:
+      secret-key: testSecretKeyForJWTTokenTestingPurposes1234567890

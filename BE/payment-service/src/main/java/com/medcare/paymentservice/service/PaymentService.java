@@ -89,7 +89,7 @@ public class PaymentService {
 
         return PaymentResponse.builder()
                 .status("OK")
-                .message("Successfully created payment URL")
+                .message("Tạo đường dẫn thanh toán thành công")
                 .paymentUrl(paymentUrl)
                 .build();
     }

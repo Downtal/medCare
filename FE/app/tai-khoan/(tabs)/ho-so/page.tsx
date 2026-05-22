@@ -31,7 +31,7 @@ export default function ProfilePage() {
     if (session?.user?.accessToken) {
       fetchProfile()
     }
-  }, [session])
+  }, [session?.user?.accessToken])
 
   const fetchProfile = async () => {
     try {

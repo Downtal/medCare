@@ -6,11 +6,7 @@ import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 import org.springframework.cloud.openfeign.EnableFeignClients;
 
 @SpringBootApplication(
-    scanBasePackages = "com.medcare",
-    exclude = {
-        org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration.class,
-        org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration.class
-    }
+    scanBasePackages = "com.medcare"
 )
 @EnableDiscoveryClient
 @EnableFeignClients

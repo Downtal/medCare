@@ -30,6 +30,12 @@ public class AuthenticationGatewayFilterFactory extends AbstractGatewayFilterFac
     @Value("${application.security.jwt.secret-key}")
     private String secretKey;
 
+    @org.springframework.beans.factory.annotation.Autowired
+    private org.springframework.data.redis.core.ReactiveStringRedisTemplate redisTemplate;
+
+    @Value("${application.security.jwt.revocation.fail-open:true}")
+    private boolean failOpen;
+
     public AuthenticationGatewayFilterFactory() {
         super(Config.class);
     }
@@ -64,6 +70,7 @@ public class AuthenticationGatewayFilterFactory extends AbstractGatewayFilterFac
 
                 String userId = String.valueOf(claims.get("userId"));
                 String role = (String) claims.get("role");
+                long iat = claims.getIssuedAt() != null ? claims.getIssuedAt().getTime() / 1000 : 0;
 
                 log.info("[GATEWAY] Authenticated user {} with role {} for path {}", userId, role, path);
 
@@ -73,7 +80,33 @@ public class AuthenticationGatewayFilterFactory extends AbstractGatewayFilterFac
                         .header("X-User-Role", role)
                         .build();
 
-                return chain.filter(exchange.mutate().request(modifiedRequest).build());
+                String redisKey = "auth:revoked:user:" + userId;
+                
+                return redisTemplate.opsForValue().get(redisKey)
+                        .defaultIfEmpty("NOT_REVOKED")
+                        .flatMap(revocationTimeStr -> {
+                            if (!"NOT_REVOKED".equals(revocationTimeStr)) {
+                                try {
+                                    long revocationTime = Long.parseLong(revocationTimeStr);
+                                    if (iat <= revocationTime) {
+                                        log.warn("[GATEWAY] Token revoked for user {}. iat: {}, revokedAt: {}", userId, iat, revocationTime);
+                                        return onError(exchange, "TOKEN_REVOKED", HttpStatus.UNAUTHORIZED);
+                                    }
+                                } catch (NumberFormatException e) {
+                                    log.warn("[GATEWAY] Invalid revocation time in Redis for user {}", userId);
+                                }
+                            }
+                            return chain.filter(exchange.mutate().request(modifiedRequest).build());
+                        })
+                        .onErrorResume(e -> {
+                            log.error("[GATEWAY] Redis error checking revocation for user {}: {}", userId, e.getMessage());
+                            if (failOpen) {
+                                log.warn("[GATEWAY] Redis fail-open applied for user {}. Security trade-off.", userId);
+                                return chain.filter(exchange.mutate().request(modifiedRequest).build());
+                            } else {
+                                return onError(exchange, "Internal Server Error", HttpStatus.INTERNAL_SERVER_ERROR);
+                            }
+                        });
 
             } catch (Exception e) {
                 log.error("[GATEWAY] JWT Verification failed for path {}: {}", path, e.getMessage());

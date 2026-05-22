@@ -57,3 +57,6 @@ FE/build/
 *.zip
 prompt*.txt
 gsd.txt
+*.txt
+*.md
+Data_test/*

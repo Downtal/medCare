@@ -77,7 +77,7 @@ export default function AdminOrdersPage() {
     SHIPPING: { label: "Đang giao", color: "bg-indigo-50 text-indigo-600 border-indigo-100", icon: Truck },
     DELIVERED: { label: "Đã giao", color: "bg-emerald-50 text-emerald-600 border-emerald-100", icon: CheckCircle2 },
     CANCELLED: { label: "Đã hủy/Từ chối", color: "bg-rose-50 text-rose-600 border-rose-100", icon: XCircle },
-    PAID: { label: "Đã thanh toán", color: "bg-emerald-50 text-emerald-600 border-emerald-100", icon: CheckCircle2 },
+    PAID: { label: "Chờ xác nhận (Đã TT)", color: "bg-emerald-50 text-emerald-600 border-emerald-100", icon: CheckCircle2 },
   }
 
   const columns: ColumnDef<Order>[] = [
@@ -109,7 +109,18 @@ export default function AdminOrdersPage() {
       accessorKey: "status",
       header: "Trạng thái",
       cell: ({ row }) => {
-        const cfg = statusConfig[row.original.status] || statusConfig.PENDING
+        const status = row.original.status
+        const cfg = statusConfig[status] || statusConfig.PENDING
+        
+        if (status === 'PAID') {
+          return (
+            <Badge className="px-2.5 py-1 rounded-full border shadow-none font-bold text-[11px] flex items-center gap-1.5 w-fit bg-amber-50 text-amber-600 border-amber-100">
+              <Clock className="w-3 h-3" />
+              <span>Chờ xác nhận <span className="text-emerald-600 ml-0.5">(VNPAY)</span></span>
+            </Badge>
+          )
+        }
+
         return (
           <Badge className={cn("px-2.5 py-1 rounded-full border shadow-none font-bold text-[11px] flex items-center gap-1.5 w-fit", cfg.color)}>
             <cfg.icon className="w-3 h-3" />
@@ -346,8 +357,13 @@ export default function AdminOrdersPage() {
                       Đặt lúc: {new Date(selectedOrder.createdAt).toLocaleString("vi-VN")}
                     </DialogDescription>
                   </div>
-                  <Badge className={cn("px-5 py-2.5 rounded-2xl border-none shadow-lg font-black text-[11px] uppercase tracking-wider", statusConfig[selectedOrder.status].color)}>
-                    {statusConfig[selectedOrder.status].label}
+                  <Badge className={cn("px-5 py-2.5 rounded-2xl border-none shadow-lg font-black text-[11px] uppercase tracking-wider", 
+                    selectedOrder.status === 'PAID' ? "bg-amber-50 text-amber-600" : statusConfig[selectedOrder.status].color)}>
+                    {selectedOrder.status === 'PAID' ? (
+                      <>CHỜ XÁC NHẬN <span className="text-emerald-600 ml-1">(VNPAY)</span></>
+                    ) : (
+                      statusConfig[selectedOrder.status].label
+                    )}
                   </Badge>
                 </div>
               </DialogHeader>
@@ -460,7 +476,7 @@ export default function AdminOrdersPage() {
               <DialogFooter className="p-6 bg-white border-t border-slate-100 flex items-center justify-between">
                 <Button variant="ghost" className="font-bold rounded-2xl px-6 text-slate-400 hover:text-slate-600" onClick={() => setIsDetailsOpen(false)}>Quay lại</Button>
                 <div className="flex items-center gap-3">
-                  {selectedOrder.status === 'PENDING' && (
+                  {(selectedOrder.status === 'PENDING' || selectedOrder.status === 'PAID') && (
                     <>
                       <Button
                         variant="outline"

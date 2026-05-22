@@ -313,6 +313,32 @@ public class UserServiceImpl implements UserService {
         return metrics.stream().map(this::mapToMetricDto).collect(Collectors.toList());
     }
 
+    @Override
+    @Transactional
+    public void deleteHealthMetric(Long userId, Long metricId) {
+        com.medcare.userservice.entity.UserHealthMetric metric = userHealthMetricRepository.findById(metricId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy chỉ số sức khỏe với id: " + metricId));
+        if (!metric.getUserId().equals(userId)) {
+            throw new AppException(ErrorCode.FORBIDDEN, "Bạn không có quyền xóa chỉ số sức khỏe này");
+        }
+        userHealthMetricRepository.delete(metric);
+    }
+
+    @Override
+    @Transactional
+    public HealthMetricDto updateHealthMetric(Long userId, Long metricId, CreateMetricRequest request) {
+        com.medcare.userservice.entity.UserHealthMetric metric = userHealthMetricRepository.findById(metricId)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy chỉ số sức khỏe với id: " + metricId));
+        if (!metric.getUserId().equals(userId)) {
+            throw new AppException(ErrorCode.FORBIDDEN, "Bạn không có quyền chỉnh sửa chỉ số sức khỏe này");
+        }
+        metric.setType(request.getType().toUpperCase());
+        metric.setValue(request.getValue());
+        metric.setUnit(request.getUnit());
+        com.medcare.userservice.entity.UserHealthMetric updated = userHealthMetricRepository.save(metric);
+        return mapToMetricDto(updated);
+    }
+
     // ───────────────── Mappers ─────────────────
 
     private UserProfileDto mapToDto(UserProfile profile) {

@@ -15,6 +15,7 @@ import { Footer } from "@/components/footer"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useCartStore } from "@/lib/store/useCartStore"
 import Link from "next/link"
+import { useSession } from "next-auth/react"
 
 interface SuggestedProduct {
   id: number;
@@ -42,6 +43,7 @@ function PrescriptionSearchContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { addItem } = useCartStore()
+  const { data: session } = useSession()
 
   useEffect(() => {
     // 1. Check sessionStorage first (for cleaner URL flow)
@@ -123,15 +125,28 @@ function PrescriptionSearchContent() {
     }
   }
 
-  const handleAddAllToCart = () => {
+  const handleAddAllToCart = async () => {
     let count = 0
-    results.forEach(med => {
+    for (const med of results) {
       const selected = med.suggested_products.find(p => p.id === med.selectedProductId)
       if (selected?.details) {
-        addItem(selected.details)
+        const details = selected.details
+        await addItem({
+          medicineId: Number(details.id),
+          name: details.name || "",
+          slug: details.slug || "",
+          imageUrl: details.primaryImageUrl || "/placeholder.svg",
+          quantity: 1,
+          unit: details.packingUnit ? details.packingUnit.split(' ')[0] || "Hộp" : "Hộp",
+          unitPrice: details.price || 0,
+          totalPrice: details.price || 0,
+          packingUnit: details.packingUnit || "",
+          stockQuantity: details.stockQuantity || 100,
+          requiresPrescription: details.requiresPrescription || false
+        }, session?.user?.accessToken)
         count++
       }
-    })
+    }
     if (count > 0) {
       toast.success(`Đã thêm ${count} sản phẩm vào giỏ hàng`)
       router.push("/gio-hang")
@@ -252,18 +267,35 @@ function PrescriptionSearchContent() {
                         </div>
 
                         {/* Image */}
-                        <div className="relative w-20 h-20 bg-white rounded-lg overflow-hidden shrink-0 border border-slate-50">
+                        <a
+                          href={details.slug ? `/san-pham/${details.slug}` : `/san-pham/${details.id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="relative w-20 h-20 bg-white rounded-lg overflow-hidden shrink-0 border border-slate-100 hover:border-blue-400 hover:shadow-sm transition-all"
+                        >
                           <Image src={details.primaryImageUrl || "/placeholder.svg"} alt={details.name} fill className="object-contain p-1" />
-                        </div>
+                        </a>
 
                         {/* Info */}
                         <div className="flex-1 min-w-0">
                           <h4 className="font-medium text-slate-700 text-sm line-clamp-2 leading-snug group-hover:text-primary transition-colors">
                             {details.name}
                           </h4>
-                          {details.requiresPrescription && (
-                            <span className="text-[10px] font-bold text-red-500 border border-red-200 px-1.5 py-0.5 rounded mt-1 inline-block">Cần kê đơn</span>
-                          )}
+                          <div className="flex items-center gap-3 mt-1.5 flex-wrap">
+                            {details.requiresPrescription && (
+                              <span className="text-[10px] font-bold text-red-500 border border-red-200 px-1.5 py-0.5 rounded inline-block">Cần kê đơn</span>
+                            )}
+                            <a
+                              href={details.slug ? `/san-pham/${details.slug}` : `/san-pham/${details.id}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="text-xs text-blue-500 hover:text-blue-700 hover:underline inline-flex items-center gap-1 font-semibold"
+                            >
+                              Xem chi tiết ↗
+                            </a>
+                          </div>
                         </div>
 
                         {/* Price & Unit */}

@@ -58,13 +58,13 @@ export default function OrdersPage() {
 
   const getStatusLabel = (status: string) => {
     switch (status) {
-      case "PENDING": return "Đang xử lý"
+      case "PENDING": return "Chờ xác nhận"
       case "CONFIRMED": return "Đã xác nhận"
-      case "SHIPPING": return "Đang giao hàng"
+      case "SHIPPING": return "Đang giao"
       case "DELIVERED": return "Đã giao"
-      case "CANCELLED": return "Đã hủy"
+      case "CANCELLED": return "Đã hủy/Từ chối"
       case "RETURNED": return "Đã trả hàng"
-      case "PAID": return "Đã thanh toán"
+      case "PAID": return <>Chờ xác nhận <span className="text-emerald-600">(VNPAY)</span></>
       case "PENDING_PRESCRIPTION": return "Chờ duyệt đơn thuốc"
       case "APPROVED_PRESCRIPTION": return "Đơn thuốc hợp lệ"
       case "REJECTED_PRESCRIPTION": return "Đơn thuốc bị từ chối"
@@ -114,11 +114,66 @@ export default function OrdersPage() {
   }
 
   const filteredOrders = orders.filter(o => {
-    const matchesFilter = filter === "ALL" || o.status === filter
+    const isPendingLike = filter === "PENDING" && (o.status === "PENDING" || o.status === "PAID" || o.status === "WAITING_FOR_PAYMENT")
+    const matchesFilter = filter === "ALL" || o.status === filter || isPendingLike
     const matchesSearch = o.orderCode.toLowerCase().includes(search.toLowerCase()) ||
-      o.items.some(item => item.medicineName.toLowerCase().includes(search.toLowerCase()))
+      o.items.some((item: any) => item.medicineName.toLowerCase().includes(search.toLowerCase()))
     return matchesFilter && matchesSearch
   })
+
+  // Local component to handle collapsible items
+  const OrderItemsList = ({ items }: { items: any[] }) => {
+    const [expanded, setExpanded] = useState(false)
+    const displayItems = expanded ? items : items.slice(0, 2)
+    const hiddenCount = items.length - 2
+
+    return (
+      <div className="divide-y divide-slate-50">
+        {displayItems.map((item, idx) => (
+          <div key={item.medicineId || idx} className="px-6 py-4 flex items-center gap-4 hover:bg-slate-50/50 transition-colors">
+            <div className="relative h-16 w-16 rounded-xl overflow-hidden border border-slate-100 bg-white shrink-0 group-hover:border-blue-100 transition-colors">
+              <Image
+                src={item.imageUrl || "/placeholder.svg"}
+                alt={item.medicineName}
+                fill
+                className="object-cover"
+              />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h4 className="font-bold text-slate-800 text-sm leading-snug line-clamp-1 mb-1">
+                {item.medicineName}
+              </h4>
+              <div className="flex items-center gap-4 text-[11px] font-bold uppercase tracking-wider">
+                <p className="text-blue-600">{item.unitPrice.toLocaleString("vi-VN")}đ</p>
+                <span className="text-slate-300">•</span>
+                <p className="text-slate-500">Số lượng: {item.quantity}</p>
+              </div>
+            </div>
+          </div>
+        ))}
+        {!expanded && hiddenCount > 0 && (
+          <div className="px-6 py-3 text-center border-t border-slate-50 bg-slate-50/30">
+            <button
+              onClick={() => setExpanded(true)}
+              className="text-xs font-bold uppercase tracking-widest text-blue-600 hover:text-blue-800 transition-colors flex items-center justify-center w-full gap-2"
+            >
+              Xem thêm {hiddenCount} sản phẩm <ChevronRight className="w-3 h-3" />
+            </button>
+          </div>
+        )}
+        {expanded && hiddenCount > 0 && (
+          <div className="px-6 py-3 text-center border-t border-slate-50 bg-slate-50/30">
+            <button
+              onClick={() => setExpanded(false)}
+              className="text-xs font-bold uppercase tracking-widest text-slate-500 hover:text-slate-700 transition-colors flex items-center justify-center w-full gap-2"
+            >
+              Thu gọn danh sách
+            </button>
+          </div>
+        )}
+      </div>
+    )
+  }
 
   return (
     <>
@@ -132,11 +187,11 @@ export default function OrdersPage() {
             <TabsList className="bg-transparent h-auto p-0 gap-0 w-full justify-between overflow-x-auto no-scrollbar flex-nowrap border-b-0">
               {[
                 { value: "ALL", label: "Tất cả" },
-                { value: "PENDING", label: "Đang xử lý" },
+                { value: "PENDING", label: "Chờ xác nhận" },
+                { value: "CONFIRMED", label: "Đã xác nhận" },
                 { value: "SHIPPING", label: "Đang giao" },
                 { value: "DELIVERED", label: "Đã giao" },
-                { value: "CANCELLED", label: "Đã hủy" },
-                { value: "RETURNED", label: "Trả hàng" },
+                { value: "CANCELLED", label: "Đã hủy/Từ chối" },
               ].map((tab) => (
                 <TabsTrigger
                   key={tab.value}
@@ -184,7 +239,7 @@ export default function OrdersPage() {
                     </span>
                     <Separator orientation="vertical" className="h-4 bg-slate-200" />
                     <span className="text-xs text-slate-400 font-bold italic">
-                      Nhận tại cửa hàng • <span className="text-slate-800 font-black">#{order.orderCode}</span>
+                      <span className="text-slate-800 font-black">#{order.orderCode}</span>
                     </span>
                     <button className="text-blue-500 hover:text-blue-700 transition-colors" title="Sao chép mã đơn" onClick={() => {
                       navigator.clipboard.writeText(order.orderCode);
@@ -202,30 +257,7 @@ export default function OrdersPage() {
                 </div>
 
                 <div className="p-0">
-                  <div className="divide-y divide-slate-50">
-                    {order.items.map((item, idx) => (
-                      <div key={item.medicineId || idx} className="px-6 py-4 flex items-center gap-4 hover:bg-slate-50/50 transition-colors">
-                        <div className="relative h-16 w-16 rounded-xl overflow-hidden border border-slate-100 bg-white shrink-0 group-hover:border-blue-100 transition-colors">
-                          <Image
-                            src={item.imageUrl || "/placeholder.svg"}
-                            alt={item.medicineName}
-                            fill
-                            className="object-cover"
-                          />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h4 className="font-bold text-slate-800 text-sm leading-snug line-clamp-1 mb-1">
-                            {item.medicineName}
-                          </h4>
-                          <div className="flex items-center gap-4 text-[11px] font-bold uppercase tracking-wider">
-                            <p className="text-blue-600">{item.unitPrice.toLocaleString("vi-VN")}đ</p>
-                            <span className="text-slate-300">•</span>
-                            <p className="text-slate-500">Số lượng: {item.quantity}</p>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                  <OrderItemsList items={order.items} />
                 </div>
 
                 <div className="px-6 py-4 bg-slate-50/30 flex items-center justify-between">

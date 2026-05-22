@@ -81,6 +81,7 @@ export default function AdminUsersPage() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [isRestoreDialogOpen, setIsRestoreDialogOpen] = useState(false)
   const [isHardDeleteDialogOpen, setIsHardDeleteDialogOpen] = useState(false)
+  const [isForceLogoutDialogOpen, setIsForceLogoutDialogOpen] = useState(false)
 
   // Selection States
   const [newRole, setNewRole] = useState<string>("")
@@ -185,7 +186,6 @@ export default function AdminUsersPage() {
               <span className="font-black text-slate-800 text-[14px] line-clamp-1">{row.original.fullName || "Chưa cập nhật"}</span>
               {row.original.username && <Badge variant="secondary" className="text-[9px] font-black h-4 px-1 bg-slate-100 text-slate-500 rounded">{row.original.username}</Badge>}
             </div>
-            <span className="text-[11px] text-slate-500 truncate">{row.original.email}</span>
           </div>
         </div>
       )
@@ -256,7 +256,7 @@ export default function AdminUsersPage() {
                 <MoreVertical className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-52 rounded-2xl p-2 shadow-2xl border-none">
+            <DropdownMenuContent align="end" className="w-52 rounded-2xl p-2 shadow-2xl border-none" onClick={(e) => e.stopPropagation()}>
               <DropdownMenuLabel className="text-[10px] font-black text-slate-400 uppercase p-2 tracking-widest">Tác vụ ADMIN</DropdownMenuLabel>
               {activeTab === "all" ? (
                 <>
@@ -277,10 +277,10 @@ export default function AdminUsersPage() {
                     Thay đổi vai trò
                   </DropdownMenuItem>
                   <DropdownMenuSeparator className="bg-slate-50" />
-                  <DropdownMenuItem onClick={() => {
-                    if (confirm("Bạn có chắc muốn đăng xuất tài khoản này ngay lập tức?")) {
-                      forceLogoutMutation.mutate(row.original.userId)
-                    }
+                  <DropdownMenuItem onClick={(e) => {
+                    e.stopPropagation()
+                    setUserActionId(row.original.userId)
+                    setIsForceLogoutDialogOpen(true)
                   }} className="text-amber-600 font-bold rounded-xl cursor-pointer">
                     <LogOut className="w-4 h-4 mr-2" /> Đăng xuất tài khoản này
                   </DropdownMenuItem>
@@ -438,11 +438,11 @@ export default function AdminUsersPage() {
       )}
 
       <div className="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden min-h-[500px]">
-        <DataTable 
-          columns={columns} 
-          data={paginatedRows} 
-          hidePagination={true} 
-          loading={isLoadingAll || isLoadingTrash} 
+        <DataTable
+          columns={columns}
+          data={paginatedRows}
+          hidePagination={true}
+          loading={isLoadingAll || isLoadingTrash}
           onRowClick={(user) => {
             setSelectedUser(user)
             setIsDetailsOpen(true)
@@ -645,9 +645,9 @@ export default function AdminUsersPage() {
                 </div>
 
                 <div className="pt-8 border-t border-slate-50 flex flex-wrap gap-3">
-                  <Button 
-                    variant="outline" 
-                    className="flex-1 min-w-[140px] rounded-[1.5rem] h-14 font-black text-rose-600 border-rose-100 bg-rose-50 hover:bg-rose-100" 
+                  <Button
+                    variant="outline"
+                    className="flex-1 min-w-[140px] rounded-[1.5rem] h-14 font-black text-rose-600 border-rose-100 bg-rose-50 hover:bg-rose-100"
                     onClick={() => {
                       setNewStatus(selectedUser.status || "ACTIVE")
                       setUserActionId(selectedUser.userId)
@@ -656,7 +656,7 @@ export default function AdminUsersPage() {
                   >
                     TRẠNG THÁI
                   </Button>
-                  <Button 
+                  <Button
                     variant="outline"
                     className="flex-1 min-w-[140px] rounded-[1.5rem] h-14 font-black text-blue-600 border-blue-100 bg-blue-50 hover:bg-blue-100"
                     onClick={() => {
@@ -717,6 +717,21 @@ export default function AdminUsersPage() {
           <AlertDialogFooter className="pt-8">
             <AlertDialogCancel className="rounded-[1.5rem] border-none font-bold text-slate-400">TÔI CẦN SUY NGHĨ LẠI</AlertDialogCancel>
             <AlertDialogAction className="rounded-[1.5rem] bg-rose-600 font-black h-14 px-12 shadow-2xl shadow-rose-200" onClick={() => userActionId && hardDeleteMutation.mutate(userActionId)}>XÁC NHẬN XÓA BỎ</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={isForceLogoutDialogOpen} onOpenChange={setIsForceLogoutDialogOpen}>
+        <AlertDialogContent className="rounded-3xl p-8 shadow-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-2xl font-black text-slate-800">Cưỡng chế đăng xuất?</AlertDialogTitle>
+            <AlertDialogDescription className="text-base font-medium text-slate-500">
+              Bạn có chắc muốn đăng xuất tài khoản này ngay lập tức trên tất cả thiết bị?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="pt-8">
+            <AlertDialogCancel className="rounded-2xl font-bold h-12">Hủy bỏ</AlertDialogCancel>
+            <AlertDialogAction className="rounded-2xl bg-amber-600 hover:bg-amber-700 font-black h-12 px-8" onClick={() => { userActionId && forceLogoutMutation.mutate(userActionId); setIsForceLogoutDialogOpen(false); }}>XÁC NHẬN ĐĂNG XUẤT</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

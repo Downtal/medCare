@@ -14,7 +14,9 @@ import {
   ChevronRight,
   Info,
   History,
-  ShieldAlert
+  ShieldAlert,
+  Pencil,
+  Trash2
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -49,6 +51,11 @@ export default function HealthDashboard() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false)
+  const [editingMetric, setEditingMetric] = useState<any | null>(null)
+  const [editMetricValue, setEditMetricValue] = useState('')
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+  const [deletingMetricId, setDeletingMetricId] = useState<number | null>(null)
   const [newMetric, setNewMetric] = useState({
     weight: '',
     height: '',
@@ -180,6 +187,92 @@ export default function HealthDashboard() {
       }
     } catch (error) {
       toast.error("Không thể kết nối tới máy chủ")
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleEditClick = (metric: any) => {
+    setEditingMetric(metric)
+    setEditMetricValue(metric.value.toString())
+    setIsEditModalOpen(true)
+  }
+
+  const handleUpdateHistoricalMetric = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editingMetric) return
+
+    const val = parseFloat(editMetricValue)
+    if (isNaN(val)) {
+      toast.error("Vui lòng nhập giá trị hợp lệ")
+      return
+    }
+
+    if (editingMetric.type === 'WEIGHT' && (val < 2 || val > 500)) {
+      toast.error("Cân nặng phải từ 2kg đến 500kg")
+      return
+    }
+    if (editingMetric.type === 'HEIGHT' && (val < 30 || val > 300)) {
+      toast.error("Chiều cao phải từ 30cm đến 300cm")
+      return
+    }
+
+    setSaving(true)
+    try {
+      const res = await fetch(`${getApiBaseUrl()}/user-service/api/users/profiles/me/metrics/${editingMetric.id}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${session?.user?.accessToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          type: editingMetric.type,
+          value: val,
+          unit: editingMetric.unit
+        })
+      })
+
+      if (res.ok) {
+        toast.success("Cập nhật chỉ số thành công!")
+        setIsEditModalOpen(false)
+        setEditingMetric(null)
+        fetchData()
+      } else {
+        toast.error("Không thể cập nhật chỉ số")
+      }
+    } catch (e) {
+      toast.error("Lỗi kết nối tới máy chủ")
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const confirmDeleteMetric = (metricId: number) => {
+    setDeletingMetricId(metricId)
+    setIsDeleteModalOpen(true)
+  }
+
+  const executeDeleteMetric = async () => {
+    if (!deletingMetricId) return
+    setSaving(true)
+    try {
+      const res = await fetch(`${getApiBaseUrl()}/user-service/api/users/profiles/me/metrics/${deletingMetricId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${session?.user?.accessToken}`
+        }
+      })
+
+      if (res.ok) {
+        toast.success("Xóa chỉ số thành công!")
+        setIsDeleteModalOpen(false)
+        setDeletingMetricId(null)
+        fetchData()
+      } else {
+        toast.error("Không thể xóa chỉ số")
+      }
+    } catch (e) {
+      toast.error("Lỗi kết nối tới máy chủ")
     } finally {
       setSaving(false)
     }
@@ -386,28 +479,48 @@ export default function HealthDashboard() {
         </Card>
       </motion.div>
 
-      {/* Medical History Timeline (Optional Placeholder) */}
+      {/* Medical History Timeline */}
       <Card className="rounded-[2.5rem] border-none shadow-sm overflow-hidden">
         <CardHeader className="p-8">
           <CardTitle className="text-xl font-black">Lịch sử Sức khỏe & Hoạt động</CardTitle>
         </CardHeader>
         <CardContent className="p-8 pt-0">
           <div className="space-y-8 relative before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-100">
-            {metrics.slice(0, 5).map((m, i) => (
-              <div key={m.id} className="relative pl-10">
+            {metrics.map((m) => (
+              <div key={m.id} className="relative pl-10 group">
                 <div className="absolute left-0 top-1.5 h-4 w-4 rounded-full border-2 border-white bg-primary shadow-sm z-10" />
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                   <div>
                     <p className="font-black text-slate-800">
                       Cập nhật {m.type === 'WEIGHT' ? 'Cân nặng' : 'Chiều cao'}
                     </p>
-                    <p className="text-sm font-bold text-primary">
+                    <p className="text-sm font-bold text-primary flex items-center gap-2">
                       Giá trị: {m.value} {m.unit}
                     </p>
                   </div>
-                  <time className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                    {format(new Date(m.recordedAt), 'eeee, dd MMMM yyyy', { locale: vi })}
-                  </time>
+                  <div className="flex items-center gap-4">
+                    <time className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                      {format(new Date(m.recordedAt), 'eeee, dd MMMM yyyy', { locale: vi })}
+                    </time>
+                    <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg"
+                        onClick={() => handleEditClick(m)}
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
+                        onClick={() => confirmDeleteMetric(m.id)}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               </div>
             ))}
@@ -417,6 +530,70 @@ export default function HealthDashboard() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Historical Metric Edit Dialog */}
+      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+        <DialogContent className="rounded-[2rem] p-8">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-black">Chỉnh sửa chỉ số lịch sử</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleUpdateHistoricalMetric} className="space-y-6 mt-4">
+            <div className="space-y-2">
+              <Label className="font-bold">
+                {editingMetric?.type === 'WEIGHT' ? 'Cân nặng (kg)' : 'Chiều cao (cm)'}
+              </Label>
+              <Input
+                type="number"
+                step="0.1"
+                placeholder={editingMetric?.type === 'WEIGHT' ? 'VD: 65.5' : 'VD: 170'}
+                className="h-12 rounded-xl"
+                value={editMetricValue}
+                onChange={(e) => setEditMetricValue(e.target.value)}
+                required
+              />
+            </div>
+
+            <Button type="submit" disabled={saving} className="w-full h-12 rounded-xl font-bold bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-200">
+              {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Lưu thay đổi
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
+        <DialogContent className="rounded-[2rem] p-8 max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-black text-center text-slate-900 mb-2">Xác nhận xóa</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col items-center text-center space-y-6">
+            <div className="w-16 h-16 bg-red-50 border border-red-100 rounded-full flex items-center justify-center mb-2">
+              <Trash2 className="w-8 h-8 text-red-600" />
+            </div>
+            <p className="text-slate-500 font-medium">Bạn có chắc chắn muốn xóa chỉ số này không? Dữ liệu này sẽ không thể khôi phục.</p>
+            <div className="flex gap-4 w-full pt-4">
+              <Button
+                variant="outline"
+                className="flex-1 h-12 rounded-xl font-bold border-2"
+                onClick={() => setIsDeleteModalOpen(false)}
+                disabled={saving}
+              >
+                Hủy bỏ
+              </Button>
+              <Button
+                variant="destructive"
+                className="flex-1 h-12 rounded-xl font-bold bg-red-600 hover:bg-red-700"
+                onClick={executeDeleteMetric}
+                disabled={saving}
+              >
+                {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Xóa ngay
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

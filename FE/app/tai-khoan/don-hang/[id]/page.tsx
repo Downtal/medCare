@@ -85,7 +85,7 @@ export default function OrderDetailPage() {
          case "DELIVERED": return "Đã giao"
          case "CANCELLED": return "Đã hủy"
          case "RETURNED": return "Đã trả hàng"
-         case "PAID": return "Đã thanh toán"
+         case "PAID": return <>Chờ xác nhận <span className="text-emerald-600">(VNPAY)</span></>
          case "PENDING_PRESCRIPTION": return "Chờ duyệt đơn thuốc"
          case "APPROVED_PRESCRIPTION": return "Đơn thuốc hợp lệ"
          case "REJECTED_PRESCRIPTION": return "Đơn thuốc bị từ chối"
@@ -157,7 +157,7 @@ export default function OrderDetailPage() {
                                  <h1 className="text-lg font-black text-slate-900">Đơn hàng {format(new Date(order.createdAt), "dd/MM/yyyy", { locale: vi })}</h1>
                                  <Separator orientation="vertical" className="h-4 bg-slate-200" />
                                  <div className="text-sm text-slate-500 flex items-center gap-1.5">
-                                    Nhận tại cửa hàng • <span className="font-bold text-slate-800">#{order.orderCode}</span>
+                                    <span className="font-bold text-slate-800">#{order.orderCode}</span>
                                     <button className="text-blue-500 hover:underline flex items-center gap-1 ml-1" onClick={() => {
                                        navigator.clipboard.writeText(order.orderCode);
                                        toast.success("Đã sao chép mã đơn hàng");
@@ -179,52 +179,52 @@ export default function OrderDetailPage() {
                            {/* Tracking Status Box */}
                            <div className={cn(
                               "rounded-2xl p-6 border transition-all duration-500",
-                              order.status === 'DELIVERED' ? "bg-emerald-50 border-emerald-100" : 
-                              order.status === 'CANCELLED' ? "bg-rose-50 border-rose-100" :
-                              order.status === 'SHIPPING' ? "bg-blue-50 border-blue-100" :
-                              "bg-amber-50 border-amber-100"
+                              order.status === 'DELIVERED' ? "bg-emerald-50 border-emerald-100" :
+                                 order.status === 'CANCELLED' ? "bg-rose-50 border-rose-100" :
+                                    order.status === 'SHIPPING' ? "bg-blue-50 border-blue-100" :
+                                       "bg-amber-50 border-amber-100"
                            )}>
                               <div className="flex items-start gap-4">
                                  <div className={cn(
                                     "p-2 rounded-full mt-1 animate-pulse",
-                                    order.status === 'DELIVERED' ? "bg-emerald-500" : 
-                                    order.status === 'CANCELLED' ? "bg-rose-500" :
-                                    order.status === 'SHIPPING' ? "bg-blue-500" :
-                                    "bg-amber-500"
+                                    order.status === 'DELIVERED' ? "bg-emerald-500" :
+                                       order.status === 'CANCELLED' ? "bg-rose-500" :
+                                          order.status === 'SHIPPING' ? "bg-blue-500" :
+                                             "bg-amber-500"
                                  )}>
-                                    {order.status === 'DELIVERED' ? <CheckCircle2 className="h-4 w-4 text-white" /> : 
-                                     order.status === 'CANCELLED' ? <XCircle className="h-4 w-4 text-white" /> :
-                                     order.status === 'SHIPPING' ? <Truck className="h-4 w-4 text-white" /> :
-                                     <Clock className="h-4 w-4 text-white" />}
+                                    {order.status === 'DELIVERED' ? <CheckCircle2 className="h-4 w-4 text-white" /> :
+                                       order.status === 'CANCELLED' ? <XCircle className="h-4 w-4 text-white" /> :
+                                          order.status === 'SHIPPING' ? <Truck className="h-4 w-4 text-white" /> :
+                                             <Clock className="h-4 w-4 text-white" />}
                                  </div>
                                  <div>
                                     <p className={cn(
                                        "text-sm font-bold mb-1",
-                                       order.status === 'DELIVERED' || order.status === 'PAID' ? "text-emerald-600" : 
-                                       order.status === 'CANCELLED' ? "text-rose-600" :
-                                       order.status === 'SHIPPING' ? "text-blue-600" :
-                                       "text-amber-600"
+                                       order.status === 'DELIVERED' || order.status === 'PAID' ? "text-emerald-600" :
+                                          order.status === 'CANCELLED' ? "text-rose-600" :
+                                             order.status === 'SHIPPING' ? "text-blue-600" :
+                                                "text-amber-600"
                                     )}>
-                                       {order.status === 'DELIVERED' ? 'Giao hàng thành công' : 
-                                        order.status === 'PAID' ? 'Thanh toán thành công' :
-                                        order.status === 'CANCELLED' ? 'Đơn hàng đã hủy' :
-                                        order.status === 'SHIPPING' ? 'Đang trên đường giao' :
-                                        order.status === 'CONFIRMED' ? 'Đã xác nhận & Chuẩn bị hàng' : 'Chờ xác nhận'}
+                                       {order.status === 'DELIVERED' ? 'Giao hàng thành công' :
+                                          order.status === 'PAID' ? <>Chờ xác nhận <span className="text-emerald-600">(VNPAY)</span></> :
+                                             order.status === 'CANCELLED' ? 'Đã hủy / Từ chối' :
+                                                order.status === 'SHIPPING' ? 'Đang trên đường giao' :
+                                                   order.status === 'CONFIRMED' ? 'Đã xác nhận & Chuẩn bị hàng' : 'Chờ xác nhận'}
                                     </p>
                                     <h2 className="text-xl font-black text-slate-900 mb-2">
-                                       {order.status === 'DELIVERED' ? 'Kiện hàng đã được giao' : 
-                                        order.status === 'PAID' ? 'Hệ thống đang chuẩn bị hàng' :
-                                        order.status === 'CANCELLED' ? 'Đơn hàng đã bị hủy bỏ' :
-                                        order.status === 'SHIPPING' ? 'Shipper đang giao hàng' :
-                                        order.status === 'CONFIRMED' ? 'Đang chuẩn bị sản phẩm' : 'Đang xử lý đơn hàng'}
+                                       {order.status === 'DELIVERED' ? 'Kiện hàng đã được giao' :
+                                          order.status === 'PAID' ? 'Hệ thống đang chuẩn bị hàng' :
+                                             order.status === 'CANCELLED' ? 'Đơn hàng đã bị hủy bỏ' :
+                                                order.status === 'SHIPPING' ? 'Shipper đang giao hàng' :
+                                                   order.status === 'CONFIRMED' ? 'Đang chuẩn bị sản phẩm' : 'Đang xử lý đơn hàng'}
                                     </h2>
                                     <p className="text-sm text-slate-500 font-medium">
-                                       {order.status === 'DELIVERED' ? 'Cảm ơn bạn đã tin tưởng và mua sắm tại MedCare.' : 
-                                        order.status === 'PAID' ? 'Đơn hàng đã được thanh toán thành công. Chúng tôi sẽ sớm giao hàng cho bạn.' :
-                                        order.status === 'CANCELLED' ? 'Đơn hàng đã được hủy theo yêu cầu hoặc do vấn đề thanh toán.' :
-                                        order.status === 'SHIPPING' ? 'Kiện hàng đang được chuyển tới bạn. Vui lòng để ý điện thoại nhé!' :
-                                        order.status === 'CONFIRMED' ? 'Dược sĩ đang kiểm tra và đóng gói sản phẩm cho bạn.' : 
-                                        'Hệ thống đã ghi nhận đơn hàng và sẽ sớm liên hệ xác nhận.'}
+                                       {order.status === 'DELIVERED' ? 'Cảm ơn bạn đã tin tưởng và mua sắm tại MedCare.' :
+                                          order.status === 'PAID' ? 'Đơn hàng đã được thanh toán thành công. Chúng tôi sẽ sớm giao hàng cho bạn.' :
+                                             order.status === 'CANCELLED' ? 'Đơn hàng đã được hủy theo yêu cầu hoặc do vấn đề thanh toán.' :
+                                                order.status === 'SHIPPING' ? 'Kiện hàng đang được chuyển tới bạn. Vui lòng để ý điện thoại nhé!' :
+                                                   order.status === 'CONFIRMED' ? 'Dược sĩ đang kiểm tra và đóng gói sản phẩm cho bạn.' :
+                                                      'Hệ thống đã ghi nhận đơn hàng và sẽ sớm liên hệ xác nhận.'}
                                     </p>
                                  </div>
                               </div>
@@ -350,9 +350,9 @@ export default function OrderDetailPage() {
                            </Button>
 
                            {order.status === 'DELIVERED' && (
-                              <Button 
-                                onClick={() => setShowReviewDialog(true)}
-                                className="w-full rounded-full bg-emerald-600 hover:bg-emerald-700 h-14 font-black text-base shadow-xl shadow-emerald-500/20 mt-3 transition-all hover:-translate-y-1 active:translate-y-0"
+                              <Button
+                                 onClick={() => setShowReviewDialog(true)}
+                                 className="w-full rounded-full bg-emerald-600 hover:bg-emerald-700 h-14 font-black text-base shadow-xl shadow-emerald-500/20 mt-3 transition-all hover:-translate-y-1 active:translate-y-0"
                               >
                                  <Star className="w-5 h-5 mr-2" />
                                  Đánh giá đơn hàng
@@ -382,7 +382,7 @@ export default function OrderDetailPage() {
                      </DialogDescription>
                   </DialogHeader>
                </div>
-               
+
                <div className="p-8 space-y-8 bg-white">
                   <div className="flex flex-col items-center gap-4">
                      <p className="text-sm font-black text-slate-400 uppercase tracking-widest">Đánh giá của bạn</p>
@@ -394,20 +394,19 @@ export default function OrderDetailPage() {
                               className="transition-all transform hover:scale-110 active:scale-95"
                            >
                               <Star
-                                 className={`h-10 w-10 ${
-                                    star <= reviewRating
+                                 className={`h-10 w-10 ${star <= reviewRating
                                        ? "text-amber-400 fill-amber-400"
                                        : "text-slate-200"
-                                 }`}
+                                    }`}
                               />
                            </button>
                         ))}
                      </div>
                      <span className="text-lg font-black text-slate-800">
-                        {reviewRating === 5 ? "Rất hài lòng 😍" : 
-                         reviewRating === 4 ? "Hài lòng 😊" : 
-                         reviewRating === 3 ? "Bình thường 😐" : 
-                         reviewRating === 2 ? "Không hài lòng ☹️" : "Rất kém 😡"}
+                        {reviewRating === 5 ? "Rất hài lòng 😍" :
+                           reviewRating === 4 ? "Hài lòng 😊" :
+                              reviewRating === 3 ? "Bình thường 😐" :
+                                 reviewRating === 2 ? "Không hài lòng ☹️" : "Rất kém 😡"}
                      </span>
                   </div>
 
@@ -426,7 +425,7 @@ export default function OrderDetailPage() {
                   </div>
 
                   <DialogFooter className="sm:flex-col gap-3">
-                     <Button 
+                     <Button
                         onClick={() => {
                            toast.success("Cảm ơn bạn đã gửi đánh giá!");
                            setShowReviewDialog(false);
@@ -435,8 +434,8 @@ export default function OrderDetailPage() {
                      >
                         Gửi đánh giá ngay
                      </Button>
-                     <Button 
-                        variant="ghost" 
+                     <Button
+                        variant="ghost"
                         onClick={() => setShowReviewDialog(false)}
                         className="w-full rounded-full text-slate-400 font-bold h-10 hover:text-slate-600"
                      >

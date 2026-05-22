@@ -322,7 +322,7 @@ export default function AdminReviewsPage() {
                 <MoreVertical className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48 rounded-xl shadow-xl border-none p-2">
+            <DropdownMenuContent align="end" className="w-48 rounded-xl shadow-xl border-none p-2" onClick={(e) => e.stopPropagation()}>
               <DropdownMenuLabel className="text-[10px] uppercase text-slate-400 font-black px-2 py-1.5">Quản lý</DropdownMenuLabel>
               {activeTab !== "trash" ? (
                 <>

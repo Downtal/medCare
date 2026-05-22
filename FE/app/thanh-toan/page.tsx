@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
@@ -120,13 +120,43 @@ export default function CheckoutPage() {
     }
   }, [status, router, selectedIds, selectedPrescriptionId])
 
+  const isCheckoutSuccess = useRef(false)
+
   useEffect(() => {
     // If no items are selected or in cart, redirect back
-    if (status === "authenticated" && allCartItems.length > 0 && cartItems.length === 0 && selectedIds.length > 0) {
+    if (status === "authenticated" && allCartItems.length > 0 && cartItems.length === 0 && selectedIds.length > 0 && !isCheckoutSuccess.current) {
       toast.error("Vui lòng chọn sản phẩm để thanh toán")
       router.push("/gio-hang")
     }
   }, [status, allCartItems, cartItems, selectedIds, router])
+
+  const hasAppliedInitVouchers = useRef(false)
+
+  useEffect(() => {
+    const applyInitialVouchers = async () => {
+      const token = session?.user?.accessToken
+      if (!token || cartItems.length === 0 || hasAppliedInitVouchers.current) return
+
+      const initProductVoucher = searchParams.get("productVoucher")
+      const initShippingVoucher = searchParams.get("shippingVoucher")
+
+      if (initProductVoucher || initShippingVoucher) {
+        hasAppliedInitVouchers.current = true
+        setTimeout(async () => {
+          if (initProductVoucher) {
+            await handleApplyVoucher(initProductVoucher)
+          }
+          if (initShippingVoucher) {
+            await handleApplyVoucher(initShippingVoucher)
+          }
+        }, 500)
+      }
+    }
+
+    if (status === "authenticated" && cartItems.length > 0) {
+      applyInitialVouchers()
+    }
+  }, [status, cartItems.length, searchParams])
 
   // Fetch data from APIs
   useEffect(() => {
@@ -435,6 +465,12 @@ export default function CheckoutPage() {
       const data = await res.json()
       if (data.success) {
         if (data.discountType === 'FREESHIP') {
+          if (subtotal >= 300000) {
+            toast.info("Đơn hàng trên 300k đã được miễn phí vận chuyển rồi, áp dụng mã này cho đơn dưới 300k để tiết kiệm nhé!")
+            setVoucherCode("")
+            setVouchersModalOpen(false)
+            return
+          }
           setAppliedShippingVoucher({ ...data, code: code })
           toast.success(`Đã áp dụng mã vận chuyển ${code}!`)
         } else {
@@ -522,15 +558,16 @@ export default function CheckoutPage() {
 
       if (res.ok) {
         const order = await res.json()
+        // Prevent useEffect redirect
+        isCheckoutSuccess.current = true
         // Remove only selected items from store
         selectedIds.forEach(id => (useCartStore.getState() as any).removeItem(id, session?.user?.accessToken))
 
-        toast.success("Đặt hàng thành công!", {
-          description: `Đơn hàng #${order.orderCode} đã được tiếp nhận.`
-        })
-
         // Handle VNPay Redirect
         if (form.paymentMethod === 'VNPAY') {
+          toast.info("Đang xử lý...", {
+            description: "Đang chuyển hướng sang cổng thanh toán VNPay."
+          })
           try {
             const payRes = await fetch(`${getApiBaseUrl()}${API_ENDPOINTS.PAYMENT}/payment/create`, {
               method: 'POST',
@@ -563,9 +600,9 @@ export default function CheckoutPage() {
             console.error("VNPay network error:", err)
             toast.error("Lỗi kết nối khi khởi tạo thanh toán VNPay.")
           }
+        } else {
+          router.push(`/xac-nhan-don-hang?code=${order.orderCode}`)
         }
-
-        router.push(`/xac-nhan-don-hang?code=${order.orderCode}`)
       } else {
         const errorData = await res.json()
         toast.error(errorData.message || "Đặt hàng thất bại. Vui lòng thử lại.")

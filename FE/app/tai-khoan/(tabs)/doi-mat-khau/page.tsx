@@ -89,6 +89,26 @@ export default function ChangePasswordPage() {
     }
   }
 
+  const provider = (session?.user as any)?.provider;
+  if (provider && provider !== "LOCAL") {
+    return (
+      <Card className="animate-in fade-in slide-in-from-right-4 duration-500 border-none shadow-sm rounded-3xl overflow-hidden bg-white">
+        <CardHeader className="bg-slate-50 border-b border-slate-100 px-8 py-6 flex flex-row items-center justify-between">
+          <CardTitle className="text-xl font-black text-slate-900 uppercase tracking-tight">Đổi mật khẩu</CardTitle>
+        </CardHeader>
+        <CardContent className="p-16 flex flex-col items-center justify-center text-center">
+          <div className="bg-blue-50 p-6 rounded-full mb-6">
+            <ShieldCheck className="h-16 w-16 text-blue-600" />
+          </div>
+          <h3 className="text-xl font-bold text-slate-800 mb-3">Tài khoản liên kết</h3>
+          <p className="text-slate-500 max-w-md">
+            Tài khoản này đang được đăng nhập bằng <span className="font-bold text-blue-600 capitalize">{provider.toLowerCase()}</span>. <br/>Bạn không cần đổi mật khẩu tại đây.
+          </p>
+        </CardContent>
+      </Card>
+    )
+  }
+
   return (
     <Card className="animate-in fade-in slide-in-from-right-4 duration-500 border-none shadow-sm rounded-3xl overflow-hidden bg-white">
       <CardHeader className="bg-slate-50 border-b border-slate-100 px-8 py-6 flex flex-row items-center justify-between">

@@ -47,6 +47,14 @@ public class User implements UserDetails {
     @Builder.Default
     @Enumerated(EnumType.STRING)
     @Column(length = 20)
+    private AuthProvider provider = AuthProvider.LOCAL;
+
+    @Column(name = "provider_id", length = 100)
+    private String providerId;
+
+    @Builder.Default
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20)
     private UserStatus status = UserStatus.ACTIVE;
 
     @Column(name = "created_at", updatable = false)

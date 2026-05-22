@@ -66,6 +66,20 @@ public class UserController {
         return new ResponseEntity<>(userService.addHealthMetric(Long.valueOf(userId), request), HttpStatus.CREATED);
     }
 
+    @PutMapping("/profiles/me/metrics/{metricId}")
+    public ResponseEntity<HealthMetricDto> updateMyHealthMetric(@AuthenticationPrincipal String userId,
+                                                              @PathVariable Long metricId,
+                                                              @Valid @RequestBody CreateMetricRequest request) {
+        return ResponseEntity.ok(userService.updateHealthMetric(Long.valueOf(userId), metricId, request));
+    }
+
+    @DeleteMapping("/profiles/me/metrics/{metricId}")
+    public ResponseEntity<String> deleteMyHealthMetric(@AuthenticationPrincipal String userId,
+                                                             @PathVariable Long metricId) {
+        userService.deleteHealthMetric(Long.valueOf(userId), metricId);
+        return ResponseEntity.ok("Health metric deleted successfully!");
+    }
+
     // ── Profile endpoints (Admin restricted) ──
 
     /**

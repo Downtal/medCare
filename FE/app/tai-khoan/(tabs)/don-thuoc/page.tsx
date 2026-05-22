@@ -280,23 +280,32 @@ export default function PrescriptionsPage() {
                     </Button>
                     
                     <Button 
-                      disabled={item.status !== 'APPROVED'}
+                      disabled={item.status !== 'APPROVED' || item.isUsed}
                       className={`flex-[2] rounded-full font-bold h-11 shadow-lg transition-all active:scale-95 ${
-                        item.status === 'APPROVED' 
+                        item.status === 'APPROVED' && !item.isUsed
                           ? "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-blue-500/25" 
                           : "bg-slate-100 text-slate-400 shadow-none"
                       }`}
-                      asChild={item.status === 'APPROVED'}
+                      asChild={item.status === 'APPROVED' && !item.isUsed}
                     >
-                      {item.status === 'APPROVED' ? (
+                      {item.status === 'APPROVED' && !item.isUsed ? (
                         <Link href={`/toa-thuoc/${item.id}`}>
                           <ShoppingCart className="w-4 h-4 mr-2" />
                           Dùng đơn này
                         </Link>
                       ) : (
                         <div className="flex items-center justify-center opacity-70">
-                          <ShoppingCart className="w-4 h-4 mr-2" />
-                          Dùng đơn này
+                          {item.isUsed ? (
+                            <>
+                              <FileCheck className="w-4 h-4 mr-2 text-emerald-500" />
+                              <span className="text-emerald-600">Đã mua</span>
+                            </>
+                          ) : (
+                            <>
+                              <ShoppingCart className="w-4 h-4 mr-2" />
+                              Dùng đơn này
+                            </>
+                          )}
                         </div>
                       )}
                     </Button>

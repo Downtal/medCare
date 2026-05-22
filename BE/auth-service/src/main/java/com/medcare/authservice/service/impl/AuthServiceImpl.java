@@ -37,9 +37,13 @@ public class AuthServiceImpl implements AuthService {
     private final com.medcare.authservice.client.UserClient userClient;
     private final com.medcare.authservice.service.MailService mailService;
     private final com.medcare.authservice.repository.OtpVerificationRepository otpVerificationRepository;
+    private final org.springframework.data.redis.core.StringRedisTemplate redisTemplate;
 
     @Value("${application.security.jwt.refresh-token.expiration}")
     private long refreshTokenExpiration; // ms
+
+    @Value("${application.security.jwt.revocation-ttl:604800}")
+    private long revocationTtlSeconds;
 
     private static final int REFRESH_GRACE_PERIOD_SECONDS = 300;
 
@@ -126,17 +130,27 @@ public class AuthServiceImpl implements AuthService {
             throw new IllegalArgumentException("Tài khoản đã bị khóa.");
         }
 
+        if (user.getProvider() != null && user.getProvider() != com.medcare.authservice.entity.AuthProvider.LOCAL) {
+            String providerName = user.getProvider().name().substring(0, 1) + user.getProvider().name().substring(1).toLowerCase();
+            throw new IllegalArgumentException("Tài khoản này được đăng nhập bằng " + providerName + ". Vui lòng chọn Đăng nhập bằng " + providerName + ".");
+        }
+
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(user.getUsername(), request.getPassword()));
 
         java.util.Map<String, Object> claims = new java.util.HashMap<>();
         claims.put("userId", user.getId());
         claims.put("role", user.getRole().name());
+        if (user.getProvider() != null) {
+            claims.put("provider", user.getProvider().name());
+        }
         String accessToken = jwtService.generateToken(claims, user);
         String refreshToken = createRefreshToken(user.getId());
 
         return buildAuthResponse(accessToken, refreshToken, user);
     }
+
+
 
     // ──────────────────────── Refresh Token ───────────────────────────────
 
@@ -152,7 +166,7 @@ public class AuthServiceImpl implements AuthService {
                     storedToken.getRevokedAt()
                             .isAfter(LocalDateTime.now().minusSeconds(REFRESH_GRACE_PERIOD_SECONDS))) {
                 // Cho phép làm mới thêm một lần nữa để tránh lỗi ở Frontend
-                System.out.println("Grace period triggered for token: " + request.getRefreshToken().substring(0, 8));
+                log.info("Grace period triggered for token: {}", request.getRefreshToken().substring(0, 8));
 
                 // CRITICAL: Trả về một token mới nhưng KHÔNG cập nhật lại revokedAt của token
                 // cũ
@@ -185,6 +199,9 @@ public class AuthServiceImpl implements AuthService {
         java.util.Map<String, Object> claims = new java.util.HashMap<>();
         claims.put("userId", user.getId());
         claims.put("role", user.getRole().name());
+        if (user.getProvider() != null) {
+            claims.put("provider", user.getProvider().name());
+        }
         String newAccessToken = jwtService.generateToken(claims, user);
         String newRefreshToken = createRefreshToken(user.getId());
 
@@ -227,7 +244,7 @@ public class AuthServiceImpl implements AuthService {
                 fullName = profile.getFullName();
             }
         } catch (Exception e) {
-            System.err.println("Could not fetch profile for user " + user.getId() + ": " + e.getMessage());
+            log.error("Could not fetch profile for user {}: {}", user.getId(), e.getMessage());
         }
 
         return AuthResponse.builder()
@@ -240,6 +257,7 @@ public class AuthServiceImpl implements AuthService {
                 .fullName(fullName)
                 .role(user.getRole().name())
                 .phone(user.getPhone())
+                .provider(user.getProvider() != null ? user.getProvider().name() : "LOCAL")
                 .build();
     }
 
@@ -381,6 +399,11 @@ public class AuthServiceImpl implements AuthService {
         
         // Also revoke refresh tokens so the client must login again
         refreshTokenRepository.deleteByUserId(userId);
+        
+        // Set revocation time in Redis to invalidate existing JWTs
+        String redisKey = "auth:revoked:user:" + userId;
+        long currentTimeSeconds = System.currentTimeMillis() / 1000;
+        redisTemplate.opsForValue().set(redisKey, String.valueOf(currentTimeSeconds), java.time.Duration.ofSeconds(revocationTtlSeconds));
 
         // SYNC: Update role in user-service
         syncUserProfile(userId, role, null);
@@ -397,6 +420,11 @@ public class AuthServiceImpl implements AuthService {
 
         if (UserStatus.BANNED.name().equals(status) || UserStatus.PENDING.name().equals(status)) {
             refreshTokenRepository.deleteByUserId(userId);
+            
+            // Set revocation time in Redis to invalidate existing JWTs
+            String redisKey = "auth:revoked:user:" + userId;
+            long currentTimeSeconds = System.currentTimeMillis() / 1000;
+            redisTemplate.opsForValue().set(redisKey, String.valueOf(currentTimeSeconds), java.time.Duration.ofSeconds(revocationTtlSeconds));
         }
 
         // SYNC: Update status in user-service
@@ -435,6 +463,11 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public void forceLogout(Long userId) {
         refreshTokenRepository.deleteByUserId(userId);
+        
+        // Set revocation time in Redis to invalidate existing JWTs
+        String redisKey = "auth:revoked:user:" + userId;
+        long currentTimeSeconds = System.currentTimeMillis() / 1000;
+        redisTemplate.opsForValue().set(redisKey, String.valueOf(currentTimeSeconds), java.time.Duration.ofSeconds(revocationTtlSeconds));
     }
 
     @Override

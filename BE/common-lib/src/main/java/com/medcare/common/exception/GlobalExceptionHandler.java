@@ -63,7 +63,7 @@ public class GlobalExceptionHandler {
         log.warn("[Validation] errors={}", errors);
         ApiResponse<Map<String, String>> body = ApiResponse.<Map<String, String>>builder()
                 .success(false)
-                .message("Validation failed")
+                .message("Dữ liệu không hợp lệ")
                 .errorCode(String.valueOf(ErrorCode.VALIDATION_ERROR.getCode()))
                 .data(errors)
                 .build();
@@ -82,7 +82,7 @@ public class GlobalExceptionHandler {
                 .increment();
 
         ApiResponse<Void> body = ApiResponse.error(
-                "An unexpected error occurred. Please try again later.",
+                "Đã có lỗi không mong muốn xảy ra. Vui lòng thử lại sau.",
                 String.valueOf(ErrorCode.INTERNAL_SERVER_ERROR.getCode()));
         return ResponseEntity.internalServerError().body(body);
     }

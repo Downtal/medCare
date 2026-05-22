@@ -492,7 +492,7 @@ export default function InventoryPage() {
                 <MoreVertical className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48 rounded-xl shadow-xl border-none p-2">
+            <DropdownMenuContent align="end" className="w-48 rounded-xl shadow-xl border-none p-2" onClick={(e) => e.stopPropagation()}>
               <DropdownMenuLabel className="text-[10px] uppercase text-slate-400 font-black px-2 py-1.5">Quản lý</DropdownMenuLabel>
               {activeTab === "warehouses" ? (
                 <>
@@ -658,8 +658,8 @@ export default function InventoryPage() {
               <h2 className="text-xl font-black text-rose-800 uppercase tracking-tight">Cảnh báo tồn kho thấp</h2>
               <p className="text-rose-600 text-sm font-medium">Phát hiện {lowStockProducts.length} sản phẩm có số lượng dưới 50 đơn vị.</p>
             </div>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={() => {
                 setStockLevelFilter("LOW");
                 setActiveTab("summaries");
@@ -720,7 +720,7 @@ export default function InventoryPage() {
                     activeTab === "logs" ? "Lịch sử biến động" : "Kho lưu trữ tạm thời"}
             </h1>
             <p className="text-slate-500 font-medium mt-1 text-sm">
-              Phân phối và theo dõi tồn kho dược phẩm toàn hệ thống & Knowledge Base.
+              Phân phối và theo dõi tồn kho dược phẩm toàn hệ thống.
             </p>
           </div>
         </div>

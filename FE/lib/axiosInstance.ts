@@ -9,7 +9,8 @@ const axiosInstance = axios.create({
   },
 })
 
-import { getSession } from "next-auth/react"
+import { getSession, signOut } from "next-auth/react"
+import { toast } from "sonner"
 
 // Request Interceptor
 axiosInstance.interceptors.request.use(
@@ -42,13 +43,18 @@ axiosInstance.interceptors.response.use(
   (response) => {
     return response.data // Directly return data
   },
-  (error) => {
+  async (error) => {
     // Global error handling, e.g. toast notification
     if (error.response?.status === 401) {
-      // Handle unauthorized
-      console.warn("Unauthorized, redirecting to login...")
-      if (typeof window !== "undefined") {
-        // window.location.href = "/auth/login";
+      const errorCode = error.response.data?.error || error.response.data?.message;
+      if (errorCode === "TOKEN_REVOKED" || errorCode === "ACCOUNT_DISABLED") {
+        console.warn("Session revoked, clearing state and redirecting to login...");
+        if (typeof window !== "undefined") {
+          toast.error("Phiên đăng nhập đã hết hiệu lực. Vui lòng đăng nhập lại.", {
+            id: "session-expired-toast"
+          });
+          await signOut({ redirect: true, callbackUrl: "/dang-nhap" });
+        }
       }
     }
     return Promise.reject(error)
