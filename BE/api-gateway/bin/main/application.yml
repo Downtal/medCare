@@ -24,7 +24,7 @@ spring:
           predicates:
             - Path=/ai-service/**
           filters:
-            - RewritePath=/ai-service/(?<path>.*), /${path}
+            - RewritePath=/ai-service/(?<path>.*), /$\{path}
             - Authentication
 
         - id: auth-service
