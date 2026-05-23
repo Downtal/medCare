@@ -63,7 +63,7 @@ export default function ChangePasswordPage() {
 
     setLoading(true)
     try {
-      const res = await fetch(`${getApiBaseUrl()}/user-service/api/users/profiles/me/change-password`, {
+      const res = await fetch(`${getApiBaseUrl()}/auth-service/api/auth/change-password`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
