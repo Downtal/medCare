@@ -448,7 +448,10 @@ export default function CheckoutPage() {
     try {
       const res = await fetch(`${getApiBaseUrl()}${API_ENDPOINTS.PROMOTION}/vouchers/apply`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          ...(session?.user?.accessToken ? { 'Authorization': `Bearer ${session.user.accessToken}` } : {})
+        },
         body: JSON.stringify({
           code: code,
           userId: (session?.user as any)?.userId || (session?.user as any)?.id || 0,

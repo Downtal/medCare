@@ -67,7 +67,7 @@ function PrescriptionSearchContent() {
     try {
       setIsProcessing(true)
       setProcessStep("analyzing")
-      const aiRes = await aiService.extractMedicinesFromText(text)
+      const aiRes = await aiService.extractMedicinesFromText(text, session?.user?.accessToken)
       const extractedMedicines: ExtractedMedicine[] = aiRes.extracted_medicines
 
       setProcessStep("searching")

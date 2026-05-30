@@ -77,7 +77,12 @@ export default function ProfilePage() {
         toast.success("Cập nhật thông tin thành công!")
         await update({ name: data.fullName })
       } else {
-        toast.error("Cập nhật thất bại")
+        try {
+          const errorData = await res.json()
+          toast.error(errorData.message || "Cập nhật thất bại")
+        } catch (e) {
+          toast.error("Cập nhật thất bại")
+        }
       }
     } catch (error) {
       toast.error("Lỗi kết nối")

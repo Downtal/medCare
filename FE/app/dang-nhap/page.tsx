@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { signIn } from "next-auth/react"
+import { toast } from "sonner"
 import { Eye, EyeOff, ShieldCheck, Bot, Pill, HeartPulse, ArrowRight, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -16,7 +17,7 @@ export default function LoginPage() {
   const callbackUrl = searchParams.get("callbackUrl") || "/"
   const successToken = searchParams.get("token")
   const successRefreshToken = searchParams.get("refresh_token")
-  
+
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [form, setForm] = useState({ email: "", password: "", remember: false })

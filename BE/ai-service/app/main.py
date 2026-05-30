@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.responses import Response
 from app.config.settings import settings
 from app.models.chat_log import Base, engine
+Base.metadata.create_all(bind=engine)
 from py_eureka_client import eureka_client
 from app.core.limiter import limiter
 from slowapi import _rate_limit_exceeded_handler

@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import { useSession } from "next-auth/react"
+import { useRouter } from "next/navigation"
 import {
   Users,
   Search,
@@ -98,17 +100,29 @@ export default function AdminUsersPage() {
     setCurrentPage(1)
   }
 
+  const { data: session, status } = useSession()
+  const router = useRouter()
+  const isAdmin = session?.user?.role === "ADMIN"
+
+  useEffect(() => {
+    if (status !== "loading" && (!session || !isAdmin)) {
+      router.push("/admin")
+      toast.error("Bạn không có quyền truy cập trang này")
+    }
+  }, [session, status, isAdmin, router])
+
   const isFiltered = searchQuery !== "" || roleFilter !== "ALL" || statusFilter !== "ALL"
 
   const { data: users = [], isLoading: isLoadingAll } = useQuery({
     queryKey: ["admin_users"],
-    queryFn: () => userService.getAllUsers()
+    queryFn: () => userService.getAllUsers(),
+    enabled: isAdmin
   })
 
   const { data: trashedUsers = [], isLoading: isLoadingTrash } = useQuery({
     queryKey: ["admin_trashed_users"],
     queryFn: () => userService.getTrashedUsers(),
-    enabled: activeTab === "trash"
+    enabled: activeTab === "trash" && isAdmin
   })
 
   // Mutations

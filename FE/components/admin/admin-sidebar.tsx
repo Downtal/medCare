@@ -41,7 +41,7 @@ export function AdminSidebar({ className }: { className?: string }) {
 
   const filteredItems = sidebarItems.filter(item => {
     if (role === 'PHARMACIST') {
-      return !['/admin/vouchers', '/admin/nguoi-dung'].includes(item.href)
+      return !['/admin/nguoi-dung'].includes(item.href)
     }
     return true
   })

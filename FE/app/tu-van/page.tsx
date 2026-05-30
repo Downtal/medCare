@@ -343,24 +343,24 @@ export default function ConsultationPage() {
               <Card className="border-none shadow-2xl rounded-[48px] overflow-hidden bg-white p-8 md:p-16 text-center max-w-3xl mx-auto border border-blue-50/60 relative">
                 <div className="absolute top-0 right-0 w-32 h-32 bg-blue-100/30 rounded-full blur-2xl" />
                 <div className="absolute bottom-0 left-0 w-32 h-32 bg-indigo-100/30 rounded-full blur-2xl" />
-                
+
                 <div className="relative z-10">
                   <div className="w-20 h-20 bg-blue-600 rounded-[30px] flex items-center justify-center mx-auto mb-8 shadow-xl shadow-blue-500/20">
                     <Bot className="w-10 h-10 text-white animate-bounce" />
                   </div>
-                  
+
                   <Badge variant="secondary" className="mb-4 px-4 py-1.5 rounded-full bg-blue-50 text-blue-600 border-none font-black text-xs uppercase tracking-widest">
                     Hỗ trợ y tế thông minh
                   </Badge>
-                  
+
                   <h3 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight mb-4">
                     Trò chuyện với Dược sĩ AI MedCare
                   </h3>
-                  
+
                   <p className="text-slate-500 font-medium text-base md:text-lg mb-8 max-w-xl mx-auto leading-relaxed">
                     Giải đáp nhanh chóng các thắc mắc về triệu chứng sức khỏe, liều lượng dùng thuốc và gợi ý sản phẩm phù hợp tức thì trong giao diện toàn màn hình chuyên biệt.
                   </p>
-                  
+
                   <Button
                     size="lg"
                     className="rounded-2xl px-12 h-16 text-lg font-black bg-blue-600 hover:bg-blue-700 shadow-xl shadow-blue-500/30 transition-transform active:scale-95 flex items-center gap-3 mx-auto"
@@ -489,7 +489,7 @@ export default function ConsultationPage() {
                               {/* Quick Actions for start */}
                               {messages.length === 1 && (
                                 <div className="flex flex-wrap gap-2 mt-2">
-                                  {["Tôi bị đau bụng", "Gợi ý combo trị cảm", "Hướng dẫn dùng thuốc hạ sốt", "Tư vấn thực phẩm chức năng"].map((action, idx) => (
+                                  {["Tôi bị đau bụng", "Khẩu trang y tế loại nào tốt?", "Hướng dẫn dùng thuốc hạ sốt", "Tư vấn thực phẩm chức năng"].map((action, idx) => (
                                     <button
                                       key={idx}
                                       onClick={() => handleSend(action)}
@@ -595,7 +595,7 @@ export default function ConsultationPage() {
                               </p>
                               <div className="flex flex-col gap-3">
                                 {suggestedProducts.map((product, idx) => (
-                                  <div 
+                                  <div
                                     key={product.id}
                                     className="flex items-center gap-3 p-3 bg-white border border-slate-100 rounded-2xl shadow-xs hover:shadow-md transition-shadow group relative overflow-hidden"
                                   >
@@ -736,8 +736,8 @@ export default function ConsultationPage() {
                   <div className={cn(
                     "w-16 h-16 rounded-3xl flex items-center justify-center mb-8 transition-all",
                     method.color === "blue" ? "bg-blue-100 group-hover:bg-blue-600 group-hover:text-white text-blue-600" :
-                    method.color === "green" ? "bg-green-100 group-hover:bg-green-600 group-hover:text-white text-green-600" :
-                    "bg-purple-100 group-hover:bg-purple-600 group-hover:text-white text-purple-600"
+                      method.color === "green" ? "bg-green-100 group-hover:bg-green-600 group-hover:text-white text-green-600" :
+                        "bg-purple-100 group-hover:bg-purple-600 group-hover:text-white text-purple-600"
                   )}>
                     <method.icon className="w-8 h-8" />
                   </div>
@@ -750,8 +750,8 @@ export default function ConsultationPage() {
                       <p className={cn(
                         "text-lg font-black",
                         method.color === "blue" ? "text-blue-600" :
-                        method.color === "green" ? "text-green-600" :
-                        "text-purple-600"
+                          method.color === "green" ? "text-green-600" :
+                            "text-purple-600"
                       )}>{method.price}</p>
                     </div>
                     <Button variant="outline" className="rounded-2xl border-2 font-bold px-6">Bắt đầu</Button>

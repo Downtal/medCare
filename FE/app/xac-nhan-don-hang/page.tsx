@@ -55,7 +55,11 @@ export default function OrderConfirmationPage() {
         if (vnpResponseCode && orderCode) {
           try {
             const callbackUrl = `${getApiBaseUrl()}${API_ENDPOINTS.PAYMENT}/payment/vnpay-callback${window.location.search}`
-            await fetch(callbackUrl)
+            await fetch(callbackUrl, {
+              headers: {
+                ...(session?.user?.accessToken ? { 'Authorization': `Bearer ${session.user.accessToken}` } : {})
+              }
+            })
             console.log("Payment callback verification triggered")
 
             // Clear cart items if success
@@ -63,7 +67,11 @@ export default function OrderConfirmationPage() {
               const { useCartStore } = require("@/lib/store/useCartStore")
               const removeItem = useCartStore.getState().removeItem
               // We need order details to know what to remove
-              const orderRes = await fetch(`${getApiBaseUrl()}${API_ENDPOINTS.ORDER}/orders/${orderCode}`)
+              const orderRes = await fetch(`${getApiBaseUrl()}${API_ENDPOINTS.ORDER}/orders/${orderCode}`, {
+                headers: {
+                  ...(session?.user?.accessToken ? { 'Authorization': `Bearer ${session.user.accessToken}` } : {})
+                }
+              })
               if (orderRes.ok) {
                 const orderData = await orderRes.json()
                 orderData.items.forEach((item: any) => {

@@ -14,7 +14,7 @@ export async function GET() {
     process.env.INTERNAL_API_BASE_URL || "http://127.0.0.1:8080"
 
   try {
-    const res = await fetch(`${internalApiBase}/user-service/api/users/ping`, {
+    const res = await fetch(`${internalApiBase}/user-service/api/users/profiles/me`, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${session.user.accessToken}`,

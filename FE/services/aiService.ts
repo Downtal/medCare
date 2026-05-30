@@ -72,10 +72,13 @@ export const aiService = {
     return response.json()
   },
 
-  async extractMedicinesFromText(text: string): Promise<any> {
+  async extractMedicinesFromText(text: string, token?: string): Promise<any> {
     const response = await fetch(`${getApiBaseUrl()}${API_ENDPOINTS.AI}/prescriptions/extract-medicines`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { 
+        "Content-Type": "application/json",
+        ...(token ? { "Authorization": `Bearer ${token}` } : {})
+      },
       body: JSON.stringify({ text })
     })
     if (!response.ok) {

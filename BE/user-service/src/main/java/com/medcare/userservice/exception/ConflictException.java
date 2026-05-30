@@ -1,12 +1,11 @@
 package com.medcare.userservice.exception;
 
-import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.ResponseStatus;
+import com.medcare.common.exception.AppException;
+import com.medcare.common.exception.ErrorCode;
 
-@ResponseStatus(value = HttpStatus.CONFLICT)
-public class ConflictException extends RuntimeException {
+public class ConflictException extends AppException {
     
     public ConflictException(String message) {
-        super(message);
+        super(ErrorCode.CONFLICT, message);
     }
 }

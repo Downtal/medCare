@@ -16,16 +16,17 @@ spring:
     gateway:
       discovery:
         locator:
-          enabled: true
+          enabled: false
           lowerCaseServiceId: true
+      default-filters:
+        - Authentication
       routes:
         - id: ai-service
           uri: lb://ai-service
           predicates:
             - Path=/ai-service/**
           filters:
-            - RewritePath=/ai-service/(?<path>.*), /${path}
-            - Authentication
+            - RewritePath=/ai-service/(?<path>.*), /$\{path}
 
         - id: auth-service
           uri: lb://auth-service
@@ -40,7 +41,6 @@ spring:
             - Path=/user-service/**
           filters:
             - RewritePath=/user-service/(?<path>.*), /$\{path}
-            - Authentication
 
         - id: product-service
           uri: lb://product-service
@@ -48,7 +48,6 @@ spring:
             - Path=/product-service/**
           filters:
             - RewritePath=/product-service/(?<path>.*), /$\{path}
-            - Authentication
 
         - id: order-service
           uri: lb://order-service
@@ -56,7 +55,6 @@ spring:
             - Path=/order-service/**
           filters:
             - RewritePath=/order-service/(?<path>.*), /$\{path}
-            - Authentication
 
         - id: review-service
           uri: lb://review-service
@@ -64,7 +62,6 @@ spring:
             - Path=/review-service/**
           filters:
             - RewritePath=/review-service/(?<path>.*), /$\{path}
-            - Authentication
 
         - id: promotion-service
           uri: lb://promotion-service
@@ -72,7 +69,6 @@ spring:
             - Path=/promotion-service/**
           filters:
             - RewritePath=/promotion-service/(?<path>.*), /$\{path}
-            - Authentication
 
         - id: inventory-service
           uri: lb://inventory-service
@@ -80,7 +76,6 @@ spring:
             - Path=/inventory-service/**
           filters:
             - RewritePath=/inventory-service/(?<path>.*), /$\{path}
-            - Authentication
 
         - id: shipping-service
           uri: lb://shipping-service
@@ -88,7 +83,6 @@ spring:
             - Path=/shipping-service/**
           filters:
             - RewritePath=/shipping-service/(?<path>.*), /$\{path}
-            - Authentication
 
         - id: payment-service
           uri: lb://payment-service
@@ -96,7 +90,6 @@ spring:
             - Path=/payment-service/**
           filters:
             - RewritePath=/payment-service/(?<path>.*), /$\{path}
-            - Authentication
 
       globalcors:
         cors-configurations:
