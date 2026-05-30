@@ -545,11 +545,11 @@ export function ProductDetailView({ initialProduct, reviews, productSlug }: Prod
               </div>
             ) : relatedError ? (
               <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-600" data-testid="related-recommendation-error">
-                Khong the tai san pham lien quan luc nay.
+                Không thể tải sản phẩm liên quan lúc này.
               </div>
             ) : relatedProducts.length === 0 ? (
               <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-600" data-testid="related-recommendation-empty">
-                Chua co san pham lien quan phu hop.
+                Chưa có sản phẩm liên quan phù hợp.
               </div>
             ) : (
               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4" data-testid="related-recommendation-ready">

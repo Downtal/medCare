@@ -248,6 +248,7 @@ public class AuthenticationGatewayFilterFactory
                 || path.startsWith("/auth-service/api/oauth2/")
                 || path.startsWith("/auth-service/api/auth/oauth2/")
                 || path.startsWith("/ai-service/api/recommendations/home")
+                || path.startsWith("/ai-service/api/recommendations/related")
                 || path.startsWith("/ai-service/api/ai/stream")
                 || path.startsWith("/ai-service/api/ai/feedback")
                 || path.startsWith("/api/recommendations/home")
@@ -256,7 +257,11 @@ public class AuthenticationGatewayFilterFactory
                 || path.startsWith("/product-service/api/products")
                 || path.startsWith("/product-service/api/categories")
                 || path.startsWith("/review-service/api/reviews")
-                || path.startsWith("/shipping-service/api/shipping");
+                || path.startsWith("/shipping-service/api/shipping")
+                || path.startsWith("/promotion-service/api/vouchers/active")
+                || path.startsWith("/inventory-service/api/inventory/product")
+                || path.startsWith("/payment-service/api/payment/vnpay-ipn")
+                || path.startsWith("/payment-service/api/payment/vnpay-callback");
     }
 
     private Mono<Void> onError(ServerWebExchange exchange, String code, HttpStatus status) {

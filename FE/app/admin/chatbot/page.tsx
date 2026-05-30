@@ -153,6 +153,15 @@ export default function ChatbotManagementPage() {
     return matchesSearch && matchesMapping
   })
 
+  const [ratingFilter, setRatingFilter] = useState("all")
+
+  const filteredLogs = logs.filter(l => {
+    if (ratingFilter === "positive") return l.rating === true;
+    if (ratingFilter === "negative") return l.rating === false;
+    if (ratingFilter === "unrated") return l.rating === null || l.rating === undefined;
+    return true;
+  });
+
   const positiveLogs = logs.filter(l => l.rating === true).length
   const negativeLogs = logs.filter(l => l.rating === false).length
 
@@ -466,6 +475,28 @@ export default function ChatbotManagementPage() {
 
         {/* Tab content: History */}
         <TabsContent value="history" className="space-y-6">
+          <div className="flex flex-col md:flex-row gap-4 mb-2 justify-end items-center">
+            <div className="flex items-center gap-4">
+              <Select value={ratingFilter} onValueChange={setRatingFilter}>
+                <SelectTrigger className={cn(
+                  "h-12 w-48 rounded-xl font-bold transition-all border-slate-200",
+                  ratingFilter !== "all" && "bg-blue-50 text-blue-600 border-blue-100 shadow-sm"
+                )}>
+                  <div className="flex items-center gap-2">
+                    <MessageSquare className="h-4 w-4" />
+                    <SelectValue placeholder="Trạng thái Đánh giá" />
+                  </div>
+                </SelectTrigger>
+                <SelectContent className="rounded-xl border-none shadow-2xl p-2">
+                  <SelectItem value="all" className="font-bold rounded-lg">Tất cả đánh giá</SelectItem>
+                  <SelectItem value="positive" className="font-bold rounded-lg text-emerald-600">Hài lòng (Thumbs Up)</SelectItem>
+                  <SelectItem value="negative" className="font-bold rounded-lg text-red-600">Chưa tốt (Thumbs Down)</SelectItem>
+                  <SelectItem value="unrated" className="font-bold rounded-lg text-slate-500">Chưa đánh giá</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
           <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden">
             <Table>
               <TableHeader className="bg-slate-50/50">
@@ -483,8 +514,8 @@ export default function ChatbotManagementPage() {
                       <TableCell colSpan={4} className="p-8"><Skeleton className="h-12 w-full rounded-xl" /></TableCell>
                     </TableRow>
                   ))
-                ) : logs.length > 0 ? (
-                  logs.map((log) => (
+                ) : filteredLogs.length > 0 ? (
+                  filteredLogs.map((log) => (
                     <TableRow
                       key={log.id}
                       className="hover:bg-slate-50/50 transition-colors border-slate-50 cursor-pointer"

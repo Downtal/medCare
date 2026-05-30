@@ -88,45 +88,45 @@ public class PromotionController {
     }
 
     @GetMapping("/admin/all")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PHARMACIST')")
     public ResponseEntity<?> getAllVouchers() {
         return ResponseEntity.ok(promotionService.getAllVouchers());
     }
 
     @PostMapping("/admin")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PHARMACIST')")
     public ResponseEntity<?> createVoucher(@RequestBody com.medcare.promotionservice.entity.Voucher voucher) {
         return ResponseEntity.ok(promotionService.createVoucher(voucher));
     }
 
     @PutMapping("/admin/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PHARMACIST')")
     public ResponseEntity<?> updateVoucher(@PathVariable Long id, @RequestBody com.medcare.promotionservice.entity.Voucher voucher) {
         return ResponseEntity.ok(promotionService.updateVoucher(id, voucher));
     }
 
     @DeleteMapping("/admin/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PHARMACIST')")
     public ResponseEntity<?> deleteVoucher(@PathVariable Long id) {
         promotionService.deleteVoucher(id);
         return ResponseEntity.ok("Voucher moved to trash");
     }
 
     @GetMapping("/admin/trash")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PHARMACIST')")
     public ResponseEntity<?> getTrashedVouchers() {
         return ResponseEntity.ok(promotionService.getTrashedVouchers());
     }
 
     @PostMapping("/admin/{id}/restore")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PHARMACIST')")
     public ResponseEntity<?> restoreVoucher(@PathVariable Long id) {
         promotionService.restoreVoucher(id);
         return ResponseEntity.ok("Voucher restored");
     }
 
     @DeleteMapping("/admin/{id}/hard")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'PHARMACIST')")
     public ResponseEntity<?> deleteHard(@PathVariable Long id) {
         promotionService.deleteHard(id);
         return ResponseEntity.ok("Voucher deleted permanently");
