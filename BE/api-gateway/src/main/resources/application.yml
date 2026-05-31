@@ -105,6 +105,8 @@ application:
   security:
     jwt:
       secret-key: ${JWT_SECRET}
+      revocation:
+        fail-open: true
 
 eureka:
   client:

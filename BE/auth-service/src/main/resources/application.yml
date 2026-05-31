@@ -72,6 +72,7 @@ application:
     jwt:
       secret-key: ${JWT_SECRET}
       expiration: 600000                # 10 minutes in ms
+      revocation-ttl: 604800
       refresh-token:
         expiration: 604800000    # 7 days in ms
 

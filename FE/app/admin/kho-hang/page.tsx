@@ -603,7 +603,10 @@ export default function InventoryPage() {
       if (stockLevelFilter === "LOW") {
         list = list.filter(s => s.totalQuantity < 50);
       }
-      return list.filter(s => (s.medicineName || "").toLowerCase().includes(searchQuery.toLowerCase()))
+      return list.filter(s => {
+        const info = getProductInfo(s);
+        return (info.medicineName || "").toLowerCase().includes(searchQuery.toLowerCase());
+      })
     }
 
     let list: any[] = activeTab === "batches" ? batches :
@@ -632,9 +635,10 @@ export default function InventoryPage() {
     }
 
     return list.filter(item => {
-      const name = (item as any).medicineName || (item as any).name || ""
-      const batch = (item as any).batchNumber || ""
-      return name.toLowerCase().includes(searchQuery.toLowerCase()) || batch.toLowerCase().includes(searchQuery.toLowerCase())
+      const info = getProductInfo(item);
+      const name = info.medicineName || info.name || "";
+      const batch = info.batchNumber || "";
+      return name.toLowerCase().includes(searchQuery.toLowerCase()) || batch.toLowerCase().includes(searchQuery.toLowerCase());
     })
   }
 

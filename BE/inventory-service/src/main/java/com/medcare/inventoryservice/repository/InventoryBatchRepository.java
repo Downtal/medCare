@@ -17,7 +17,7 @@ public interface InventoryBatchRepository extends JpaRepository<InventoryBatch, 
     boolean existsByMedicineIdAndBatchNumber(Long medicineId, String batchNumber);
     void deleteByMedicineId(Long medicineId);
     
-    @Query("SELECT SUM(ib.quantityAvailable - ib.quantityReserved) FROM InventoryBatch ib WHERE ib.medicineId = :medicineId")
+    @Query("SELECT SUM(ib.quantityAvailable - ib.quantityReserved) FROM InventoryBatch ib WHERE ib.medicineId = :medicineId AND ib.expiryDate >= CURRENT_DATE")
     Integer getTotalAvailableQuantity(Long medicineId);
 
     List<InventoryBatch> findByMedicineIdOrderByExpiryDateAscIdAsc(Long medicineId);
@@ -26,6 +26,7 @@ public interface InventoryBatchRepository extends JpaRepository<InventoryBatch, 
     @Query("SELECT ib FROM InventoryBatch ib " +
             "WHERE ib.medicineId = :medicineId " +
             "AND ib.status = com.medcare.inventoryservice.entity.InventoryBatch.BatchStatus.ACTIVE " +
+            "AND ib.expiryDate >= CURRENT_DATE " +
             "AND (ib.quantityAvailable - ib.quantityReserved) > 0 " +
             "ORDER BY ib.expiryDate ASC, ib.id ASC")
     List<InventoryBatch> findActiveBatchesForDeductWithLock(@Param("medicineId") Long medicineId);
@@ -37,7 +38,9 @@ public interface InventoryBatchRepository extends JpaRepository<InventoryBatch, 
     @Query("SELECT new com.medcare.inventoryservice.dto.ProductStockSummary(" +
            "ib.medicineId, ib.medicineName, ib.medicineSlug, ib.medicineImage, " +
            "ib.brand, ib.registrationNumber, ib.countryOfOrigin, " +
-           "SUM(CAST(ib.quantityAvailable AS long)), SUM(CAST(ib.quantityReserved AS long)), COUNT(ib)) " +
+           "SUM(CASE WHEN ib.expiryDate >= CURRENT_DATE THEN CAST(ib.quantityAvailable AS long) ELSE 0L END), " +
+           "SUM(CASE WHEN ib.expiryDate >= CURRENT_DATE THEN CAST(ib.quantityReserved AS long) ELSE 0L END), " +
+           "SUM(CASE WHEN ib.expiryDate >= CURRENT_DATE THEN 1L ELSE 0L END)) " +
            "FROM InventoryBatch ib " +
            "GROUP BY ib.medicineId, ib.medicineName, ib.medicineSlug, ib.medicineImage, ib.brand, ib.registrationNumber, ib.countryOfOrigin " +
            "ORDER BY ib.medicineName ASC")
@@ -46,10 +49,12 @@ public interface InventoryBatchRepository extends JpaRepository<InventoryBatch, 
     @Query("SELECT new com.medcare.inventoryservice.dto.ProductStockSummary(" +
            "ib.medicineId, ib.medicineName, ib.medicineSlug, ib.medicineImage, " +
            "ib.brand, ib.registrationNumber, ib.countryOfOrigin, " +
-           "SUM(CAST(ib.quantityAvailable AS long)), SUM(CAST(ib.quantityReserved AS long)), COUNT(ib)) " +
+           "SUM(CASE WHEN ib.expiryDate >= CURRENT_DATE THEN CAST(ib.quantityAvailable AS long) ELSE 0L END), " +
+           "SUM(CASE WHEN ib.expiryDate >= CURRENT_DATE THEN CAST(ib.quantityReserved AS long) ELSE 0L END), " +
+           "SUM(CASE WHEN ib.expiryDate >= CURRENT_DATE THEN 1L ELSE 0L END)) " +
            "FROM InventoryBatch ib " +
            "GROUP BY ib.medicineId, ib.medicineName, ib.medicineSlug, ib.medicineImage, ib.brand, ib.registrationNumber, ib.countryOfOrigin " +
-           "HAVING SUM(CAST(ib.quantityAvailable AS long)) < :threshold " +
-           "ORDER BY SUM(CAST(ib.quantityAvailable AS long)) ASC")
+           "HAVING SUM(CASE WHEN ib.expiryDate >= CURRENT_DATE THEN CAST(ib.quantityAvailable AS long) ELSE 0L END) < :threshold " +
+           "ORDER BY SUM(CASE WHEN ib.expiryDate >= CURRENT_DATE THEN CAST(ib.quantityAvailable AS long) ELSE 0L END) ASC")
     List<ProductStockSummary> findLowStockSummaries(long threshold);
 }

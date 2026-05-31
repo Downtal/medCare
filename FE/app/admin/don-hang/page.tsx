@@ -16,6 +16,7 @@ import {
   History,
   Filter,
   ListFilter,
+  Calendar,
   ChevronLeft,
   ChevronRight,
   X
@@ -37,6 +38,11 @@ export default function AdminOrdersPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedStatus, setSelectedStatus] = useState("all")
   const [sortBy, setSortBy] = useState("newest")
+  const [dateFilter, setDateFilter] = useState("all")
+  const [dayFilterType, setDayFilterType] = useState("today")
+  const [monthFilterType, setMonthFilterType] = useState("thisMonth")
+  const [specificDate, setSpecificDate] = useState("")
+  const [specificMonth, setSpecificMonth] = useState("")
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 10
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
@@ -45,10 +51,15 @@ export default function AdminOrdersPage() {
     setSearchQuery("")
     setSelectedStatus("all")
     setSortBy("newest")
+    setDateFilter("all")
+    setDayFilterType("today")
+    setMonthFilterType("thisMonth")
+    setSpecificDate("")
+    setSpecificMonth("")
     setCurrentPage(1)
   }
 
-  const isFiltered = searchQuery !== "" || selectedStatus !== "all" || sortBy !== "newest"
+  const isFiltered = searchQuery !== "" || selectedStatus !== "all" || sortBy !== "newest" || dateFilter !== "all"
 
   // Dialog States
   const [isDetailsOpen, setIsDetailsOpen] = useState(false)
@@ -165,7 +176,43 @@ export default function AdminOrdersPage() {
 
       const matchesStatus = selectedStatus === "all" || o.status === selectedStatus
 
-      return matchesSearch && matchesStatus
+      let matchesDate = true
+      if (dateFilter !== "all") {
+        const orderDate = new Date(o.createdAt)
+        const now = new Date()
+        
+        if (dateFilter === "day") {
+          if (dayFilterType === "today") {
+            matchesDate = orderDate.toDateString() === now.toDateString()
+          } else if (dayFilterType === "custom" && specificDate) {
+            const [year, month, day] = specificDate.split('-').map(Number)
+            if (year && month && day) {
+              matchesDate = orderDate.getFullYear() === year && 
+                            orderDate.getMonth() === month - 1 && 
+                            orderDate.getDate() === day
+            } else {
+              matchesDate = false
+            }
+          }
+        } else if (dateFilter === "last7days") {
+          const sevenDaysAgo = new Date()
+          sevenDaysAgo.setDate(now.getDate() - 7)
+          matchesDate = orderDate >= sevenDaysAgo && orderDate <= now
+        } else if (dateFilter === "month") {
+          if (monthFilterType === "thisMonth") {
+            matchesDate = orderDate.getMonth() === now.getMonth() && orderDate.getFullYear() === now.getFullYear()
+          } else if (monthFilterType === "custom" && specificMonth) {
+            const [year, month] = specificMonth.split('-').map(Number)
+            if (year && month) {
+              matchesDate = orderDate.getFullYear() === year && orderDate.getMonth() === month - 1
+            } else {
+              matchesDate = false
+            }
+          }
+        }
+      }
+
+      return matchesSearch && matchesStatus && matchesDate
     })
 
     result.sort((a, b) => {
@@ -184,7 +231,7 @@ export default function AdminOrdersPage() {
     })
 
     return result
-  }, [orders, searchQuery, selectedStatus, sortBy])
+  }, [orders, searchQuery, selectedStatus, sortBy, dateFilter, specificDate, specificMonth, dayFilterType, monthFilterType])
 
   const totalPages = Math.ceil(filteredAndSortedOrders.length / itemsPerPage)
   const paginatedRows = filteredAndSortedOrders.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
@@ -224,40 +271,104 @@ export default function AdminOrdersPage() {
           )}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="flex flex-col md:flex-row flex-wrap gap-4">
+          {/* Date Filter */}
+          <div className="flex flex-wrap items-center gap-2 flex-[2] min-w-[300px]">
+            <Select value={dateFilter} onValueChange={(v) => { setDateFilter(v); setCurrentPage(1); }}>
+              <SelectTrigger className="h-12 bg-slate-50 border-none rounded-2xl font-bold w-full max-w-[180px]">
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-blue-500" />
+                  <SelectValue placeholder="Thời gian" />
+                </div>
+              </SelectTrigger>
+              <SelectContent className="rounded-2xl border-none shadow-2xl">
+                <SelectItem value="all">Tất cả thời gian</SelectItem>
+                <SelectItem value="day">Theo Ngày</SelectItem>
+                <SelectItem value="last7days">7 ngày qua</SelectItem>
+                <SelectItem value="month">Theo Tháng</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {dateFilter === "day" && (
+              <Select value={dayFilterType} onValueChange={(v) => { setDayFilterType(v); setCurrentPage(1); }}>
+                <SelectTrigger className="h-12 bg-slate-50 border-none rounded-2xl font-bold w-[140px] shrink-0">
+                  <SelectValue placeholder="Tùy chọn" />
+                </SelectTrigger>
+                <SelectContent className="rounded-2xl border-none shadow-2xl">
+                  <SelectItem value="today">Hôm nay</SelectItem>
+                  <SelectItem value="custom">Ngày cụ thể...</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
+
+            {dateFilter === "day" && dayFilterType === "custom" && (
+              <Input 
+                type="date" 
+                value={specificDate} 
+                onChange={(e) => { setSpecificDate(e.target.value); setCurrentPage(1); }}
+                className="h-12 bg-slate-50 border-none rounded-2xl font-bold w-[140px] sm:w-[150px] px-3 shrink-0 text-sm"
+              />
+            )}
+
+            {dateFilter === "month" && (
+              <Select value={monthFilterType} onValueChange={(v) => { setMonthFilterType(v); setCurrentPage(1); }}>
+                <SelectTrigger className="h-12 bg-slate-50 border-none rounded-2xl font-bold w-[140px] shrink-0">
+                  <SelectValue placeholder="Tùy chọn" />
+                </SelectTrigger>
+                <SelectContent className="rounded-2xl border-none shadow-2xl">
+                  <SelectItem value="thisMonth">Tháng này</SelectItem>
+                  <SelectItem value="custom">Tháng cụ thể...</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
+
+            {dateFilter === "month" && monthFilterType === "custom" && (
+              <Input 
+                type="month" 
+                value={specificMonth} 
+                onChange={(e) => { setSpecificMonth(e.target.value); setCurrentPage(1); }}
+                className="h-12 bg-slate-50 border-none rounded-2xl font-bold w-[140px] sm:w-[150px] px-3 shrink-0 text-sm"
+              />
+            )}
+          </div>
+
           {/* Status Filter */}
-          <Select value={selectedStatus} onValueChange={(v) => { setSelectedStatus(v); setCurrentPage(1); }}>
-            <SelectTrigger className="h-12 bg-slate-50 border-none rounded-2xl font-bold">
-              <div className="flex items-center gap-2">
-                <Filter className="h-4 w-4 text-blue-500" />
-                <SelectValue placeholder="Tất cả" />
-              </div>
-            </SelectTrigger>
-            <SelectContent className="rounded-2xl border-none shadow-2xl">
-              <SelectItem value="all">Tất cả</SelectItem>
-              <SelectSeparator />
-              {Object.entries(statusConfig).map(([key, cfg]) => (
-                <SelectItem key={key} value={key}>{cfg.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="flex-1 min-w-[200px]">
+            <Select value={selectedStatus} onValueChange={(v) => { setSelectedStatus(v); setCurrentPage(1); }}>
+              <SelectTrigger className="h-12 bg-slate-50 border-none rounded-2xl font-bold w-full">
+                <div className="flex items-center gap-2">
+                  <Filter className="h-4 w-4 text-blue-500" />
+                  <SelectValue placeholder="Tất cả trạng thái" />
+                </div>
+              </SelectTrigger>
+              <SelectContent className="rounded-2xl border-none shadow-2xl">
+                <SelectItem value="all">Tất cả trạng thái</SelectItem>
+                <SelectSeparator />
+                {Object.entries(statusConfig).map(([key, cfg]) => (
+                  <SelectItem key={key} value={key}>{cfg.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
           {/* Sort Filter */}
-          <Select value={sortBy} onValueChange={(v) => { setSortBy(v); setCurrentPage(1); }}>
-            <SelectTrigger className="h-12 bg-slate-50 border-none rounded-2xl font-bold">
-              <div className="flex items-center gap-2">
-                <ListFilter className="h-4 w-4 text-blue-500" />
-                <SelectValue placeholder="Sắp xếp" />
-              </div>
-            </SelectTrigger>
-            <SelectContent className="rounded-2xl border-none shadow-2xl">
-              <SelectItem value="newest">Mới nhất (Mặc định)</SelectItem>
-              <SelectItem value="oldest">Cũ nhất</SelectItem>
-              <SelectSeparator />
-              <SelectItem value="price-asc">Tổng tiền: Thấp đến Cao</SelectItem>
-              <SelectItem value="price-desc">Tổng tiền: Cao đến Thấp</SelectItem>
-            </SelectContent>
-          </Select>
+          <div className="flex-1 min-w-[200px]">
+            <Select value={sortBy} onValueChange={(v) => { setSortBy(v); setCurrentPage(1); }}>
+              <SelectTrigger className="h-12 bg-slate-50 border-none rounded-2xl font-bold w-full">
+                <div className="flex items-center gap-2">
+                  <ListFilter className="h-4 w-4 text-blue-500" />
+                  <SelectValue placeholder="Sắp xếp" />
+                </div>
+              </SelectTrigger>
+              <SelectContent className="rounded-2xl border-none shadow-2xl">
+                <SelectItem value="newest">Mới nhất (Mặc định)</SelectItem>
+                <SelectItem value="oldest">Cũ nhất</SelectItem>
+                <SelectSeparator />
+                <SelectItem value="price-asc">Tổng tiền: Thấp đến Cao</SelectItem>
+                <SelectItem value="price-desc">Tổng tiền: Cao đến Thấp</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
 
