@@ -489,8 +489,8 @@ export default function ChatbotManagementPage() {
                 </SelectTrigger>
                 <SelectContent className="rounded-xl border-none shadow-2xl p-2">
                   <SelectItem value="all" className="font-bold rounded-lg">Tất cả đánh giá</SelectItem>
-                  <SelectItem value="positive" className="font-bold rounded-lg text-emerald-600">Hài lòng (Thumbs Up)</SelectItem>
-                  <SelectItem value="negative" className="font-bold rounded-lg text-red-600">Chưa tốt (Thumbs Down)</SelectItem>
+                  <SelectItem value="positive" className="font-bold rounded-lg text-emerald-600">Hài lòng</SelectItem>
+                  <SelectItem value="negative" className="font-bold rounded-lg text-red-600">Không hài lòng</SelectItem>
                   <SelectItem value="unrated" className="font-bold rounded-lg text-slate-500">Chưa đánh giá</SelectItem>
                 </SelectContent>
               </Select>

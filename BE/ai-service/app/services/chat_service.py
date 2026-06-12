@@ -350,7 +350,8 @@ class ChatService:
             phrase_results = db.query(ProductSymptom).filter(
                 or_(
                     ProductSymptom.name.ilike(f"%{query}%"),
-                    ProductSymptom.symptoms.ilike(f"%{query}%")
+                    ProductSymptom.symptoms.ilike(f"%{query}%"),
+                    ProductSymptom.content.ilike(f"%{query}%")
                 )
             ).limit(limit).all()
             
@@ -371,6 +372,7 @@ class ChatService:
             for k in search_keywords:
                 search_filters.append(ProductSymptom.name.ilike(f"%{k}%"))
                 search_filters.append(ProductSymptom.symptoms.ilike(f"%{k}%"))
+                search_filters.append(ProductSymptom.content.ilike(f"%{k}%"))
             
             # Fetch all matching candidates
             candidates = db.query(ProductSymptom).filter(or_(*search_filters)).all()
@@ -380,12 +382,15 @@ class ChatService:
                 score = 0
                 name_lower = p.name.lower()
                 symptoms_lower = (p.symptoms or "").lower()
+                content_lower = p.content.lower()
                 for k in search_keywords:
                     k_lower = k.lower()
                     if k_lower in name_lower:
                         score += 10 # High weight for name match
                     if k_lower in symptoms_lower:
-                        score += 2  # Medium weight for symptom match
+                        score += 5  # Medium weight for symptom match
+                    if k_lower in content_lower:
+                        score += 1  # Low weight for content match
                 return score
 
             candidates.sort(key=calculate_relevance, reverse=True)

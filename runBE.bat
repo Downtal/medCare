@@ -9,6 +9,13 @@ set "PATH=%JAVA_HOME%\bin;%PATH%"
 
 cd BE
 
+echo ==============================================
+echo =       Dang tai bien moi truong tu .env       =
+echo ==============================================
+for /F "usebackq eol=# tokens=1,* delims==" %%A in (".env") do (
+    if not "%%A"=="" set "%%A=%%B"
+)
+
 echo [1] Dang chay Discovery Server (Eureka)...
 start "Eureka Server (8761)" cmd /k "gradlew discovery-server:bootRun"
 
